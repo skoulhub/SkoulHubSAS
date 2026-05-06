@@ -22,6 +22,11 @@ const PERMISSIONS = {
   'students.edit':         ['school_admin','head_teacher'],
   'students.delete':       ['school_admin'],
 
+  // ── Parents
+  'parents.view':          ['school_admin','head_teacher','bursar'],
+  'parents.create':        ['school_admin'],
+  'parents.edit':          ['school_admin','head_teacher'],
+
   // ── Teachers
   'teachers.view':         ['saas_admin','school_admin','head_teacher'],
   'teachers.create':       ['school_admin'],
@@ -70,10 +75,6 @@ const PERMISSIONS = {
   // ── School settings
   'settings.view':         ['school_admin'],
   'settings.edit':         ['school_admin'],
-
-  // ── A-Level LMS
-  'lms.view':              ['school_admin','head_teacher','teacher','parent'],
-  'lms.manage':            ['school_admin','head_teacher','teacher'],
 };
 
 /**
@@ -100,6 +101,7 @@ export function canAny(roleId, permissions) {
  */
 const NAV_PERMISSION_MAP = {
   students:   'students.view',
+  parents:    'parents.view',
   teachers:   'teachers.view',
   attendance: 'attendance.view',
   timetable:  'timetable.view',
@@ -113,7 +115,6 @@ const NAV_PERMISSION_MAP = {
   onboarding: 'saas.onboarding.manage',
   features:   'saas.features.manage',
   settings:   'settings.view',
-  lms:        'lms.view',
 };
 
 export function navAllowed(roleId, navId) {

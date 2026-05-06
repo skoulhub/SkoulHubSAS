@@ -181,191 +181,31 @@ export default function Login({ onLogin }) {
 }
 
 /* ─── Shell ─────────────────────────────────────────────────── */
-const BADGES = [
-  { label: 'Mobile Apps',            sub: 'iOS & Android',      color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18.01"/></svg> },
-  { label: 'Report Cards',           sub: 'Auto generation',    color: '#A3CF2E', bg: '#f0f9d8', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3CF2E" strokeWidth="1.8" strokeLinecap="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> },
-  { label: 'Results & Grading',      sub: 'Smart scoring',      color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg> },
-  { label: 'Attendance Tracking',    sub: 'Real-time',          color: '#A3CF2E', bg: '#f0f9d8', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3CF2E" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> },
-  { label: 'Timetables',             sub: 'Auto scheduling',    color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> },
-  { label: 'Student Management',     sub: 'Full profiles',      color: '#A3CF2E', bg: '#f0f9d8', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3CF2E" strokeWidth="1.8" strokeLinecap="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> },
-  { label: 'Teacher Management',     sub: 'HR & payroll',       color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> },
-  { label: 'ID Cards',               sub: 'Print & digital',    color: '#A3CF2E', bg: '#f0f9d8', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3CF2E" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2"/><path d="M14 9h4M14 12h4M14 15h2"/></svg> },
-  { label: 'Fee Management',         sub: 'Collections',        color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg> },
-  { label: 'Expense Tracking',       sub: 'Budget control',     color: '#A3CF2E', bg: '#f0f9d8', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3CF2E" strokeWidth="1.8" strokeLinecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg> },
-  { label: 'Payroll',                sub: 'Staff salaries',     color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg> },
-  { label: 'Security & Access',      sub: 'Role-based',         color: '#A3CF2E', bg: '#f0f9d8', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#A3CF2E" strokeWidth="1.8" strokeLinecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> },
-  { label: 'Notifications',          sub: 'SMS & push',         color: '#1E45FC', bg: '#eef3ff', icon: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg> },
-];
-
-// Three concentric ellipses: inner(5), middle(4), outer(4)
-// Centre at cx=50%, cy=34% — upper area above the illustration
-const ORBIT_RINGS = [
-  { count: 5, rx: 88,  ry: 52,  duration: 42, dir:  1 },
-  { count: 4, rx: 130, ry: 76,  duration: 56, dir: -1 },
-  { count: 4, rx: 168, ry: 98,  duration: 68, dir:  1 },
-];
-const cx = 50; // % from left of panel
-const cy = 34; // % from top of panel
-
-const ORBITS = (() => {
-  const result = [];
-  let bi = 0;
-  ORBIT_RINGS.forEach(({ count, rx, ry, duration, dir }) => {
-    for (let j = 0; j < count && bi < BADGES.length; j++, bi++) {
-      const angleDeg = (j / count) * 360 * dir;
-      const delay = -(j * (duration / count));
-      result.push({ ...BADGES[bi], cx, cy, rx, ry, angleDeg, duration, delay, dir });
-    }
-  });
-  return result;
-})();
 
 export function LoginShell({ children }) {
   return (
     <div
-      className="min-h-screen flex items-center justify-center"
+      className="min-h-screen flex items-center justify-center px-4"
       style={{ background: 'linear-gradient(135deg, #0B0F2A 0%, #1535d4 60%, #1E45FC 100%)' }}
     >
-      <style>{`
-        ${ORBITS.map((o, i) => `
-          @keyframes orbit${i} {
-            from { transform: translate(calc(${o.rx}px * cos(0deg)), calc(${o.ry}px * sin(0deg))); }
-          }
-        `).join('')}
-        ${ORBITS.map((o, i) => {
-          // Generate 8 keyframe stops around the ellipse
-          const stops = Array.from({ length: 9 }, (_, k) => {
-            const a = ((o.angleDeg + k * 45) * Math.PI) / 180;
-            const tx = (o.rx * Math.cos(a)).toFixed(1);
-            const ty = (o.ry * Math.sin(a)).toFixed(1);
-            return `${k * 12.5}% { transform: translate(${tx}px, ${ty}px); }`;
-          }).join('\n            ');
-          return `@keyframes orb${i} {\n            ${stops}\n          }`;
-        }).join('\n          ')}
-        ${ORBITS.map((o, i) => `.sh-badge-${i} {
-            position: absolute;
-            left: calc(${o.cx}% - 60px);
-            top: calc(${o.cy}% - 18px);
-            animation: orb${i} ${o.duration}s linear ${o.delay}s infinite;
-            pointer-events: none;
-          }`).join('\n          ')}
-      `}</style>
-
-      {/* Card — no rounded corners, 75vh */}
+      {/* Card — centred, constrained width, auto height */}
       <div
-        className="w-full max-w-6xl overflow-hidden shadow-2xl flex"
-        style={{ minHeight: '75vh', maxHeight: '75vh' }}
+        className="w-full max-w-md bg-white shadow-2xl rounded-2xl px-10 py-12"
       >
-        {/* Left — form panel */}
-        <div className="flex-1 bg-white flex flex-col justify-center px-10 py-8 lg:px-14 overflow-y-auto">
-          {/* Logo */}
-          <div className="mb-8">
-            <div className="flex items-center gap-3">
-              <img src="/skoulhub-logo.png" alt="SkoulHub" className="w-14 h-14 object-contain" />
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-3xl leading-none" style={{ color: '#1E45FC' }}>
-                  Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="h-0.5 w-5 rounded-full" style={{ background: '#1E45FC' }} />
-                  <span className="text-xs font-medium text-gray-500 tracking-wide">Smart School. Better Future.</span>
-                  <span className="h-0.5 w-5 rounded-full" style={{ background: '#A3CF2E' }} />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Slot for step content */}
-          <div className="w-full max-w-sm">
-            {children}
+        {/* Logo */}
+        <div className="mb-8">
+          <span className="font-bold text-3xl leading-none" style={{ color: '#1E45FC' }}>
+            Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
+          </span>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="h-0.5 w-5 rounded-full" style={{ background: '#1E45FC' }} />
+            <span className="text-xs font-medium text-gray-500 tracking-wide">Smart School. Better Future.</span>
+            <span className="h-0.5 w-5 rounded-full" style={{ background: '#A3CF2E' }} />
           </div>
         </div>
 
-        {/* Right — illustration panel */}
-        <div
-          className="hidden lg:block w-[46%] flex-shrink-0 relative overflow-hidden"
-          style={{ background: 'linear-gradient(170deg, #eef3ff 0%, #f5faff 55%, #f0f9d8 100%)' }}
-        >
-          {/* Glow accents */}
-          <div className="absolute top-0 right-0 w-72 h-72 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(30,69,252,0.1) 0%, transparent 70%)', transform: 'translate(25%,-25%)' }} />
-          <div className="absolute bottom-10 left-0 w-56 h-56 rounded-full pointer-events-none"
-            style={{ background: 'radial-gradient(circle, rgba(163,207,46,0.15) 0%, transparent 70%)', transform: 'translate(-30%,0)' }} />
-
-          {/* Orbiting badges */}
-          {ORBITS.map((o, i) => (
-            <div key={i} className={`sh-badge-${i} flex items-center gap-1.5 bg-white rounded-xl shadow-md px-2.5 py-1.5`} style={{ width: '138px' }}>
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: o.bg }}>
-                {o.icon}
-              </div>
-              <div>
-                <div className="text-[9px] font-bold text-[#0B0F2A] leading-tight">{o.label}</div>
-                <div className="text-[8px] text-gray-400 leading-tight">{o.sub}</div>
-              </div>
-            </div>
-          ))}
-
-          {/* School illustration */}
-          <svg viewBox="0 0 400 300" fill="none" xmlns="http://www.w3.org/2000/svg"
-            className="absolute bottom-0 left-0 w-full">
-            <rect x="0" y="265" width="400" height="35" fill="#A3CF2E" opacity="0.15"/>
-            <line x1="0" y1="265" x2="400" y2="265" stroke="#A3CF2E" strokeWidth="1.5" opacity="0.4"/>
-            <rect x="130" y="100" width="140" height="165" rx="4" fill="#1E45FC"/>
-            <rect x="136" y="106" width="128" height="159" rx="3" fill="#2d55fc"/>
-            <path d="M118 102 L200 60 L282 102 Z" fill="#1E45FC"/>
-            <line x1="200" y1="60" x2="200" y2="30" stroke="#0B0F2A" strokeWidth="2" strokeLinecap="round"/>
-            <path d="M200 30 L222 38 L200 46 Z" fill="#A3CF2E"/>
-            <circle cx="200" cy="82" r="11" fill="white" opacity="0.9"/>
-            <line x1="200" y1="82" x2="200" y2="74" stroke="#1E45FC" strokeWidth="1.5" strokeLinecap="round"/>
-            <line x1="200" y1="82" x2="206" y2="82" stroke="#1E45FC" strokeWidth="1.5" strokeLinecap="round"/>
-            <rect x="148" y="120" width="20" height="22" rx="2" fill="white" opacity="0.25"/>
-            <rect x="178" y="120" width="20" height="22" rx="2" fill="white" opacity="0.25"/>
-            <rect x="208" y="120" width="20" height="22" rx="2" fill="white" opacity="0.25"/>
-            <rect x="238" y="120" width="20" height="22" rx="2" fill="white" opacity="0.25"/>
-            <rect x="148" y="155" width="20" height="22" rx="2" fill="white" opacity="0.2"/>
-            <rect x="178" y="155" width="20" height="22" rx="2" fill="white" opacity="0.2"/>
-            <rect x="208" y="155" width="20" height="22" rx="2" fill="white" opacity="0.2"/>
-            <rect x="238" y="155" width="20" height="22" rx="2" fill="white" opacity="0.2"/>
-            <rect x="183" y="220" width="34" height="45" rx="3" fill="white" opacity="0.3"/>
-            <circle cx="212" cy="244" r="2" fill="white" opacity="0.8"/>
-            <rect x="174" y="262" width="52" height="4" rx="1" fill="#1E45FC" opacity="0.5"/>
-            <rect x="179" y="258" width="42" height="4" rx="1" fill="#1E45FC" opacity="0.4"/>
-            <rect x="94" y="215" width="7" height="50" rx="2" fill="#8ab526"/>
-            <ellipse cx="97" cy="208" rx="22" ry="24" fill="#A3CF2E"/>
-            <ellipse cx="97" cy="203" rx="16" ry="18" fill="#b8de44"/>
-            <rect x="299" y="215" width="7" height="50" rx="2" fill="#8ab526"/>
-            <ellipse cx="303" cy="208" rx="22" ry="24" fill="#A3CF2E"/>
-            <ellipse cx="303" cy="203" rx="16" ry="18" fill="#b8de44"/>
-            <ellipse cx="126" cy="257" rx="13" ry="9" fill="#A3CF2E" opacity="0.7"/>
-            <ellipse cx="274" cy="257" rx="13" ry="9" fill="#A3CF2E" opacity="0.7"/>
-            <rect x="60" y="200" width="26" height="50" rx="4" fill="#1E45FC"/>
-            <circle cx="73" cy="192" r="13" fill="#f5c5a0"/>
-            <path d="M61 190 Q73 178 85 190" fill="#2d1a0e"/>
-            <rect x="70" y="205" width="6" height="18" rx="1" fill="#A3CF2E"/>
-            <rect x="82" y="205" width="8" height="28" rx="3" fill="#1E45FC"/>
-            <rect x="86" y="208" width="18" height="24" rx="2" fill="#0B0F2A"/>
-            <rect x="88" y="210" width="14" height="18" rx="1" fill="#2d55fc"/>
-            <rect x="63" y="248" width="10" height="18" rx="3" fill="#0B0F2A"/>
-            <rect x="76" y="248" width="10" height="18" rx="3" fill="#0B0F2A"/>
-            <circle cx="38" cy="215" r="11" fill="#d4956a"/>
-            <path d="M28 213 Q38 203 48 213" fill="#1a1a2e"/>
-            <rect x="28" y="226" width="20" height="38" rx="4" fill="#A3CF2E"/>
-            <rect x="20" y="228" width="12" height="22" rx="3" fill="#8ab526"/>
-            <rect x="30" y="262" width="8" height="14" rx="3" fill="#1E45FC"/>
-            <rect x="40" y="262" width="8" height="14" rx="3" fill="#1E45FC"/>
-            <circle cx="362" cy="215" r="11" fill="#c17f5a"/>
-            <path d="M352 212 Q362 202 372 212" fill="#0d0d0d"/>
-            <rect x="352" y="226" width="20" height="38" rx="4" fill="#A3CF2E"/>
-            <rect x="354" y="262" width="8" height="14" rx="3" fill="#1E45FC"/>
-            <rect x="364" y="262" width="8" height="14" rx="3" fill="#1E45FC"/>
-            <circle cx="327" cy="200" r="12" fill="#e8b090"/>
-            <path d="M316 198 Q327 187 338 198" fill="#2d1a0e"/>
-            <rect x="316" y="212" width="22" height="42" rx="4" fill="#1E45FC"/>
-            <rect x="334" y="215" width="16" height="20" rx="2" fill="white" opacity="0.9"/>
-            <rect x="319" y="252" width="8" height="14" rx="3" fill="#0B0F2A"/>
-            <rect x="329" y="252" width="8" height="14" rx="3" fill="#0B0F2A"/>
-          </svg>
-        </div>
+        {/* Step content */}
+        {children}
       </div>
     </div>
   );

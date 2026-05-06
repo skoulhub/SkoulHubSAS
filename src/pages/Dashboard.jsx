@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { LogoIcon } from './Login';
-import LMSPage from './LMS';
 import { TenantContext } from '../lib/TenantContext';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
 import {
-  queryStudents, queryTeachers, queryPayments,
+  queryStudents, queryTeachers, queryPayments, queryParents,
   queryAllTenants, calcBilling, BILLING_RATE,
 } from '../lib/tenantStore';
 
@@ -24,10 +23,10 @@ const NAV_ICONS = {
   results:    'M18 20V10M12 20V4M6 20v-6',
   finance:    'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6',
   reports:    'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8M10 9H8',
-  lms:        'M12 14l9-5-9-5-9 5 9 5zM12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z',
   idcards:    'M2 7a2 2 0 012-2h16a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2V7zM16 11h2M16 15h2M8 11a2 2 0 100 4 2 2 0 000-4z',
   notifs:     'M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0',
   settings:   'M12 15a3 3 0 100-6 3 3 0 000 6zM19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z',
+  parents:    'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0zM1 21v-2a4 4 0 014-4h.5',
   schools:    'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z',
   billing:    'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z',
   onboarding: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
@@ -48,11 +47,11 @@ const NAV_BY_ROLE = {
     { id: 'overview',   label: 'Dashboard',     section: 'main' },
     { id: 'students',   label: 'Students',      section: 'main' },
     { id: 'teachers',   label: 'Teachers',      section: 'main' },
+    { id: 'parents',    label: 'Parents',       section: 'main' },
     { id: 'attendance', label: 'Attendance',    section: 'main' },
     { id: 'timetable',  label: 'Timetables',    section: 'academic' },
     { id: 'results',    label: 'Results',       section: 'academic' },
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
-    { id: 'lms',        label: 'A-Level LMS',   section: 'academic' },
     { id: 'finance',    label: 'Finance',       section: 'admin' },
     { id: 'idcards',    label: 'ID Cards',      section: 'admin' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
@@ -62,11 +61,11 @@ const NAV_BY_ROLE = {
     { id: 'overview',   label: 'Dashboard',     section: 'main' },
     { id: 'students',   label: 'Students',      section: 'main' },
     { id: 'teachers',   label: 'Teachers',      section: 'main' },
+    { id: 'parents',    label: 'Parents',       section: 'main' },
     { id: 'attendance', label: 'Attendance',    section: 'main' },
     { id: 'timetable',  label: 'Timetables',    section: 'academic' },
     { id: 'results',    label: 'Results',       section: 'academic' },
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
-    { id: 'lms',        label: 'A-Level LMS',   section: 'academic' },
     { id: 'finance',    label: 'Finance',       section: 'admin' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
   ],
@@ -76,7 +75,6 @@ const NAV_BY_ROLE = {
     { id: 'timetable',  label: 'My Timetable',  section: 'main' },
     { id: 'results',    label: 'Enter Marks',   section: 'main' },
     { id: 'students',   label: 'Students',      section: 'main' },
-    { id: 'lms',        label: 'A-Level LMS',   section: 'main' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
   ],
   parent: [
@@ -129,63 +127,34 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
 
         {/* ── Sidebar ─────────────────────────────── */}
         <aside
-          className={`flex-shrink-0 flex flex-col transition-all duration-300 ${collapsed ? 'w-[70px]' : 'w-[230px]'}`}
-          style={{ background: '#fff', borderRight: '1px solid #eef0f6', marginTop: '32px', boxShadow: '2px 0 12px rgba(30,69,252,0.04)' }}
+          className={`flex-shrink-0 flex flex-col transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[220px]'}`}
+          style={{ background: '#0B0F2A', marginTop: '32px' }}
         >
           {/* Logo */}
-          <div className={`flex items-center gap-3 px-4 py-4 border-b ${collapsed ? 'justify-center' : ''}`}
-            style={{ borderColor: '#eef0f6' }}>
+          <div className={`flex items-center gap-3 px-4 py-5 ${collapsed ? 'justify-center' : ''}`}>
             {!collapsed && (
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 30, height: 30, objectFit: 'contain' }} />
-                <span className="font-extrabold text-base tracking-tight leading-none">
-                  <span style={{ color: '#1E45FC' }}>Skoul</span><span style={{ color: '#A3CF2E' }}>Hub</span>
+              <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1E45FC' }}>
+                  <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 20, height: 20, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+                </div>
+                <span className="font-extrabold text-base tracking-tight leading-none text-white">
+                  Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
                 </span>
               </div>
             )}
             {collapsed && (
-              <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 28, height: 28, objectFit: 'contain' }} />
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#1E45FC' }}>
+                <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
+              </div>
             )}
-            <button
-              onClick={() => setCollapsed(!collapsed)}
-              className="p-1 rounded-lg transition-colors flex-shrink-0"
-              style={{ color: '#94a3b8' }}
-              onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
-              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-                {collapsed
-                  ? <><path d="M5 3L10 8L5 13"/></>
-                  : <><path d="M11 3L6 8L11 13"/></>
-                }
-              </svg>
-            </button>
           </div>
 
-          {/* School badge */}
-          {!collapsed && (
-            <div className="px-3 py-3 border-b" style={{ borderColor: '#eef0f6' }}>
-              <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl" style={{ background: '#f5f7ff' }}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold text-xs flex-shrink-0"
-                  style={{ background: '#1E45FC' }}>
-                  {tenant ? tenant.logo_initials : 'SH'}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-bold truncate" style={{ color: '#0B0F2A' }}>{tenant?.name ?? 'SkoulHub Admin'}</div>
-                  <div className="text-xs truncate" style={{ color: '#A3CF2E', fontWeight: 600 }}>
-                    {tenant ? tenant.school_id : 'Global · All Tenants'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Nav */}
-          <nav className="flex-1 overflow-y-auto py-3" style={{ scrollbarWidth: 'none' }}>
+          <nav className="flex-1 overflow-y-auto px-3 pb-3" style={{ scrollbarWidth: 'none' }}>
             {sectionGroups.map((group, gi) => (
               <div key={gi} className="mb-1">
                 {!collapsed && group.label && (
-                  <div className="px-4 pb-1 pt-2 text-[10px] font-bold tracking-widest uppercase" style={{ color: '#b0b8cc' }}>
+                  <div className="px-3 pb-1 pt-3 text-[10px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
                     {group.label}
                   </div>
                 )}
@@ -196,16 +165,16 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
                       key={item.id}
                       onClick={() => setActiveNav(item.id)}
                       title={collapsed ? item.label : undefined}
-                      className={`w-full flex items-center gap-3 mx-2 mb-0.5 rounded-xl transition-all text-sm font-medium ${collapsed ? 'justify-center px-2 py-2.5 w-auto' : 'px-3 py-2.5'}`}
+                      className={`w-full flex items-center gap-3 mb-0.5 rounded-xl transition-all text-sm font-medium ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'}`}
                       style={active
-                        ? { background: '#1E45FC', color: '#fff', width: collapsed ? 46 : 'calc(100% - 16px)' }
-                        : { color: '#64748b', width: collapsed ? 46 : 'calc(100% - 16px)', background: 'transparent' }
+                        ? { background: '#1E45FC', color: '#fff' }
+                        : { color: 'rgba(255,255,255,0.55)', background: 'transparent' }
                       }
-                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#0B0F2A'; } }}
-                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b'; } }}
+                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; } }}
+                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; } }}
                     >
-                      <span className="flex-shrink-0" style={{ opacity: active ? 1 : 0.7 }}>
-                        <Icon d={NAV_ICONS[item.id] || NAV_ICONS.overview} size={17} strokeWidth={active ? 2.2 : 1.8} />
+                      <span className="flex-shrink-0">
+                        <Icon d={NAV_ICONS[item.id] || NAV_ICONS.overview} size={17} strokeWidth={active ? 2.2 : 1.7} />
                       </span>
                       {!collapsed && <span className="truncate">{item.label}</span>}
                     </button>
@@ -216,115 +185,86 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
           </nav>
 
           {/* Bottom: user + logout */}
-          <div className="p-3 border-t" style={{ borderColor: '#eef0f6' }}>
-            {!collapsed && (
-              <div className="flex items-center gap-2.5 px-2 py-2 rounded-xl mb-2" style={{ background: '#f8faff' }}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
-                  style={{ background: rl.color }}>
-                  {currentUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2) ?? 'U'}
-                </div>
+          <div className="px-3 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+            <div className={`flex items-center gap-2.5 px-2 py-2.5 rounded-xl mb-1 ${collapsed ? 'justify-center' : ''}`}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                style={{ background: rl.color }}>
+                {currentUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2) ?? 'U'}
+              </div>
+              {!collapsed && (
                 <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold truncate" style={{ color: '#0B0F2A' }}>{currentUser.name}</div>
-                  <div className="text-[10px] font-semibold" style={{ color: rl.color }}>{rl.label}</div>
+                  <div className="text-xs font-semibold truncate text-white">{currentUser.name}</div>
+                  <div className="text-[10px]" style={{ color: tenant?.name ? '#A3CF2E' : 'rgba(255,255,255,0.4)' }}>
+                    {tenant?.name ?? rl.label}
+                  </div>
                 </div>
-              </div>
-            )}
-            <button
-              onClick={onLogout}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-all ${collapsed ? 'justify-center' : ''}`}
-              style={{ color: '#94a3b8' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#fee2e2'; e.currentTarget.style.color = '#dc2626'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#94a3b8'; }}
-            >
-              <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6"/>
-              </svg>
-              {!collapsed && <span className="font-semibold">Sign Out</span>}
-            </button>
-
-            {!collapsed && (
-              <div className="mt-3 px-2 py-2.5 rounded-xl text-center" style={{ background: 'linear-gradient(135deg, #1E45FC 0%, #0B0F2A 100%)' }}>
-                <div className="flex items-center justify-center gap-1.5 mb-1">
-                  <img src="/skoulhub-logo.png" alt="" style={{ width: 14, height: 14, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-                  <span className="text-[10px] font-bold text-white/80">SkoulHub</span>
-                </div>
-                <p className="text-[9px] text-white/50 leading-relaxed">Smart School. Better Future.</p>
-              </div>
-            )}
+              )}
+              {!collapsed && (
+                <button
+                  onClick={onLogout}
+                  title="Sign out"
+                  className="p-1 rounded-lg flex-shrink-0 transition-colors"
+                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                  onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+                    <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6"/>
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </aside>
 
         {/* ── Main ────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ marginTop: '32px' }}>
           {/* Topbar */}
-          <header className="flex-shrink-0 h-[60px] flex items-center gap-4 px-6 bg-white border-b"
-            style={{ borderColor: '#eef0f6', boxShadow: '0 1px 0 #eef0f6' }}>
+          <header className="flex-shrink-0 h-[62px] flex items-center gap-4 px-6 bg-white border-b"
+            style={{ borderColor: '#eef0f6' }}>
 
-            {/* Welcome */}
+            {/* Page title */}
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold truncate" style={{ color: '#0B0F2A' }}>
-                Welcome back, <span style={{ color: '#1E45FC' }}>{currentUser.name?.split(' ')[0]}</span> 👋
-              </div>
-              <div className="text-[11px] text-gray-400 truncate">
-                Here's what's happening at {tenant?.name ?? 'SkoulHub'}
-              </div>
+              <h1 className="text-xl font-bold truncate" style={{ color: '#0B0F2A' }}>
+                {allowedNav.find(n => n.id === activeNav)?.label ?? 'Dashboard'}
+              </h1>
             </div>
 
             {/* Search */}
-            <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm w-56"
+            <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm w-52"
               style={{ borderColor: '#e2e8f0', background: '#f8faff' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.6">
                 <circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/>
               </svg>
-              <span className="text-xs text-gray-400">Search anything…</span>
-              <span className="ml-auto text-[10px] px-1.5 py-0.5 rounded border text-gray-300" style={{ borderColor: '#e2e8f0' }}>⌘K</span>
+              <span className="text-xs text-gray-400">Search...</span>
             </div>
 
-            {/* Notif */}
+            {/* Bell */}
             <div className="relative">
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
-                className="relative w-9 h-9 rounded-xl border flex items-center justify-center transition-colors"
-                style={{ borderColor: '#e2e8f0', background: '#f8faff' }}
+                className="relative w-9 h-9 rounded-full border flex items-center justify-center transition-colors"
+                style={{ borderColor: '#e2e8f0', background: '#fff' }}
                 onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
-                onMouseLeave={e => e.currentTarget.style.background = '#f8faff'}
+                onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
-                <Icon d={NAV_ICONS.notifs} size={16} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 border-2 border-white" />
+                <Icon d={NAV_ICONS.notifs} size={16} stroke="#64748b" />
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white flex items-center justify-center">
+                  <span className="text-[6px] text-white font-bold">3</span>
+                </span>
               </button>
               {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
             </div>
 
-            {/* Quick action */}
-            {can(roleId, 'students.create') && (
-              <button
-                className="hidden md:flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white transition-all"
-                style={{ background: '#1E45FC' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#1535d4'}
-                onMouseLeave={e => e.currentTarget.style.background = '#1E45FC'}
-              >
-                <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
-                  <path d="M7 2v10M2 7h10"/>
-                </svg>
-                Quick Action
-              </button>
-            )}
-
             {/* Avatar */}
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold"
-                style={{ background: rl.color }}>
-                {currentUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2) ?? 'U'}
-              </div>
-              <div className="hidden md:block">
-                <div className="text-xs font-bold leading-tight" style={{ color: '#0B0F2A' }}>{currentUser.name}</div>
-                <div className="text-[10px] font-semibold" style={{ color: rl.color }}>{rl.label}</div>
-              </div>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              style={{ background: rl.color }}>
+              {currentUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2) ?? 'U'}
             </div>
           </header>
 
           {/* Page content */}
-          <main className="flex-1 overflow-y-auto" style={{ background: '#f5f7fb', padding: '20px 24px' }}>
+          <main className="flex-1 overflow-y-auto" style={{ background: '#f0f2f8', padding: '20px 24px' }}>
             <PermissionGate roleId={roleId} navId={activeNav}>
               <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} />
             </PermissionGate>
@@ -402,6 +342,7 @@ function PageContent({ activeNav, roleId, schoolId, tenant, currentUser }) {
   switch (activeNav) {
     case 'overview':   return roleId === 'saas_admin' ? <SaasOverviewPage /> : <OverviewPage {...props} />;
     case 'students':   return <StudentsPage   {...props} />;
+    case 'parents':    return <ParentsPage    {...props} />;
     case 'teachers':   return <TeachersPage   {...props} />;
     case 'attendance': return <AttendancePage {...props} />;
     case 'timetable':  return <TimetablePage  {...props} />;
@@ -415,7 +356,6 @@ function PageContent({ activeNav, roleId, schoolId, tenant, currentUser }) {
     case 'onboarding': return <SaasOnboardingPage />;
     case 'features':   return <SaasFeaturesPage />;
     case 'settings':   return <SettingsPage   {...props} />;
-    case 'lms':        return <LMSPage currentUser={currentUser} />;
     default:           return <ComingSoon label={activeNav} />;
   }
 }
@@ -430,20 +370,27 @@ function Card({ children, className = '', style = {} }) {
 }
 
 /* ── Stat card ── */
-function StatCard({ label, value, delta, deltaPositive = true, icon, iconBg, iconColor }) {
+function StatCard({ label, value, delta, deltaPositive = true, iconBg, iconColor, svgPath }) {
   return (
     <Card className="p-5">
-      <div className="flex items-start justify-between mb-3">
-        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
-          style={{ background: iconBg }}>
-          <span style={{ color: iconColor, fontSize: 20 }}>{icon}</span>
+      <div className="flex items-start justify-between">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-gray-400 mb-1">{label}</p>
+          <div className="text-2xl font-extrabold mb-1" style={{ color: '#0B0F2A' }}>{value}</div>
+          <div className="flex items-center gap-1">
+            <span className={`text-xs font-semibold ${deltaPositive ? 'text-green-600' : 'text-red-500'}`}>
+              {deltaPositive ? '+' : '-'}{delta}
+            </span>
+            <span className="text-xs text-gray-400">this month</span>
+          </div>
         </div>
-        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${deltaPositive ? 'text-green-700 bg-green-50' : 'text-red-600 bg-red-50'}`}>
-          {deltaPositive ? '↑' : '↓'} {delta}
-        </span>
+        <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ml-3"
+          style={{ background: iconBg }}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d={svgPath} />
+          </svg>
+        </div>
       </div>
-      <div className="text-2xl font-extrabold mb-0.5" style={{ color: '#0B0F2A' }}>{value}</div>
-      <div className="text-xs font-medium text-gray-400">{label}</div>
     </Card>
   );
 }
@@ -513,173 +460,119 @@ function OverviewPage({ roleId, schoolId, tenant, currentUser }) {
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (feePct / 100) * circumference;
 
+  // Attendance donut
+  const attPresent = 85, attAbsent = 10, attLate = 5;
+  const donutR = 52, donutStroke = 13;
+  const donutCirc = 2 * Math.PI * donutR;
+  const presentOffset = donutCirc - (attPresent / 100) * donutCirc;
+  const absentOffset  = donutCirc - (attAbsent  / 100) * donutCirc;
+  const lateOffset    = donutCirc - (attLate    / 100) * donutCirc;
+  const absentRotate  = (attPresent / 100) * 360;
+  const lateRotate    = absentRotate + (attAbsent / 100) * 360;
+
+  const feeMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const feeBars   = [30,45,38,55,62,48,72,65,80,58,90,75];
+
+  const recentActivities = [
+    { label: 'New student enrolled', time: '2 mins ago',  iconBg: '#e8ecff', iconColor: '#1E45FC', svgPath: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+    { label: 'Payment received',     time: '15 mins ago', iconBg: '#d1fae5', iconColor: '#059669', svgPath: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+    { label: 'Exam scheduled',       time: '1 hour ago',  iconBg: '#fef3c7', iconColor: '#d97706', svgPath: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    { label: 'Report card generated',time: '2 hours ago', iconBg: '#f5f3ff', iconColor: '#7c3aed', svgPath: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8' },
+  ];
+
   return (
     <div className="animate-fade-in space-y-5">
       {/* Stats row */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        <StatCard label="Total Students"   value={students.length}  delta="12 this week"       icon="👥" iconBg="#e8ecff" iconColor="#1E45FC" />
-        <StatCard label="Total Teachers"   value={teachers.length}  delta="8% last term"        icon="🎓" iconBg="#d1fae5" iconColor="#059669" />
-        <StatCard label="Attendance Rate"  value="92%"              delta="4% from last term"   icon="📋" iconBg="#e0f2fe" iconColor="#0891b2" />
-        <StatCard label="Fees Collected"   value={`UGX ${(feeCollected/1000000).toFixed(1)}M`} delta="12% from last term" icon="💰" iconBg="#fef3c7" iconColor="#d97706" />
+        <StatCard label="Total Students" value={students.length.toLocaleString()} delta="12%" deltaPositive iconBg="#e8ecff" iconColor="#1E45FC" svgPath="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+        <StatCard label="Teachers"       value={teachers.length}                  delta="5%"  deltaPositive iconBg="#dbeafe" iconColor="#2563eb" svgPath="M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5" />
+        <StatCard label="Classes"        value="48"                               delta="8%"  deltaPositive iconBg="#fce7f3" iconColor="#db2777" svgPath="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        <StatCard label="Total Revenue"  value={`UGX ${(feeCollected/1000000).toFixed(1)}M`} delta="18%" deltaPositive iconBg="#d1fae5" iconColor="#059669" svgPath="M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6" />
       </div>
 
-      {/* Charts + Recent Activities */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Attendance bar chart */}
-        <Card className="p-5 col-span-1">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Attendance Overview</h3>
-              <p className="text-xs text-gray-400 mt-0.5">This Week</p>
-            </div>
-            <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg">↑ 3.2%</span>
+      {/* Middle row — Fee chart + Attendance donut + Recent Activities */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+        {/* Fee Collection bar chart */}
+        <Card className="lg:col-span-2 p-5 flex flex-col">
+          <div className="mb-1">
+            <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Fees Collection</h3>
           </div>
-          <div className="flex items-end gap-1.5 h-32">
-            {bars.map((h, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t-lg transition-all"
-                  style={{ height: `${h}%`, background: i === 5 ? '#1E45FC' : i === 4 ? '#A3CF2E' : '#e8ecff', minHeight: 8 }} />
-                <span className="text-[10px] text-gray-400">{days[i]}</span>
+          <div className="mb-3">
+            <p className="text-xs text-gray-400">This Month</p>
+            <p className="text-2xl font-extrabold mt-0.5" style={{ color: '#0B0F2A' }}>
+              UGX {(feeCollected/1000000).toFixed(1)}M
+            </p>
+            <span className="text-xs font-semibold text-green-600">+18% from last month</span>
+          </div>
+          <div className="flex items-end gap-1 flex-1" style={{ minHeight: 90 }}>
+            {feeBars.map((h, i) => (
+              <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                <div className="w-full rounded-sm transition-all"
+                  style={{ height: `${h}%`, minHeight: 4, background: i === feeBars.length - 3 ? '#1E45FC' : '#c7d4fd' }} />
+                <span className="text-[8px] text-gray-400">{feeMonths[i].slice(0,1)}</span>
               </div>
             ))}
           </div>
         </Card>
 
-        {/* Fee collection donut */}
-        <Card className="p-5 col-span-1">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Fee Collection Overview</h3>
-              <p className="text-xs text-gray-400 mt-0.5">This Term</p>
-            </div>
-          </div>
-          <div className="flex items-center justify-center">
-            <div className="relative" style={{ width: 140, height: 140 }}>
-              <svg width="140" height="140" viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r={radius} fill="none" stroke="#eef0f6" strokeWidth="14"/>
-                <circle cx="70" cy="70" r={radius} fill="none" stroke="#1E45FC" strokeWidth="14"
-                  strokeDasharray={circumference} strokeDashoffset={offset}
-                  strokeLinecap="round" transform="rotate(-90 70 70)"/>
-                <circle cx="70" cy="70" r={radius - 14} fill="none" stroke="#A3CF2E33" strokeWidth="6"/>
+        {/* Attendance donut */}
+        <Card className="lg:col-span-2 p-5">
+          <h3 className="font-bold text-sm mb-4" style={{ color: '#0B0F2A' }}>Attendance Overview</h3>
+          <div className="flex items-center gap-4">
+            <div className="relative flex-shrink-0" style={{ width: 120, height: 120 }}>
+              <svg width="120" height="120" viewBox="0 0 120 120">
+                {/* bg */}
+                <circle cx="60" cy="60" r={donutR} fill="none" stroke="#eef0f6" strokeWidth={donutStroke}/>
+                {/* present — blue */}
+                <circle cx="60" cy="60" r={donutR} fill="none" stroke="#1E45FC" strokeWidth={donutStroke}
+                  strokeDasharray={donutCirc} strokeDashoffset={presentOffset}
+                  strokeLinecap="butt" transform="rotate(-90 60 60)"/>
+                {/* absent — orange */}
+                <circle cx="60" cy="60" r={donutR} fill="none" stroke="#f97316" strokeWidth={donutStroke}
+                  strokeDasharray={donutCirc} strokeDashoffset={absentOffset}
+                  strokeLinecap="butt" transform={`rotate(${-90 + absentRotate} 60 60)`}/>
+                {/* late — green */}
+                <circle cx="60" cy="60" r={donutR} fill="none" stroke="#22c55e" strokeWidth={donutStroke}
+                  strokeDasharray={donutCirc} strokeDashoffset={lateOffset}
+                  strokeLinecap="butt" transform={`rotate(${-90 + lateRotate} 60 60)`}/>
               </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-2xl font-extrabold" style={{ color: '#0B0F2A' }}>UGX</span>
-                <span className="text-base font-bold" style={{ color: '#1E45FC' }}>{(feeCollected/1000000).toFixed(1)}M</span>
-                <span className="text-[10px] text-gray-400">{feePct}% collected</span>
-              </div>
             </div>
-          </div>
-          <div className="flex justify-center gap-4 mt-2">
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#1E45FC' }} />
-              <span className="text-xs text-gray-500">Paid</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <div className="w-2.5 h-2.5 rounded-full" style={{ background: '#eef0f6' }} />
-              <span className="text-xs text-gray-500">Outstanding</span>
+            <div className="space-y-2.5 flex-1">
+              {[
+                { label: 'Present', pct: '85%', color: '#1E45FC' },
+                { label: 'Absent',  pct: '10%', color: '#f97316' },
+                { label: 'Late',    pct: '1%',  color: '#22c55e' },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
+                  <span className="text-xs text-gray-500 flex-1">{item.label}</span>
+                  <span className="text-xs font-bold" style={{ color: '#0B0F2A' }}>{item.pct}</span>
+                </div>
+              ))}
             </div>
           </div>
         </Card>
 
         {/* Recent Activities */}
-        <Card className="col-span-1 flex flex-col">
-          <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
+        <Card className="lg:col-span-1 flex flex-col">
+          <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: '#eef0f6' }}>
             <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Recent Activities</h3>
-            <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View all →</button>
+            <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View all</button>
           </div>
-          <div className="flex-1 divide-y overflow-y-auto" style={{ borderColor: '#f8faff' }}>
-            {activity.map((a, i) => (
-              <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors">
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0 mt-0.5"
-                  style={{ background: a.dot + '15' }}>{a.icon}</div>
+          <div className="flex-1 divide-y" style={{ borderColor: '#f1f5f9' }}>
+            {recentActivities.map((a, i) => (
+              <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors">
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: a.iconBg }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={a.iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={a.svgPath}/>
+                  </svg>
+                </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-600 leading-relaxed line-clamp-2">{a.text}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ background: a.dot + '18', color: a.dot }}>{a.category}</span>
-                    <span className="text-[10px] text-gray-400">{a.time}</span>
-                  </div>
+                  <p className="text-xs font-semibold truncate" style={{ color: '#0B0F2A' }}>{a.label}</p>
+                  <p className="text-[10px] text-gray-400">{a.time}</p>
                 </div>
               </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      {/* Bottom row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        {/* Students by Class */}
-        <Card className="col-span-1 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Students by Class</h3>
-            <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View All</button>
-          </div>
-          <div className="space-y-3">
-            {classData.map((c, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <div className="text-xs font-semibold w-12 truncate" style={{ color: '#0B0F2A' }}>{c.cls}</div>
-                <div className="flex-1 h-2 rounded-full" style={{ background: '#eef0f6' }}>
-                  <div className="h-2 rounded-full transition-all" style={{ width: `${c.pct}%`, background: i % 2 === 0 ? '#1E45FC' : '#A3CF2E' }} />
-                </div>
-                <div className="text-xs font-bold w-6 text-right" style={{ color: '#0B0F2A' }}>{c.count}</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Top Performing Subjects */}
-        <Card className="col-span-1 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Top Performing Subjects</h3>
-            <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View All</button>
-          </div>
-          <div className="space-y-3">
-            {subjects.map((s, i) => (
-              <div key={i} className="flex items-center gap-2.5">
-                <div className="text-[10px] font-semibold w-16 truncate text-gray-500">{s.name}</div>
-                <div className="flex-1 h-2 rounded-full" style={{ background: '#eef0f6' }}>
-                  <div className="h-2 rounded-full" style={{ width: `${s.score}%`, background: s.color }} />
-                </div>
-                <div className="text-xs font-bold w-8 text-right" style={{ color: s.color }}>{s.score}%</div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Upcoming Events */}
-        <Card className="col-span-1 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Upcoming Events</h3>
-            <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View Calendar</button>
-          </div>
-          <div className="space-y-2.5">
-            {events.map((ev, i) => (
-              <div key={i} className="flex items-center gap-3 p-2.5 rounded-xl" style={{ background: '#f8faff' }}>
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: eventColors[ev.type] }} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs font-semibold truncate" style={{ color: '#0B0F2A' }}>{ev.title}</div>
-                  <div className="text-[10px] text-gray-400">{ev.date}</div>
-                </div>
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded" style={{ background: eventBg[ev.type], color: eventColors[ev.type] }}>{ev.type}</span>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        {/* Quick Links */}
-        <Card className="col-span-1 p-5">
-          <div className="mb-4">
-            <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Quick Links</h3>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {quickLinks.map((ql, i) => (
-              <button key={i} className="flex flex-col items-center gap-2 p-3 rounded-xl transition-all text-center"
-                style={{ background: ql.bg }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              >
-                <span className="text-lg">{ql.icon}</span>
-                <span className="text-[10px] font-bold leading-tight" style={{ color: ql.color }}>{ql.label}</span>
-              </button>
             ))}
           </div>
         </Card>
@@ -799,6 +692,161 @@ function AddStudentModal({ onClose }) {
           <button onClick={onClose} className="flex-1 btn-brand-primary">Add Student</button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════
+   PARENTS
+═══════════════════════════════════════════════════ */
+function ParentsPage({ roleId, schoolId }) {
+  const all = queryParents(schoolId);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+
+  const filtered = all.filter(p =>
+    (filter === 'all' || p.status.toLowerCase() === filter) &&
+    (p.name.toLowerCase().includes(search.toLowerCase()) ||
+     p.email.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const balColor = (b) => b > 0 ? '#dc2626' : '#059669';
+  const balBg    = (b) => b > 0 ? '#fee2e2'  : '#d1fae5';
+
+  const totalParents  = all.length;
+  const outstanding   = all.filter(p => p.balance > 0).length;
+  const activeParents = all.filter(p => p.status === 'Active').length;
+
+  return (
+    <div className="animate-fade-in space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Parents &amp; Guardians</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{totalParents} registered · {schoolId}</p>
+        </div>
+        {can(roleId, 'students.create') && (
+          <button className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white" style={{ background: '#1E45FC' }}>
+            <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M7 2v10M2 7h10"/></svg>
+            Add Parent
+          </button>
+        )}
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label: 'Total Parents',     value: totalParents,  iconBg: '#e8ecff', iconColor: '#1E45FC', svgPath: 'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0zM1 21v-2a4 4 0 014-4h.5' },
+          { label: 'Active',            value: activeParents, iconBg: '#d1fae5', iconColor: '#059669', svgPath: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3' },
+          { label: 'Outstanding Fees',  value: outstanding,   iconBg: '#fee2e2', iconColor: '#dc2626', svgPath: 'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
+        ].map(s => (
+          <Card key={s.label} className="p-5">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs font-medium text-gray-400 mb-1">{s.label}</p>
+                <p className="text-2xl font-extrabold" style={{ color: '#0B0F2A' }}>{s.value}</p>
+              </div>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.iconBg }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d={s.svgPath}/>
+                </svg>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor: '#e2e8f0' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search parents…" className="outline-none bg-transparent text-sm w-40" />
+        </div>
+        {['all', 'active', 'inactive'].map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
+            style={filter === f ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+            {f === 'all' ? 'All' : f}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-gray-400">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
+      </div>
+
+      {/* Table */}
+      <Card className="overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
+              {['Parent / Guardian', 'Contact', 'Children', 'Fee Balance', 'Last Contact', 'Status', ''].map(h => (
+                <th key={h} className="text-left text-[11px] font-bold uppercase tracking-wide text-gray-400 px-4 py-3">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor: '#f1f5f9' }}>
+            {filtered.length === 0 ? (
+              <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">No parents found.</td></tr>
+            ) : filtered.map(p => (
+              <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
+                {/* Name + avatar */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ background: '#1E45FC' }}>
+                      {p.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold" style={{ color: '#0B0F2A' }}>{p.name}</div>
+                      <div className="text-xs text-gray-400">{p.email}</div>
+                    </div>
+                  </div>
+                </td>
+                {/* Phone */}
+                <td className="px-4 py-3 text-sm text-gray-600">{p.phone}</td>
+                {/* Children */}
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {p.children.map(c => (
+                      <span key={c} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#e8ecff', color: '#1E45FC' }}>{c}</span>
+                    ))}
+                  </div>
+                </td>
+                {/* Balance */}
+                <td className="px-4 py-3">
+                  <span className="text-xs font-bold px-2 py-1 rounded-lg" style={{ background: balBg(p.balance), color: balColor(p.balance) }}>
+                    {p.balance > 0 ? `UGX ${p.balance.toLocaleString()}` : 'Cleared'}
+                  </span>
+                </td>
+                {/* Last contact */}
+                <td className="px-4 py-3 text-xs text-gray-500">{p.lastContact}</td>
+                {/* Status */}
+                <td className="px-4 py-3">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                    style={p.status === 'Active' ? { background: '#d1fae5', color: '#059669' } : { background: '#f3f4f6', color: '#6b7280' }}>
+                    {p.status}
+                  </span>
+                </td>
+                {/* Actions */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <button className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                      style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E45FC'; e.currentTarget.style.color = '#1E45FC'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                      Message
+                    </button>
+                    <button className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                      style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E45FC'; e.currentTarget.style.color = '#1E45FC'; }}
+                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                      View
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
     </div>
   );
 }
@@ -1088,90 +1136,526 @@ function ResultsPage({ roleId, schoolId }) {
 /* ══════════════════════════════════════════════════
    FINANCE
 ═══════════════════════════════════════════════════ */
-function FinancePage({ roleId, schoolId }) {
-  const payments = queryPayments(schoolId);
-  const [showModal, setModal] = useState(false);
-  const canRecord  = can(roleId, 'finance.record');
-  const canApprove = can(roleId, 'finance.approve');
-  const confirmed = payments.filter(p=>p.status==='Confirmed');
-  const pending   = payments.filter(p=>p.status==='Pending');
+function FinancePage({ roleId, schoolId, tenant }) {
+  const basePayments = queryPayments(schoolId);
+  const students     = queryStudents(schoolId);
+  const canRecord    = can(roleId,'finance.record');
+  const canApprove   = can(roleId,'finance.approve');
+  const canPayroll   = can(roleId,'finance.payroll');
+
+  /* ── Tab state ── */
+  const [tab, setTab] = useState('fees'); // fees | expenses | payroll | approvals
+
+  /* ── Fees state ── */
+  const [payments, setPayments] = useState([
+    ...basePayments,
+    { id:'p-06', school_id: schoolId, student:'Grace Akello',    amount:'450,000', method:'Cash',         date:'2026-05-06', status:'Confirmed', txRef:'CASH-2026-006', term:'Term 2 2026' },
+    { id:'p-07', school_id: schoolId, student:'Francis Kiggundu',amount:'225,000', method:'Cheque',        date:'2026-05-05', status:'Pending',   txRef:'CHQ-0042',      term:'Term 2 2026' },
+    { id:'p-08', school_id: schoolId, student:'Henry Mugisha',   amount:'150,000', method:'Mobile Money',  date:'2026-05-04', status:'Pending',   txRef:'MTN-789012',    term:'Term 2 2026' },
+  ]);
+  const [paySearch,  setPaySearch]  = useState('');
+  const [payMethod,  setPayMethod]  = useState('all');
+  const [payStatus,  setPayStatus]  = useState('all');
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [receipt, setReceipt]  = useState(null);
+  const [newPay, setNewPay]    = useState({ student:'', amount:'', method:'Mobile Money', txRef:'', term:'Term 2 2026' });
+
+  /* ── Expenses state ── */
+  const [expenses, setExpenses] = useState([
+    { id:'e-01', category:'Utilities',    desc:'Electricity bill – April',         amount:580000,  date:'2026-05-02', status:'Approved',  submittedBy:'Bursar',      approvedBy:'Head Teacher' },
+    { id:'e-02', category:'Supplies',     desc:'Stationery & chalk restock',       amount:120000,  date:'2026-05-03', status:'Approved',  submittedBy:'Bursar',      approvedBy:'Head Teacher' },
+    { id:'e-03', category:'Maintenance',  desc:'Classroom roof repair – Block B',  amount:950000,  date:'2026-05-04', status:'Pending',   submittedBy:'Bursar',      approvedBy:null },
+    { id:'e-04', category:'Transport',    desc:'School bus fuel – May',            amount:340000,  date:'2026-05-05', status:'Pending',   submittedBy:'Bursar',      approvedBy:null },
+    { id:'e-05', category:'Events',       desc:'Sports Day catering',              amount:280000,  date:'2026-05-06', status:'Rejected',  submittedBy:'Bursar',      approvedBy:'Director' },
+    { id:'e-06', category:'Salaries',     desc:'Support staff – April payroll',   amount:2400000, date:'2026-04-30', status:'Approved',  submittedBy:'Bursar',      approvedBy:'Director' },
+  ]);
+  const [showExpModal, setShowExpModal] = useState(false);
+  const [newExp, setNewExp] = useState({ category:'Utilities', desc:'', amount:'' });
+  const expCategories = ['Utilities','Supplies','Maintenance','Transport','Events','Salaries','Other'];
+
+  /* ── Payroll state ── */
+  const payroll = [
+    { id:'pr-01', name:'Grace Namutebi',  role:'Teacher',        subject:'Mathematics', gross:850000,  tax:85000,  nssf:51000,  net:714000,  status:'Paid' },
+    { id:'pr-02', name:'Joseph Okoye',    role:'Teacher',        subject:'English',     gross:820000,  tax:82000,  nssf:49200,  net:688800,  status:'Paid' },
+    { id:'pr-03', name:'Stella Akello',   role:'Teacher',        subject:'Biology',     gross:820000,  tax:82000,  nssf:49200,  net:688800,  status:'Pending' },
+    { id:'pr-04', name:'Peter Ssemanda',  role:'Teacher',        subject:'History',     gross:800000,  tax:80000,  nssf:48000,  net:672000,  status:'Paid' },
+    { id:'pr-05', name:'Irene Nakimera',  role:'Teacher',        subject:'Chemistry',   gross:830000,  tax:83000,  nssf:49800,  net:697200,  status:'Pending' },
+    { id:'pr-06', name:'James Okoye',     role:'Bursar',         subject:'—',           gross:900000,  tax:90000,  nssf:54000,  net:756000,  status:'Paid' },
+    { id:'pr-07', name:'Agnes Namukwaya', role:'School Admin',   subject:'—',           gross:1100000, tax:110000, nssf:66000,  net:924000,  status:'Paid' },
+  ];
+
+  /* ── Derived metrics ── */
+  const confirmed  = payments.filter(p=>p.status==='Confirmed');
+  const pending    = payments.filter(p=>p.status==='Pending');
+  const totalFees  = confirmed.reduce((s,p)=>s+parseInt(p.amount.replace(/,/g,''),10),0);
+  const totalExp   = expenses.filter(e=>e.status==='Approved').reduce((s,e)=>s+e.amount,0);
+  const totalPayroll = payroll.reduce((s,p)=>s+p.net,0);
+  const pendingApprovals = [...expenses.filter(e=>e.status==='Pending'), ...payments.filter(p=>p.status==='Pending')];
+
+  /* ── Filtered fees ── */
+  const filteredPay = payments.filter(p=>
+    (payMethod==='all' || p.method===payMethod) &&
+    (payStatus==='all' || p.status===payStatus) &&
+    (p.student.toLowerCase().includes(paySearch.toLowerCase()) || (p.txRef||'').toLowerCase().includes(paySearch.toLowerCase()))
+  );
+
+  /* ── Record new payment ── */
+  const recordPayment = () => {
+    if (!newPay.student || !newPay.amount) return;
+    const id = 'p-' + Date.now();
+    setPayments(prev=>[{ id, school_id:schoolId, ...newPay, date:new Date().toISOString().slice(0,10), status:'Pending', txRef: newPay.txRef || `TXN-${Date.now()}` }, ...prev]);
+    setNewPay({ student:'', amount:'', method:'Mobile Money', txRef:'', term:'Term 2 2026' });
+    setShowPayModal(false);
+  };
+
+  /* ── Approve payment ── */
+  const approvePayment = (id) => setPayments(prev=>prev.map(p=>p.id===id?{...p,status:'Confirmed'}:p));
+
+  /* ── Approve/reject expense ── */
+  const approveExp = (id,action) => setExpenses(prev=>prev.map(e=>e.id===id?{...e,status:action,approvedBy:action==='Approved'?'Head Teacher':'Director'}:e));
+
+  /* ── Add expense ── */
+  const addExpense = () => {
+    if (!newExp.desc || !newExp.amount) return;
+    setExpenses(prev=>[{ id:'e-'+Date.now(), ...newExp, amount:parseInt(newExp.amount,10), date:new Date().toISOString().slice(0,10), status:'Pending', submittedBy:'Bursar', approvedBy:null }, ...prev]);
+    setNewExp({ category:'Utilities', desc:'', amount:'' });
+    setShowExpModal(false);
+  };
+
+  const TABS = [
+    { id:'fees',      label:'Fee Payments',    badge: pending.length||null },
+    { id:'expenses',  label:'Expenses',         badge: expenses.filter(e=>e.status==='Pending').length||null },
+    { id:'payroll',   label:'Payroll',          badge: null },
+    { id:'approvals', label:'Approvals',        badge: pendingApprovals.length||null },
+  ];
+
+  const methodColors = { 'Mobile Money':'#1E45FC', 'Cash':'#059669', 'Cheque':'#7c3aed', 'Bank Transfer':'#0891b2', 'Online':'#d97706' };
+  const methodBg     = { 'Mobile Money':'#e8ecff', 'Cash':'#d1fae5',  'Cheque':'#f5f3ff', 'Bank Transfer':'#e0f2fe', 'Online':'#fef3c7' };
+  const expStatusColor = { Approved:'#059669', Pending:'#d97706', Rejected:'#dc2626' };
+  const expStatusBg    = { Approved:'#d1fae5',  Pending:'#fef3c7',  Rejected:'#fee2e2' };
 
   return (
-    <div className="animate-fade-in space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="animate-fade-in space-y-5">
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Finance</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Fee collection · {schoolId}</p>
+          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Finance</h2>
+          <p className="text-xs text-gray-400 mt-0.5">School finance management · {tenant?.name ?? schoolId}</p>
         </div>
-        {canRecord && <button onClick={() => setModal(true)} className="btn-brand-primary text-sm py-2 px-4">+ Record Payment</button>}
+        <div className="flex gap-2">
+          {canRecord && tab==='fees' && (
+            <button onClick={()=>setShowPayModal(true)} className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white" style={{ background:'#1E45FC' }}>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M7 2v10M2 7h10"/></svg>
+              Record Payment
+            </button>
+          )}
+          {canRecord && tab==='expenses' && (
+            <button onClick={()=>setShowExpModal(true)} className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white" style={{ background:'#7c3aed' }}>
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M7 2v10M2 7h10"/></svg>
+              Add Expense
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      {/* ── Metric cards ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label:'Confirmed',   value:`${confirmed.length} payments`, sub:`UGX ${(confirmed.length*450000/1000000).toFixed(1)}M`, color:'#059669', bg:'#d1fae5' },
-          { label:'Pending',     value:`${pending.length} payments`,   sub:'Awaiting confirmation', color:'#d97706', bg:'#fef3c7' },
-          { label:'Rate (term)', value:`UGX ${BILLING_RATE.toLocaleString()}`, sub:'Per student', color:'#1E45FC', bg:'#e8ecff' },
-        ].map((s,i) => (
-          <Card key={i} className="p-4">
-            <div className="text-xs text-gray-400 mb-1">{s.label}</div>
-            <div className="text-xl font-extrabold mb-0.5" style={{ color: '#0B0F2A' }}>{s.value}</div>
-            <div className="text-xs font-bold" style={{ color: s.color }}>{s.sub}</div>
+          { label:'Total Fees Collected', value:`UGX ${(totalFees/1000000).toFixed(2)}M`,       delta:'+18%', color:'#059669', bg:'#d1fae5', path:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
+          { label:'Pending Payments',      value:`${pending.length} payments`,                   delta:`UGX ${pending.length*225}K`, color:'#d97706', bg:'#fef3c7', path:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+          { label:'Total Expenses',        value:`UGX ${(totalExp/1000000).toFixed(2)}M`,         delta:'This term', color:'#dc2626', bg:'#fee2e2', path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3' },
+          { label:'Payroll (Monthly)',     value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`,      delta:'7 staff', color:'#7c3aed', bg:'#f5f3ff', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+        ].map(m=>(
+          <Card key={m.label} className="p-4">
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-xs text-gray-400 mb-1">{m.label}</p>
+                <p className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>{m.value}</p>
+                <p className="text-xs font-semibold mt-0.5" style={{ color:m.color }}>{m.delta}</p>
+              </div>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:m.bg }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={m.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={m.path}/></svg>
+              </div>
+            </div>
           </Card>
         ))}
       </div>
 
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b" style={{ borderColor: '#eef0f6' }}>
-          <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Payment Records</h3>
-          <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>Export CSV →</button>
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
-              {['Student','Amount','Method','Date','Status', canApprove ? 'Approve' : 'Receipt'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y" style={{ borderColor: '#f5f7fb' }}>
-            {payments.map((p,i) => (
-              <tr key={i} className="hover:bg-gray-50/50">
-                <td className="px-4 py-3 text-sm font-semibold" style={{ color: '#0B0F2A' }}>{p.student}</td>
-                <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {p.amount}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{p.method}</td>
-                <td className="px-4 py-3 text-sm text-gray-400">{p.date}</td>
-                <td className="px-4 py-3">
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${p.status==='Confirmed'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{p.status}</span>
-                </td>
-                <td className="px-4 py-3">
-                  {canApprove && p.status === 'Pending'
-                    ? <button className="text-xs font-bold text-green-600 hover:underline">Approve</button>
-                    : <button className="text-xs font-bold hover:underline" style={{ color: '#1E45FC' }}>Receipt</button>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </Card>
+      {/* ── Tabs ── */}
+      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background:'#f0f2f8' }}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)}
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all"
+            style={tab===t.id?{ background:'#fff', color:'#1E45FC', boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }:{ color:'#64748b' }}>
+            {t.label}
+            {t.badge ? <span className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold" style={{ background:'#dc2626' }}>{t.badge}</span> : null}
+          </button>
+        ))}
+      </div>
 
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-slide-up">
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Record Payment</h3>
-              <button onClick={() => setModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
+      {/* ══ TAB: FEE PAYMENTS ══ */}
+      {tab==='fees' && (
+        <div className="space-y-4">
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'#e2e8f0' }}>
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
+              <input value={paySearch} onChange={e=>setPaySearch(e.target.value)} placeholder="Student or Tx ID…" className="outline-none bg-transparent text-sm w-36"/>
             </div>
-            <div className="p-6 flex flex-col gap-4">
-              {[['Student Name','text','Aisha Nakato'],['Amount (UGX)','number','450000'],['Payment Method','text','Mobile Money'],['Transaction ID','text','MTN-123456']].map(([lbl,type,ph]) => (
-                <div key={lbl}>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">{lbl}</label>
-                  <input type={type} placeholder={ph} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none transition-all" style={{ borderColor: '#e2e8f0' }}/>
+            <select value={payMethod} onChange={e=>setPayMethod(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none" style={{ borderColor:'#e2e8f0', color:'#0B0F2A' }}>
+              <option value="all">All Methods</option>
+              {['Mobile Money','Cash','Cheque','Bank Transfer','Online'].map(m=><option key={m}>{m}</option>)}
+            </select>
+            {['all','Confirmed','Pending'].map(s=>(
+              <button key={s} onClick={()=>setPayStatus(s)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
+                style={payStatus===s?{borderColor:'#1E45FC',background:'#e8ecff',color:'#1E45FC'}:{borderColor:'#e2e8f0',color:'#64748b'}}>
+                {s==='all'?'All':s}
+              </button>
+            ))}
+            <span className="ml-auto text-xs text-gray-400">{filteredPay.length} records</span>
+          </div>
+
+          <Card className="overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+                  {['Student','Amount','Method','Tx Reference','Term','Date','Status',''].map(h=>(
+                    <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+                {filteredPay.length===0
+                  ? <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-400">No payments found.</td></tr>
+                  : filteredPay.map(p=>(
+                  <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background:'#1E45FC' }}>
+                          {p.student.split(' ').map(w=>w[0]).join('').slice(0,2)}
+                        </div>
+                        <span className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{p.student}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {p.amount}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:methodBg[p.method]||'#f0f0f0', color:methodColors[p.method]||'#64748b' }}>{p.method}</span>
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.txRef||'—'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{p.term||'Term 2 2026'}</td>
+                    <td className="px-4 py-3 text-xs text-gray-400">{p.date}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${p.status==='Confirmed'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{p.status}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1.5">
+                        {canApprove && p.status==='Pending' && (
+                          <button onClick={()=>approvePayment(p.id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background:'#059669' }}>Approve</button>
+                        )}
+                        <button onClick={()=>setReceipt(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors" style={{ borderColor:'#e2e8f0', color:'#1E45FC' }}>Receipt</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {/* ══ TAB: EXPENSES ══ */}
+      {tab==='expenses' && (
+        <Card className="overflow-hidden">
+          <table className="w-full">
+            <thead>
+              <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+                {['Category','Description','Amount','Date','Submitted By','Status',''].map(h=>(
+                  <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+              {expenses.map(e=>(
+                <tr key={e.id} className="hover:bg-gray-50/60 transition-colors">
+                  <td className="px-4 py-3">
+                    <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:'#f0f2f8', color:'#0B0F2A' }}>{e.category}</span>
+                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-700">{e.desc}</td>
+                  <td className="px-4 py-3 text-sm font-bold" style={{ color:'#dc2626' }}>UGX {e.amount.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-xs text-gray-400">{e.date}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{e.submittedBy}</td>
+                  <td className="px-4 py-3">
+                    <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background:expStatusBg[e.status], color:expStatusColor[e.status] }}>{e.status}</span>
+                    {e.approvedBy && <div className="text-[9px] text-gray-400 mt-0.5">by {e.approvedBy}</div>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {canApprove && e.status==='Pending' ? (
+                      <div className="flex gap-1.5">
+                        <button onClick={()=>approveExp(e.id,'Approved')} className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background:'#059669' }}>Approve</button>
+                        <button onClick={()=>approveExp(e.id,'Rejected')} className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background:'#dc2626' }}>Reject</button>
+                      </div>
+                    ) : <span className="text-xs text-gray-300">—</span>}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {/* ══ TAB: PAYROLL ══ */}
+      {tab==='payroll' && (
+        <div className="space-y-4">
+          <div className="grid grid-cols-3 gap-4">
+            {[
+              { label:'Total Gross', value:`UGX ${(payroll.reduce((s,p)=>s+p.gross,0)/1000000).toFixed(2)}M`, color:'#0B0F2A' },
+              { label:'Total Tax Deducted', value:`UGX ${(payroll.reduce((s,p)=>s+p.tax,0)/1000).toFixed(0)}K`, color:'#dc2626' },
+              { label:'Total Net Payable', value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`, color:'#059669' },
+            ].map(m=>(
+              <Card key={m.label} className="p-4 text-center">
+                <div className="text-xs text-gray-400 mb-1">{m.label}</div>
+                <div className="text-xl font-extrabold" style={{ color:m.color }}>{m.value}</div>
+              </Card>
+            ))}
+          </div>
+          <Card className="overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+                  {['Staff Member','Role','Subject','Gross (UGX)','Tax','NSSF','Net Pay','Status',''].map(h=>(
+                    <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+                {payroll.map(p=>(
+                  <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background:'#7c3aed' }}>
+                          {p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+                        </div>
+                        <span className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{p.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{p.role}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{p.subject}</td>
+                    <td className="px-4 py-3 text-sm font-semibold text-gray-700">{p.gross.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs text-red-500">-{p.tax.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs text-orange-500">-{p.nssf.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-sm font-bold text-green-700">{p.net.toLocaleString()}</td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${p.status==='Paid'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{p.status}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <button className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border text-gray-500" style={{ borderColor:'#e2e8f0' }}>Payslip</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+        </div>
+      )}
+
+      {/* ══ TAB: APPROVALS ══ */}
+      {tab==='approvals' && (
+        <div className="space-y-3">
+          {pendingApprovals.length===0 ? (
+            <Card className="p-12 text-center">
+              <div className="text-3xl mb-2">✅</div>
+              <p className="text-sm font-semibold text-gray-500">All items are approved. No pending actions.</p>
+            </Card>
+          ) : pendingApprovals.map((item,i)=>{
+            const isFee = !!item.student;
+            return (
+              <Card key={i} className="p-4 flex items-center gap-4">
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: isFee?'#e8ecff':'#fef3c7' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isFee?'#1E45FC':'#d97706'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={isFee?'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6':'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3'}/>
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>
+                    {isFee ? `Fee Payment — ${item.student}` : `Expense — ${item.desc}`}
+                  </div>
+                  <div className="text-xs text-gray-400 mt-0.5">
+                    {isFee
+                      ? `UGX ${item.amount} · ${item.method} · ${item.date}`
+                      : `UGX ${item.amount?.toLocaleString()} · ${item.category} · ${item.date}`}
+                  </div>
+                  <div className="text-[10px] mt-0.5 font-semibold" style={{ color:'#d97706' }}>
+                    {isFee ? '🔐 Awaiting bursar/admin confirmation' : '🔐 Awaiting head teacher / director approval'}
+                  </div>
+                </div>
+                {canApprove && (
+                  <div className="flex gap-2 flex-shrink-0">
+                    <button
+                      onClick={()=>isFee?approvePayment(item.id):approveExp(item.id,'Approved')}
+                      className="text-xs font-bold px-3 py-1.5 rounded-xl text-white" style={{ background:'#059669' }}>
+                      Approve
+                    </button>
+                    {!isFee && (
+                      <button onClick={()=>approveExp(item.id,'Rejected')}
+                        className="text-xs font-bold px-3 py-1.5 rounded-xl text-white" style={{ background:'#dc2626' }}>
+                        Reject
+                      </button>
+                    )}
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* ══ RECORD PAYMENT MODAL ══ */}
+      {showPayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.6)' }} onClick={()=>setShowPayModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
+              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Record School Fee Payment</h3>
+              <button onClick={()=>setShowPayModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              {/* Student select */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Student <span className="text-red-400">*</span></label>
+                <select value={newPay.student} onChange={e=>setNewPay(p=>({...p,student:e.target.value}))}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  <option value="">— Select student —</option>
+                  {students.map(s=><option key={s.id}>{s.name}</option>)}
+                </select>
+              </div>
+              {/* Amount */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Amount (UGX) <span className="text-red-400">*</span></label>
+                <input type="number" value={newPay.amount} onChange={e=>setNewPay(p=>({...p,amount:e.target.value}))}
+                  placeholder="450000" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+              </div>
+              {/* Payment method — big buttons */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-2">Payment Method <span className="text-red-400">*</span></label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { m:'Mobile Money', icon:'📱' },
+                    { m:'Cash',         icon:'💵' },
+                    { m:'Cheque',       icon:'📝' },
+                    { m:'Online',       icon:'🌐' },
+                  ].map(({m,icon})=>(
+                    <button key={m} type="button" onClick={()=>setNewPay(p=>({...p,method:m}))}
+                      className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all"
+                      style={newPay.method===m
+                        ?{ borderColor:'#1E45FC', background:'#e8ecff', color:'#1E45FC' }
+                        :{ borderColor:'#e2e8f0', color:'#64748b' }}>
+                      <span>{icon}</span>{m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {/* Tx ref */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Transaction Reference</label>
+                <input type="text" value={newPay.txRef} onChange={e=>setNewPay(p=>({...p,txRef:e.target.value}))}
+                  placeholder="MTN-XXXXXXXX" className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono outline-none" style={{ borderColor:'#e2e8f0' }}/>
+              </div>
+              {/* Term */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Term</label>
+                <select value={newPay.term} onChange={e=>setNewPay(p=>({...p,term:e.target.value}))}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  {['Term 1 2026','Term 2 2026','Term 3 2025'].map(t=><option key={t}>{t}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button onClick={()=>setShowPayModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={recordPayment} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Save Payment</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ ADD EXPENSE MODAL ══ */}
+      {showExpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.6)' }} onClick={()=>setShowExpModal(false)}>
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
+              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Submit Expense</h3>
+              <button onClick={()=>setShowExpModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category</label>
+                <select value={newExp.category} onChange={e=>setNewExp(x=>({...x,category:e.target.value}))}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  {expCategories.map(c=><option key={c}>{c}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Description <span className="text-red-400">*</span></label>
+                <input type="text" value={newExp.desc} onChange={e=>setNewExp(x=>({...x,desc:e.target.value}))}
+                  placeholder="e.g. Electricity bill May" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Amount (UGX) <span className="text-red-400">*</span></label>
+                <input type="number" value={newExp.amount} onChange={e=>setNewExp(x=>({...x,amount:e.target.value}))}
+                  placeholder="500000" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+              </div>
+              <p className="text-[11px] text-amber-600 bg-amber-50 px-3 py-2 rounded-xl">⚠️ Submitted expenses require approval from the Head Teacher or Director before being finalised.</p>
+            </div>
+            <div className="flex gap-3 px-6 pb-6">
+              <button onClick={()=>setShowExpModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={addExpense} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#7c3aed' }}>Submit</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══ RECEIPT MODAL ══ */}
+      {receipt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.65)' }} onClick={()=>setReceipt(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e=>e.stopPropagation()}>
+            {/* Receipt header */}
+            <div className="px-6 py-5 text-center border-b" style={{ borderColor:'#eef0f6' }}>
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background:'#1E45FC' }}>
+                  <img src="/skoulhub-logo.png" alt="" style={{ width:14,height:14,objectFit:'contain',filter:'brightness(0) invert(1)' }}/>
+                </div>
+                <span className="font-extrabold text-base" style={{ color:'#1E45FC' }}>Skoul<span style={{ color:'#A3CF2E' }}>Hub</span></span>
+              </div>
+              <div className="text-xs text-gray-400">{tenant?.name ?? 'School'}</div>
+              <div className="text-xs font-bold mt-2 px-3 py-1 rounded-full inline-block" style={{ background:'#d1fae5', color:'#059669' }}>OFFICIAL RECEIPT</div>
+            </div>
+            {/* Receipt body */}
+            <div className="px-6 py-4 space-y-2.5">
+              {[
+                ['Receipt No.',   `RCP-${receipt.id?.toUpperCase()}`],
+                ['Student',       receipt.student],
+                ['Amount Paid',   `UGX ${receipt.amount}`],
+                ['Payment Method',receipt.method],
+                ['Tx Reference',  receipt.txRef||'—'],
+                ['Term',          receipt.term||'Term 2 2026'],
+                ['Date',          receipt.date],
+                ['Status',        receipt.status],
+              ].map(([l,v])=>(
+                <div key={l} className="flex items-center justify-between py-1.5 border-b border-dashed" style={{ borderColor:'#f0f0f0' }}>
+                  <span className="text-xs text-gray-400">{l}</span>
+                  <span className={`text-xs font-bold ${l==='Status'?(receipt.status==='Confirmed'?'text-green-700':'text-yellow-700'):''}`} style={{ color: l==='Amount Paid'?'#059669': l==='Status'?undefined:'#0B0F2A' }}>{v}</span>
                 </div>
               ))}
             </div>
+            <div className="px-6 pb-3 text-center text-[10px] text-gray-400">
+              Generated by SkoulHub · {new Date().toLocaleDateString()}
+            </div>
+            {/* Divider with scissors */}
+            <div className="mx-6 border-t border-dashed text-center text-gray-300 text-xs mb-3" style={{ borderColor:'#e2e8f0' }}>✂</div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
-              <button onClick={() => setModal(false)} className="flex-1 btn-brand-primary">Save Payment</button>
+              <button onClick={()=>setReceipt(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Close</button>
+              <button className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Print Receipt</button>
             </div>
           </div>
         </div>
@@ -1184,52 +1668,305 @@ function FinancePage({ roleId, schoolId }) {
    REPORT CARDS
 ═══════════════════════════════════════════════════ */
 function ReportCardsPage({ roleId, schoolId }) {
-  const students = queryStudents(schoolId).slice(0,4);
-  const canGen   = can(roleId, 'reports.generate');
-  const canSend  = can(roleId, 'reports.send');
+  const allStudents = queryStudents(schoolId);
+  const canGen  = can(roleId, 'reports.generate');
+  const canSend = can(roleId, 'reports.send');
+
+  // Aggregate mock marks per student
+  const SUBJECTS = ['Mathematics','English','Biology','History','Chemistry','Physics','Geography'];
+  const MOCK_MARKS = {
+    's-01': [88,82,76,71,68,79,85],
+    's-02': [62,70,55,68,60,58,65],
+    's-03': [91,88,84,79,80,88,90],
+    's-04': [45,50,42,55,48,40,52],
+    's-05': [78,75,70,72,74,76,80],
+    's-06': [55,60,58,62,50,54,60],
+    's-07': [83,80,77,74,76,82,85],
+    's-08': [40,45,48,42,44,38,50],
+  };
+  const gradeOf = avg => avg>=80?'D1':avg>=75?'D2':avg>=70?'C3':avg>=65?'C4':avg>=60?'C5':avg>=55?'C6':avg>=50?'P7':avg>=45?'P8':'F9';
+  const gradeColor = g => g.startsWith('D')?'#059669':g.startsWith('C')?'#1E45FC':g.startsWith('P')?'#d97706':'#dc2626';
+  const gradeBg    = g => g.startsWith('D')?'#d1fae5':g.startsWith('C')?'#e8ecff':g.startsWith('P')?'#fef3c7':'#fee2e2';
+
+  const reportData = allStudents.map((s, idx) => {
+    const marks = MOCK_MARKS[s.id] || SUBJECTS.map(() => Math.floor(Math.random()*40+45));
+    const avg   = Math.round(marks.reduce((a,b)=>a+b,0)/marks.length);
+    const grade = gradeOf(avg);
+    const pos   = idx + 1;
+    return { ...s, marks, avg, grade, pos, total: allStudents.length };
+  }).sort((a,b) => b.avg - a.avg).map((s,i) => ({ ...s, pos: i+1 }));
+
+  const [search,   setSearch]   = useState('');
+  const [classF,   setClassF]   = useState('all');
+  const [termF,    setTermF]    = useState('Term 2 2026');
+  const [selected, setSelected] = useState(null); // view modal
+  const [editing,  setEditing]  = useState(null); // edit modal
+
+  const classes = ['all', ...new Set(allStudents.map(s=>s.class))];
+  const terms   = ['Term 1 2026','Term 2 2026','Term 3 2025'];
+
+  const filtered = reportData.filter(s =>
+    (classF === 'all' || s.class === classF) &&
+    s.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  // Grade distribution summary
+  const dist = { D:0, C:0, P:0, F:0 };
+  reportData.forEach(s => { dist[s.grade[0]]++; });
+
   return (
-    <div className="animate-fade-in space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="animate-fade-in space-y-5">
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Report Cards</h2>
-          <p className="text-xs text-gray-400 mt-0.5">End of term reports · {schoolId}</p>
+          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Report Cards</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{termF} · {allStudents.length} students · {schoolId}</p>
         </div>
-        {canGen && <button className="btn-brand-primary text-sm py-2 px-4">Generate All</button>}
+        <div className="flex items-center gap-2">
+          {canGen && (
+            <button className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-colors"
+              style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+              onMouseEnter={e=>{e.currentTarget.style.borderColor='#1E45FC';e.currentTarget.style.color='#1E45FC';}}
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              Export All
+            </button>
+          )}
+          {canGen && (
+            <button className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white"
+              style={{ background:'#1E45FC' }}>
+              <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M7 2v10M2 7h10"/></svg>
+              Generate All
+            </button>
+          )}
+        </div>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {students.map((s,i) => (
-          <Card key={i} className="p-5">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background:'#e8ecff', color:'#1E45FC' }}>
-                {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
-              </div>
-              <div>
-                <div className="font-bold text-sm" style={{ color:'#0B0F2A' }}>{s.name}</div>
-                <div className="text-xs text-gray-400">{s.class} · Term 2 2026</div>
-              </div>
-              <span className="ml-auto text-xs font-bold px-2 py-1 rounded-full bg-green-50 text-green-700">Ready</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2 text-center mb-4">
-              {[['Avg Score','76%'],['Grade','C3'],['Position','4th / 42']].map(([l,v]) => (
-                <div key={l} className="rounded-xl p-2" style={{ background:'#f8faff' }}>
-                  <div className="text-sm font-extrabold" style={{ color:'#0B0F2A' }}>{v}</div>
-                  <div className="text-[10px] text-gray-400">{l}</div>
-                </div>
-              ))}
-            </div>
-            {can(roleId, 'reports.comment_teacher') && (
-              <textarea placeholder="Teacher's comment…" rows={2} className="w-full px-3 py-2 rounded-xl border text-xs outline-none mb-3 resize-none" style={{ borderColor:'#e2e8f0' }}/>
-            )}
-            {can(roleId, 'reports.comment_head') && (
-              <textarea placeholder="Head teacher's comment…" rows={2} className="w-full px-3 py-2 rounded-xl border text-xs outline-none mb-3 resize-none" style={{ borderColor:'#e2e8f0' }}/>
-            )}
-            <div className="flex gap-2">
-              {canGen && <button className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>📄 Download PDF</button>}
-              {canSend && <button className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>📧 Send to Parent</button>}
+
+      {/* Grade distribution summary */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label:'Distinctions (D1–D2)', count: dist.D, color:'#059669', bg:'#d1fae5', range:'80–100%' },
+          { label:'Credits (C3–C6)',       count: dist.C, color:'#1E45FC', bg:'#e8ecff', range:'55–79%' },
+          { label:'Passes (P7–P8)',        count: dist.P, color:'#d97706', bg:'#fef3c7', range:'45–54%' },
+          { label:'Failures (F9)',         count: dist.F, color:'#dc2626', bg:'#fee2e2', range:'0–44%' },
+        ].map(d => (
+          <Card key={d.label} className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-extrabold flex-shrink-0"
+              style={{ background: d.bg, color: d.color }}>{d.count}</div>
+            <div className="min-w-0">
+              <div className="text-xs font-bold truncate" style={{ color:'#0B0F2A' }}>{d.label}</div>
+              <div className="text-[10px] text-gray-400">{d.range}</div>
             </div>
           </Card>
         ))}
       </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Search */}
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'#e2e8f0' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search student…" className="outline-none bg-transparent text-sm w-36"/>
+        </div>
+        {/* Term filter */}
+        <select value={termF} onChange={e=>setTermF(e.target.value)}
+          className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none appearance-none"
+          style={{ borderColor:'#e2e8f0', color:'#0B0F2A' }}>
+          {terms.map(t=><option key={t}>{t}</option>)}
+        </select>
+        {/* Class filter */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {classes.map(c=>(
+            <button key={c} onClick={()=>setClassF(c)}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
+              style={classF===c?{borderColor:'#1E45FC',background:'#e8ecff',color:'#1E45FC'}:{borderColor:'#e2e8f0',color:'#64748b'}}>
+              {c==='all'?'All Classes':c}
+            </button>
+          ))}
+        </div>
+        <span className="ml-auto text-xs text-gray-400">{filtered.length} students</span>
+      </div>
+
+      {/* Student list table */}
+      <Card className="overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+              {['#','Student','Class','Avg Score','Grade','Position','Status',''].map(h=>(
+                <th key={h} className="text-left text-[11px] font-bold uppercase tracking-wide text-gray-400 px-4 py-3">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+            {filtered.length===0
+              ? <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-400">No students found.</td></tr>
+              : filtered.map(s=>(
+              <tr key={s.id} className="hover:bg-gray-50/60 transition-colors">
+                {/* Rank */}
+                <td className="px-4 py-3 text-xs font-bold" style={{ color: s.pos<=3?'#d97706':'#94a3b8' }}>
+                  {s.pos<=3?['🥇','🥈','🥉'][s.pos-1]:s.pos}
+                </td>
+                {/* Name */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                      style={{ background:'#1E45FC' }}>
+                      {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{s.name}</div>
+                      <div className="text-[10px] text-gray-400">{s.id}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-xs text-gray-600">{s.class}</td>
+                {/* Avg score with bar */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-20 h-1.5 rounded-full bg-gray-100 flex-shrink-0">
+                      <div className="h-1.5 rounded-full" style={{ width:`${s.avg}%`, background: gradeColor(s.grade) }}/>
+                    </div>
+                    <span className="text-xs font-bold" style={{ color:'#0B0F2A' }}>{s.avg}%</span>
+                  </div>
+                </td>
+                {/* Grade badge */}
+                <td className="px-4 py-3">
+                  <span className="text-xs font-extrabold px-2.5 py-1 rounded-lg"
+                    style={{ background: gradeBg(s.grade), color: gradeColor(s.grade) }}>
+                    {s.grade}
+                  </span>
+                </td>
+                {/* Position */}
+                <td className="px-4 py-3 text-xs font-semibold text-gray-600">
+                  {s.pos}<span className="text-gray-400"> / {s.total}</span>
+                </td>
+                {/* Report status */}
+                <td className="px-4 py-3">
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700">Ready</span>
+                </td>
+                {/* Actions */}
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-1.5">
+                    <button onClick={()=>setSelected(s)}
+                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                      style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+                      onMouseEnter={e=>{e.currentTarget.style.borderColor='#1E45FC';e.currentTarget.style.color='#1E45FC';}}
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+                      View
+                    </button>
+                    {can(roleId,'reports.comment_head') && (
+                      <button onClick={()=>setEditing(s)}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                        style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+                        onMouseEnter={e=>{e.currentTarget.style.borderColor='#A3CF2E';e.currentTarget.style.color='#5a7a0a';}}
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+                        Edit
+                      </button>
+                    )}
+                    {canSend && (
+                      <button className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white"
+                        style={{ background:'#1E45FC' }}>
+                        Send
+                      </button>
+                    )}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+
+      {/* VIEW MODAL */}
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.55)' }}
+          onClick={()=>setSelected(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            onClick={e=>e.stopPropagation()}>
+            {/* Modal header */}
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
+              <div>
+                <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Report Card — {selected.name}</h3>
+                <p className="text-xs text-gray-400">{selected.class} · {termF}</p>
+              </div>
+              <button onClick={()=>setSelected(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
+            </div>
+            {/* Summary badges */}
+            <div className="grid grid-cols-3 gap-3 px-6 py-4">
+              {[['Avg Score',`${selected.avg}%`],['Grade',selected.grade],['Position',`${selected.pos} / ${selected.total}`]].map(([l,v])=>(
+                <div key={l} className="text-center rounded-xl p-3" style={{ background:'#f8faff' }}>
+                  <div className="text-lg font-extrabold" style={{ color: gradeColor(selected.grade) }}>{v}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">{l}</div>
+                </div>
+              ))}
+            </div>
+            {/* Subject marks */}
+            <div className="px-6 pb-2">
+              <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Subject Results</h4>
+              <div className="space-y-2.5">
+                {SUBJECTS.map((subj,i)=>{
+                  const m=selected.marks[i]; const g=gradeOf(m);
+                  return (
+                    <div key={subj} className="flex items-center gap-3">
+                      <div className="w-24 text-xs font-medium text-gray-600 truncate flex-shrink-0">{subj}</div>
+                      <div className="flex-1 h-2 rounded-full bg-gray-100">
+                        <div className="h-2 rounded-full" style={{ width:`${m}%`, background: gradeColor(g) }}/>
+                      </div>
+                      <div className="w-8 text-xs font-bold text-right" style={{ color:'#0B0F2A' }}>{m}</div>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded w-7 text-center flex-shrink-0"
+                        style={{ background: gradeBg(g), color: gradeColor(g) }}>{g}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+            {/* Actions */}
+            <div className="flex gap-3 px-6 py-4 border-t mt-3" style={{ borderColor:'#eef0f6' }}>
+              {canGen && <button className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Download PDF</button>}
+              {canSend && <button className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Send to Parent</button>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* EDIT MODAL */}
+      {editing && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.55)' }}
+          onClick={()=>setEditing(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg"
+            onClick={e=>e.stopPropagation()}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
+              <div>
+                <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Edit Report — {editing.name}</h3>
+                <p className="text-xs text-gray-400">{editing.class} · {termF}</p>
+              </div>
+              <button onClick={()=>setEditing(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
+            </div>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Head Teacher's Comment</label>
+                <textarea rows={3} defaultValue="A hardworking student who has shown great improvement this term."
+                  className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
+                  style={{ borderColor:'#e2e8f0' }}/>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Conduct</label>
+                <select className="w-full px-3 py-2 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  {['Excellent','Very Good','Good','Satisfactory','Needs Improvement'].map(o=><option key={o}>{o}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Next Term Fees (UGX)</label>
+                <input type="text" defaultValue="450,000" className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+              </div>
+            </div>
+            <div className="flex gap-3 px-6 py-4 border-t" style={{ borderColor:'#eef0f6' }}>
+              <button onClick={()=>setEditing(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={()=>setEditing(null)} className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Save Changes</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1237,56 +1974,287 @@ function ReportCardsPage({ roleId, schoolId }) {
 /* ══════════════════════════════════════════════════
    ID CARDS
 ═══════════════════════════════════════════════════ */
-function IDCardsPage({ roleId, schoolId, tenant }) {
-  const students = queryStudents(schoolId).slice(0,3);
+/* ── Mini QR code SVG — unique per student ID string ── */
+function QRCode({ value, size = 56 }) {
+  // Deterministic bit matrix from value string
+  const hash = [...value].reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 0);
+  const N = 11;
+  const cells = Array.from({ length: N }, (_, r) =>
+    Array.from({ length: N }, (_, c) => {
+      // Fixed finder patterns (corners)
+      const inFinder = (r < 3 && c < 3) || (r < 3 && c >= N-3) || (r >= N-3 && c < 3);
+      if (inFinder) return (r===0||r===2||c===0||c===2||(r===1&&c===1)) ? 1 : 0;
+      // Pseudo-random data from hash
+      return ((hash >> ((r * N + c) % 31)) & 1) ^ ((r + c) & 1 ? 1 : 0);
+    })
+  );
+  const cell = size / N;
   return (
-    <div className="animate-fade-in space-y-4">
-      <div className="flex items-center justify-between">
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg">
+      <rect width={size} height={size} fill="white" rx="3"/>
+      {cells.map((row, r) => row.map((on, c) =>
+        on ? <rect key={`${r}-${c}`} x={c*cell} y={r*cell} width={cell} height={cell} fill="#0B0F2A"/> : null
+      ))}
+    </svg>
+  );
+}
+
+function IDCardsPage({ roleId, schoolId, tenant }) {
+  const allStudents = queryStudents(schoolId);
+  const canGen = can(roleId, 'idcards.generate');
+
+  // Stable assigned IDs per student (index-based, editable)
+  const [idNumbers, setIdNumbers] = useState(() =>
+    Object.fromEntries(allStudents.map((s, i) => [s.id, `SKH-${schoolId.slice(-3).toUpperCase()}-${String(2026000 + i + 1)}`]))
+  );
+  const [search,    setSearch]    = useState('');
+  const [classF,    setClassF]    = useState('all');
+  const [statusF,   setStatusF]   = useState('all');
+  const [preview,   setPreview]   = useState(null);
+  const [assigning, setAssigning] = useState(null); // { studentId, value }
+
+  const classes = ['all', ...new Set(allStudents.map(s => s.class))];
+
+  const filtered = allStudents.filter(s =>
+    (classF  === 'all' || s.class  === classF) &&
+    (statusF === 'all' || s.status.toLowerCase() === statusF) &&
+    (s.name.toLowerCase().includes(search.toLowerCase()) ||
+     (idNumbers[s.id] || '').toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const saveId = () => {
+    if (!assigning) return;
+    setIdNumbers(prev => ({ ...prev, [assigning.studentId]: assigning.value }));
+    setAssigning(null);
+  };
+
+  return (
+    <div className="animate-fade-in space-y-5">
+
+      {/* Header */}
+      <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>ID Cards</h2>
-          <p className="text-xs text-gray-400 mt-0.5">Student ID cards · {schoolId}</p>
+          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Student ID Cards</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{allStudents.length} students · {tenant?.name ?? schoolId}</p>
         </div>
-        {can(roleId,'idcards.generate') && <button className="btn-brand-primary text-sm py-2 px-4">Generate All</button>}
+        {canGen && (
+          <button className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl text-white" style={{ background:'#1E45FC' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Print All
+          </button>
+        )}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {students.map((s,i) => (
-          <div key={i} className="flex flex-col gap-3">
-            <div className="rounded-2xl overflow-hidden shadow-lg" style={{ background:'linear-gradient(135deg, #0B0F2A 0%, #1E45FC 100%)' }}>
-              <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 20, height: 20, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
-                  <span className="text-white text-xs font-bold">SkoulHub</span>
-                </div>
-                <span className="text-xs text-white/50">{tenant?.name ?? 'School'}</span>
-              </div>
-              <div className="p-4 flex items-center gap-4">
-                <div className="w-14 h-14 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
-                  {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-white font-bold text-sm truncate">{s.name}</div>
-                  <div className="text-white/60 text-xs">{s.class}</div>
-                  <div className="text-white/50 text-xs font-mono">ID: SKH-2026-{1000+i}</div>
-                </div>
-                <div className="w-12 h-12 bg-white rounded-lg p-1 flex-shrink-0">
-                  <svg viewBox="0 0 7 7" xmlns="http://www.w3.org/2000/svg">
-                    {[[1,1,1,0,1,1,1],[1,0,1,0,1,0,1],[1,1,1,0,1,1,1],[0,1,0,1,0,1,0],[1,1,1,0,1,1,1],[1,0,1,0,1,0,1],[1,1,1,0,1,1,1]]
-                      .map((row,r) => row.map((c,col) => c ? <rect key={`${r}-${col}`} x={col} y={r} width="1" height="1" fill="#0B0F2A"/> : null))}
-                  </svg>
-                </div>
-              </div>
-              <div className="px-4 pb-3 flex justify-between text-xs text-white/40">
-                <span>Term 2 · 2026</span>
-                <span style={{ color:'#A3CF2E' }}>STUDENT</span>
-              </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        {[
+          { label:'Total Students',   value: allStudents.length,                              bg:'#e8ecff', color:'#1E45FC', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+          { label:'IDs Assigned',     value: allStudents.length,                              bg:'#d1fae5', color:'#059669', path:'M9 12l2 2 4-4M7 2a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H7z' },
+          { label:'Active Students',  value: allStudents.filter(s=>s.status==='Active').length, bg:'#fef3c7', color:'#d97706', path:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z' },
+        ].map(s => (
+          <Card key={s.label} className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:s.bg }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={s.path}/></svg>
             </div>
-            <div className="flex gap-2">
-              <button className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Preview</button>
-              {can(roleId,'idcards.generate') && <button className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Download PDF</button>}
+            <div>
+              <div className="text-xl font-extrabold" style={{ color:'#0B0F2A' }}>{s.value}</div>
+              <div className="text-xs text-gray-400">{s.label}</div>
             </div>
-          </div>
+          </Card>
         ))}
       </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'#e2e8f0' }}>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
+          <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or ID…" className="outline-none bg-transparent text-sm w-40"/>
+        </div>
+        <select value={classF} onChange={e=>setClassF(e.target.value)}
+          className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none"
+          style={{ borderColor:'#e2e8f0', color:'#0B0F2A' }}>
+          {classes.map(c=><option key={c} value={c}>{c==='all'?'All Classes':c}</option>)}
+        </select>
+        {['all','active','inactive'].map(f=>(
+          <button key={f} onClick={()=>setStatusF(f)}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
+            style={statusF===f?{borderColor:'#1E45FC',background:'#e8ecff',color:'#1E45FC'}:{borderColor:'#e2e8f0',color:'#64748b'}}>
+            {f==='all'?'All':f}
+          </button>
+        ))}
+        <span className="ml-auto text-xs text-gray-400">{filtered.length} results</span>
+      </div>
+
+      {/* Table */}
+      <Card className="overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+              {['Student','Class','Student ID Number','QR Code','Status',''].map(h=>(
+                <th key={h} className="text-left text-[11px] font-bold uppercase tracking-wide text-gray-400 px-4 py-3">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+            {filtered.length === 0
+              ? <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">No students found.</td></tr>
+              : filtered.map(s => {
+                  const sid = idNumbers[s.id] || '—';
+                  return (
+                    <tr key={s.id} className="hover:bg-gray-50/60 transition-colors">
+                      {/* Student */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+                            style={{ background:'#1E45FC' }}>
+                            {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+                          </div>
+                          <div>
+                            <div className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{s.name}</div>
+                            <div className="text-[10px] text-gray-400">{s.parent}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Class */}
+                      <td className="px-4 py-3 text-xs text-gray-600">{s.class}</td>
+                      {/* ID number */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg" style={{ background:'#f0f4ff', color:'#1E45FC' }}>{sid}</span>
+                          {canGen && (
+                            <button onClick={()=>setAssigning({ studentId: s.id, value: sid })}
+                              className="p-1 rounded-lg text-gray-400 hover:text-brand-blue transition-colors"
+                              title="Edit ID"
+                              onMouseEnter={e=>e.currentTarget.style.color='#1E45FC'}
+                              onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
+                              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      {/* QR */}
+                      <td className="px-4 py-3">
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border" style={{ borderColor:'#eef0f6' }}>
+                          <QRCode value={sid} size={40}/>
+                        </div>
+                      </td>
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                          style={s.status==='Active'?{background:'#d1fae5',color:'#059669'}:{background:'#f3f4f6',color:'#6b7280'}}>
+                          {s.status}
+                        </span>
+                      </td>
+                      {/* Actions */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={()=>setPreview({ ...s, sid })}
+                            className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                            style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+                            onMouseEnter={e=>{e.currentTarget.style.borderColor='#1E45FC';e.currentTarget.style.color='#1E45FC';}}
+                            onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+                            Preview
+                          </button>
+                          {canGen && (
+                            <button className="text-[11px] font-semibold px-2.5 py-1 rounded-lg text-white"
+                              style={{ background:'#1E45FC' }}>
+                              Print
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+            }
+          </tbody>
+        </table>
+      </Card>
+
+      {/* ASSIGN ID MODAL */}
+      {assigning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.55)' }}
+          onClick={()=>setAssigning(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()}>
+            <h3 className="font-bold text-base mb-1" style={{ color:'#0B0F2A' }}>Assign Student ID</h3>
+            <p className="text-xs text-gray-400 mb-5">Enter a unique ID number for this student. It will be embedded in their QR code.</p>
+            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Student ID Number</label>
+            <input
+              type="text"
+              value={assigning.value}
+              onChange={e=>setAssigning(a=>({ ...a, value: e.target.value }))}
+              className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono outline-none mb-1"
+              style={{ borderColor:'#1E45FC', boxShadow:'0 0 0 3px #1E45FC18' }}
+            />
+            <p className="text-[10px] text-gray-400 mb-5">Format suggestion: SKH-XXX-YYYYNNN</p>
+            {/* Live QR preview */}
+            <div className="flex items-center gap-3 p-3 rounded-xl mb-5" style={{ background:'#f8faff' }}>
+              <QRCode value={assigning.value || '—'} size={52}/>
+              <div>
+                <div className="text-xs font-bold" style={{ color:'#0B0F2A' }}>QR Preview</div>
+                <div className="font-mono text-[10px] text-gray-500 mt-0.5 break-all">{assigning.value || '—'}</div>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={()=>setAssigning(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={saveId} className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Save ID</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PREVIEW MODAL — ID card */}
+      {preview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.7)' }}
+          onClick={()=>setPreview(null)}>
+          <div className="flex flex-col items-center gap-5" onClick={e=>e.stopPropagation()}>
+            {/* Card */}
+            <div className="rounded-2xl overflow-hidden shadow-2xl" style={{ width:300, background:'linear-gradient(140deg,#0B0F2A 0%,#1535d4 60%,#1E45FC 100%)' }}>
+              {/* Header bar */}
+              <div className="px-5 py-3 border-b border-white/10 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ background:'rgba(255,255,255,0.15)' }}>
+                    <img src="/skoulhub-logo.png" alt="" style={{ width:14,height:14,objectFit:'contain',filter:'brightness(0) invert(1)' }}/>
+                  </div>
+                  <span className="text-white text-xs font-extrabold tracking-tight">Skoul<span style={{ color:'#A3CF2E' }}>Hub</span></span>
+                </div>
+                <span className="text-[10px] text-white/50 truncate max-w-[110px]">{tenant?.name ?? 'School'}</span>
+              </div>
+              {/* Body */}
+              <div className="px-5 py-4 flex items-center gap-4">
+                <div className="w-16 h-16 rounded-xl bg-white/20 flex items-center justify-center text-white font-extrabold text-xl flex-shrink-0">
+                  {preview.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-white font-extrabold text-sm leading-tight truncate">{preview.name}</div>
+                  <div className="text-white/60 text-xs mt-0.5">{preview.class}</div>
+                  <div className="font-mono text-[10px] text-white/40 mt-1">{preview.sid}</div>
+                  <div className="mt-2 inline-block text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background:'#A3CF2E22', color:'#A3CF2E' }}>STUDENT</div>
+                </div>
+                <div className="flex-shrink-0 rounded-lg overflow-hidden" style={{ border:'2px solid rgba(255,255,255,0.15)' }}>
+                  <QRCode value={preview.sid} size={56}/>
+                </div>
+              </div>
+              {/* Footer */}
+              <div className="px-5 pb-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[9px] text-white/30 uppercase tracking-wider">Valid</div>
+                  <div className="text-[10px] text-white/50 font-semibold">Term 2 · 2026</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[9px] text-white/30 uppercase tracking-wider">Parent</div>
+                  <div className="text-[10px] text-white/50 truncate max-w-[120px]">{preview.parent}</div>
+                </div>
+              </div>
+            </div>
+            {/* Actions */}
+            <div className="flex gap-3 w-full" style={{ maxWidth:300 }}>
+              <button onClick={()=>setPreview(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold bg-white" style={{ borderColor:'#e2e8f0', color:'#64748b' }}>Close</button>
+              {canGen && <button className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Download PDF</button>}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -63,14 +63,9 @@ export default function MFAFlow({ role, email, onBack, onSuccess }) {
           <div className="text-center mb-7">
             
             <div className="mt-4 inline-flex items-center gap-2 bg-blue-50 border border-blue-100 rounded-full px-3 py-1">
-              <span className="text-lg">{role.icon}</span>
-              <span className="text-xs font-semibold text-brand-blue">{role.label}</span>
-              {email && (
-                <>
-                  <span className="text-gray-300">·</span>
-                  <span className="text-xs text-gray-500 truncate max-w-[140px]">{email}</span>
-                </>
-              )}
+              <span className="text-xs font-semibold text-brand-blue">
+                {email ? email.split('@')[0] : 'User'}
+              </span>
             </div>
             <h1 className="mt-4 text-xl font-bold text-brand-navy font-display">Choose verification method</h1>
             <p className="mt-1 text-sm text-gray-500">All methods are passwordless and secure</p>

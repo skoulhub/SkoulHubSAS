@@ -117,6 +117,19 @@ const TEACHERS_DB = [
   { id: 't-06', school_id: 'skh-002', name: 'Moses Ogenga',    subject: 'Science',     class: 'P.6 / P.7', status: 'Present', schedule: 'Mon–Fri' },
 ];
 
+const PARENTS_DB = [
+  { id: 'par-01', school_id: 'skh-001', name: 'Nakato Grace',    phone: '+256 701 234 567', email: 'grace.nakato@gmail.com',   children: ['Aisha Nakato'],            status: 'Active',   lastContact: '2026-05-04', balance: 0 },
+  { id: 'par-02', school_id: 'skh-001', name: 'Ssemanda John',   phone: '+256 702 345 678', email: 'john.ssemanda@gmail.com',  children: ['Brian Ssemanda'],          status: 'Active',   lastContact: '2026-05-03', balance: 225000 },
+  { id: 'par-03', school_id: 'skh-001', name: 'Atim Stella',     phone: '+256 703 456 789', email: 'stella.atim@yahoo.com',    children: ['Catherine Atim'],          status: 'Active',   lastContact: '2026-05-02', balance: 0 },
+  { id: 'par-04', school_id: 'skh-001', name: 'Opiyo Moses',     phone: '+256 704 567 890', email: 'moses.opiyo@gmail.com',    children: ['David Opiyo'],             status: 'Inactive', lastContact: '2026-04-10', balance: 450000 },
+  { id: 'par-05', school_id: 'skh-001', name: 'Namutebi Rose',   phone: '+256 705 678 901', email: 'rose.namutebi@gmail.com',  children: ['Esther Namutebi'],         status: 'Active',   lastContact: '2026-05-05', balance: 0 },
+  { id: 'par-06', school_id: 'skh-001', name: 'Kiggundu Paul',   phone: '+256 706 789 012', email: 'paul.kiggundu@gmail.com',  children: ['Francis Kiggundu'],        status: 'Active',   lastContact: '2026-05-01', balance: 225000 },
+  { id: 'par-07', school_id: 'skh-001', name: 'Akello Janet',    phone: '+256 707 890 123', email: 'janet.akello@yahoo.com',   children: ['Grace Akello'],            status: 'Active',   lastContact: '2026-04-28', balance: 0 },
+  { id: 'par-08', school_id: 'skh-001', name: 'Mugisha Robert',  phone: '+256 708 901 234', email: 'robert.mugisha@gmail.com', children: ['Henry Mugisha'],           status: 'Active',   lastContact: '2026-04-20', balance: 450000 },
+  { id: 'par-09', school_id: 'skh-002', name: 'Okello Sam',      phone: '+256 709 012 345', email: 'sam.okello@gmail.com',     children: ['Ibrahim Okello'],          status: 'Active',   lastContact: '2026-05-01', balance: 0 },
+  { id: 'par-10', school_id: 'skh-002', name: 'Adong Mary',      phone: '+256 710 123 456', email: 'mary.adong@yahoo.com',     children: ['Joy Adong'],               status: 'Active',   lastContact: '2026-04-29', balance: 160000 },
+];
+
 const PAYMENTS_DB = [
   { id: 'p-01', school_id: 'skh-001', student: 'Aisha Nakato',     amount: '450,000', method: 'Mobile Money',  date: '2026-05-05', status: 'Confirmed' },
   { id: 'p-02', school_id: 'skh-001', student: 'Brian Ssemanda',   amount: '225,000', method: 'Bank Transfer', date: '2026-05-04', status: 'Confirmed' },
@@ -136,6 +149,11 @@ export function queryStudents(school_id) {
 export function queryTeachers(school_id) {
   if (!school_id) return [];
   return TEACHERS_DB.filter(t => t.school_id === school_id);
+}
+
+export function queryParents(school_id) {
+  if (!school_id) return [];
+  return PARENTS_DB.filter(p => p.school_id === school_id);
 }
 
 export function queryPayments(school_id) {
