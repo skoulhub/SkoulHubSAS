@@ -5,8 +5,71 @@ import { queryAllTenants, queryTenant, lookupUser } from '../lib/tenantStore';
 const DEFAULT_ROLE = { id: 'school_admin', label: 'School Admin' };
 const ALL_SCHOOLS = queryAllTenants();
 
+const DEMO_ACCOUNTS = [
+  {
+    email: 'admin@smck.ug',
+    school: 'skh-001',
+    role: 'School Admin',
+    name: 'Agnes Namukwaya',
+    color: '#1E45FC',
+    bg: '#e8ecff',
+    access: ['Full dashboard access', 'Students, Teachers, Finance', 'Reports, Settings, ID Cards'],
+    icon: 'M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z',
+  },
+  {
+    email: 'head@smck.ug',
+    school: 'skh-001',
+    role: 'Head Teacher',
+    name: 'Robert Ssemanda',
+    color: '#0891b2',
+    bg: '#e0f2fe',
+    access: ['Academic oversight', 'Approve expenses & reports', 'Students, Attendance, Results'],
+    icon: 'M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5',
+  },
+  {
+    email: 'teacher@smck.ug',
+    school: 'skh-001',
+    role: 'Teacher',
+    name: 'Grace Namutebi',
+    color: '#059669',
+    bg: '#d1fae5',
+    access: ['My classes & timetable', 'Mark attendance & results', 'View student profiles'],
+    icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z',
+  },
+  {
+    email: 'bursar@smck.ug',
+    school: 'skh-001',
+    role: 'Bursar',
+    name: 'James Okoye',
+    color: '#dc2626',
+    bg: '#fee2e2',
+    access: ['Fee collection & receipts', 'Payroll & expenses', 'Submit for approval'],
+    icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6',
+  },
+  {
+    email: 'parent@smck.ug',
+    school: 'skh-001',
+    role: 'Parent',
+    name: 'Peter Kabuye',
+    color: '#d97706',
+    bg: '#fef3c7',
+    access: ['Child\'s attendance & results', 'Fee balance & report cards', 'Messages from school'],
+    icon: 'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0z',
+  },
+  {
+    email: 'saas@skoulhub.com',
+    school: null,
+    role: 'SaaS Admin',
+    name: 'SkoulHub Admin',
+    color: '#7c3aed',
+    bg: '#f5f3ff',
+    access: ['All schools overview', 'Billing & onboarding', 'Global platform settings'],
+    icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
+  },
+];
+
 /* ─── Main Login component ──────────────────────────────────── */
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onEnroll }) {
   const [step, setStep]           = useState('email'); // email | mfa
   const [email, setEmail]         = useState('');
   const [emailError, setEmailErr] = useState('');
@@ -14,11 +77,35 @@ export default function Login({ onLogin }) {
   const [selectedSchool, setSelectedSchool] = useState('');
   const [tenantId, setTenantId]   = useState('');
   const [schoolError, setSchoolErr] = useState('');
+  const [demoOpen, setDemoOpen]   = useState(false);
+  const [resolvedRole, setResolvedRole] = useState(DEFAULT_ROLE);
+
+  /* Quick-login from a demo card (bypass manual form) */
+  const quickLogin = (acct) => {
+    const user = lookupUser(acct.email);
+    const roleId = user ? user.role : acct.role.toLowerCase().replace(/ /g, '_');
+    setEmail(acct.email);
+    setResolvedRole({ id: roleId, label: acct.role });
+    setSchoolErr('');
+    setEmailErr('');
+    setStep('mfa');
+  };
 
   /* Step 1 – email */
   if (step === 'email') {
     const handleContinue = (e) => {
       e.preventDefault();
+
+      // SaaS admin bypass — no school check needed
+      const user = lookupUser(email);
+      if (user && user.role === 'saas_admin') {
+        setEmailErr('');
+        setSchoolErr('');
+        setResolvedRole({ id: 'saas_admin', label: 'SaaS Admin' });
+        setStep('mfa');
+        return;
+      }
+
       const school = schoolMode === 'select' ? selectedSchool : tenantId.trim();
       if (!school) { setSchoolErr('Please select or enter your school.'); return; }
 
@@ -30,7 +117,6 @@ export default function Login({ onLogin }) {
       if (!email.includes('@')) { setEmailErr('Please enter a valid email address.'); return; }
 
       // 2. Verify user is enrolled at this school
-      const user = lookupUser(email);
       if (!user) {
         setEmailErr('No account found for this email. Contact your administrator.');
         return;
@@ -40,6 +126,9 @@ export default function Login({ onLogin }) {
         return;
       }
       setEmailErr('');
+      // Resolve role for MFA display
+      const roleMeta = DEMO_ACCOUNTS.find(a => a.email === email.toLowerCase());
+      setResolvedRole({ id: user.role, label: roleMeta ? roleMeta.role : user.role });
       setStep('mfa');
     };
 
@@ -162,6 +251,72 @@ export default function Login({ onLogin }) {
             </button>
           </form>
 
+          {/* ── Sandbox Demo Accounts ──────────────────────────── */}
+          <div className="mt-6 border border-dashed border-gray-200 rounded-2xl overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setDemoOpen(o => !o)}
+              className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors text-xs font-semibold text-gray-500 uppercase tracking-wider"
+            >
+              <span className="flex items-center gap-2">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.46 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+                  <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.46 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+                </svg>
+                Sandbox — Try a demo account
+              </span>
+              <svg
+                width="14" height="14" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"
+                style={{ transform: demoOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+              >
+                <path d="M2 4l4 4 4-4"/>
+              </svg>
+            </button>
+
+            {demoOpen && (
+              <div className="p-3 grid grid-cols-2 gap-2 bg-white">
+                {DEMO_ACCOUNTS.map(acct => (
+                  <button
+                    key={acct.email}
+                    type="button"
+                    onClick={() => quickLogin(acct)}
+                    className="group text-left rounded-xl border p-3 hover:shadow-md transition-all hover:-translate-y-0.5 cursor-pointer"
+                    style={{ borderColor: acct.color + '33', background: acct.bg }}
+                  >
+                    <div className="flex items-start gap-2 mb-1.5">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
+                        style={{ background: acct.color }}
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                          <path d={acct.icon}/>
+                        </svg>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold leading-tight truncate" style={{ color: acct.color }}>{acct.role}</div>
+                        <div className="text-[10px] text-gray-500 truncate leading-tight mt-0.5">{acct.name}</div>
+                      </div>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {acct.access.map((item, i) => (
+                        <li key={i} className="text-[9px] text-gray-500 flex items-start gap-1 leading-tight">
+                          <span className="mt-0.5 flex-shrink-0 w-1.5 h-1.5 rounded-full" style={{ background: acct.color + '99', marginTop: '3px' }}/>
+                          {item}
+                        </li>
+                      ))}
+                    </ul>
+                    <div
+                      className="mt-2 text-[10px] font-semibold text-center py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: acct.color, color: 'white' }}
+                    >
+                      Login as {acct.role} →
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
       </LoginShell>
     );
@@ -171,10 +326,10 @@ export default function Login({ onLogin }) {
   if (step === 'mfa') {
     return (
       <MFAFlow
-        role={DEFAULT_ROLE}
+        role={resolvedRole}
         email={email}
         onBack={() => setStep('email')}
-        onSuccess={() => onLogin(email, DEFAULT_ROLE.id)}
+        onSuccess={() => onLogin(email, resolvedRole.id)}
       />
     );
   }

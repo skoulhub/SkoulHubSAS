@@ -23,11 +23,13 @@ const PERMISSIONS = {
   'students.delete':       ['school_admin'],
 
   // ── Parents
-  'parents.view':          ['school_admin','head_teacher','bursar'],
+  // teacher can view parents, but Dashboard scopes them to assigned-class students only
+  'parents.view':          ['school_admin','head_teacher','bursar','teacher'],
   'parents.create':        ['school_admin'],
   'parents.edit':          ['school_admin','head_teacher'],
 
   // ── Teachers
+  // teacher role cannot view the full teacher list — that's admin/head only
   'teachers.view':         ['saas_admin','school_admin','head_teacher'],
   'teachers.create':       ['school_admin'],
   'teachers.edit':         ['school_admin','head_teacher'],
@@ -52,11 +54,11 @@ const PERMISSIONS = {
   'reports.comment_teacher':['teacher'],
   'reports.comment_head':  ['head_teacher','school_admin'],
 
-  // ── Finance
-  'finance.view':          ['school_admin','head_teacher','bursar'],
-  'finance.record':        ['school_admin','bursar'],
-  'finance.approve':       ['head_teacher','school_admin'],
-  'finance.payroll':       ['school_admin','bursar'],
+  // ── Finance — restricted to bursar/accountant only
+  'finance.view':          ['bursar','accountant'],
+  'finance.record':        ['bursar','accountant'],
+  'finance.approve':       ['bursar','accountant'],
+  'finance.payroll':       ['bursar','accountant'],
 
   // ── ID Cards
   'idcards.view':          ['school_admin','head_teacher','bursar'],

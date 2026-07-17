@@ -84,6 +84,99 @@ export const TENANTS = {
   },
 };
 
+// ── Per-school enrollment configuration ──────────────────────
+// Each school controls which classes they accept applications for,
+// their fee structure, intake terms, and contact info shown on the form.
+export const SCHOOL_ENROLLMENT_CONFIG = {
+  'skh-001': {
+    open: true,
+    tagline: 'Nurturing excellence since 1956',
+    contact: { phone: '+256 414 200 123', email: 'admissions@smck.ug', address: 'Kisubi, Wakiso District' },
+    intakeClasses: ['P.1','P.3','P.5','S.1 East','S.1 West','S.2 East','S.3 East','S.5 Arts','S.5 Science'],
+    intakeTerms: ['Term 1 2026','Term 2 2026','Term 3 2026'],
+    fees: [
+      { class: 'P.1–P.7',          boarding: 'UGX 850,000',  dayScholar: 'UGX 420,000' },
+      { class: 'S.1–S.4',          boarding: 'UGX 1,200,000', dayScholar: 'UGX 600,000' },
+      { class: 'S.5–S.6 (A-Level)',boarding: 'UGX 1,450,000', dayScholar: 'UGX 720,000' },
+    ],
+    requiresTransferLetter: true,
+    themeColor: '#1E45FC',
+  },
+  'skh-002': {
+    open: true,
+    tagline: 'Quality education for every child',
+    contact: { phone: '+256 476 420 456', email: 'admissions@arua.ug', address: 'Arua City, West Nile' },
+    intakeClasses: ['P.1','P.2','P.4','P.6','S.1 East','S.1 West','S.2 East','S.3 East'],
+    intakeTerms: ['Term 1 2026','Term 2 2026'],
+    fees: [
+      { class: 'P.1–P.7', boarding: 'UGX 600,000', dayScholar: 'UGX 280,000' },
+      { class: 'S.1–S.4', boarding: 'UGX 900,000', dayScholar: 'UGX 450,000' },
+    ],
+    requiresTransferLetter: false,
+    themeColor: '#059669',
+  },
+  'skh-003': {
+    open: true,
+    tagline: "Shaping tomorrow's leaders",
+    contact: { phone: '+256 414 333 789', email: 'admissions@khs.ug', address: 'Kampala, Nakawa Division' },
+    intakeClasses: ['S.1 East','S.1 West','S.2 East','S.2 West','S.3 East','S.5 Arts','S.5 Science'],
+    intakeTerms: ['Term 1 2026','Term 2 2026','Term 3 2026'],
+    fees: [
+      { class: 'S.1–S.4',          boarding: 'UGX 1,100,000', dayScholar: 'UGX 550,000' },
+      { class: 'S.5–S.6 (A-Level)',boarding: 'UGX 1,350,000', dayScholar: 'UGX 680,000' },
+    ],
+    requiresTransferLetter: true,
+    themeColor: '#7c3aed',
+  },
+  'skh-004': {
+    open: false, // applications closed
+    tagline: 'Building bright futures in Northern Uganda',
+    contact: { phone: '+256 471 432 001', email: 'admissions@gulu.ug', address: 'Gulu City' },
+    intakeClasses: ['P.1','P.3','S.1 East'],
+    intakeTerms: ['Term 1 2026'],
+    fees: [
+      { class: 'P.1–P.7', boarding: 'UGX 500,000', dayScholar: 'UGX 220,000' },
+      { class: 'S.1–S.4', boarding: 'UGX 750,000', dayScholar: 'UGX 380,000' },
+    ],
+    requiresTransferLetter: false,
+    themeColor: '#d97706',
+  },
+  'skh-005': {
+    open: true,
+    tagline: 'Excellence. Integrity. Service.',
+    contact: { phone: '+256 414 540 200', email: 'admissions@mhs.ug', address: 'Makerere Hill Road, Kampala' },
+    intakeClasses: ['P.1','P.2','P.3','P.4','S.1 East','S.1 West','S.2 East','S.2 West','S.3 East','S.5 Arts','S.5 Science'],
+    intakeTerms: ['Term 1 2026','Term 2 2026','Term 3 2026'],
+    fees: [
+      { class: 'P.1–P.7',          boarding: 'UGX 1,000,000', dayScholar: 'UGX 500,000' },
+      { class: 'S.1–S.4',          boarding: 'UGX 1,400,000', dayScholar: 'UGX 700,000' },
+      { class: 'S.5–S.6 (A-Level)',boarding: 'UGX 1,600,000', dayScholar: 'UGX 800,000' },
+    ],
+    requiresTransferLetter: true,
+    themeColor: '#0891b2',
+  },
+};
+
+/** Get enrollment config for a school (returns null if not configured) */
+export function getEnrollmentConfig(school_id) {
+  return SCHOOL_ENROLLMENT_CONFIG[school_id] ?? null;
+}
+
+// ── Teacher assignment map (teacher user_id → assigned scope) ─
+// In production this lives in a teacher_assignments table with RLS.
+export const TEACHER_ASSIGNMENTS = {
+  'u-003': {
+    // Grace Namutebi — teacher@smck.ug
+    classes:  ['S.3 East', 'S.3 West', 'S.4 West'],
+    subjects: ['Mathematics'],
+  },
+};
+
+/** Get a teacher's assignment by user_id (returns null if not a teacher or no record) */
+export function getTeacherAssignment(user_id) {
+  return TEACHER_ASSIGNMENTS[user_id] ?? null;
+}
+
 // ── Mock users (maps email → user record) ────────────────────
 const USERS = {
   'admin@smck.ug':    { user_id: 'u-001', school_id: 'skh-001', role: 'school_admin', name: 'Agnes Namukwaya' },
@@ -218,6 +311,71 @@ export function resolveUser(email, roleId) {
     role:      roleId,
     name:      email.split('@')[0],
   };
+}
+
+// ── Enrollment Form Schema ───────────────────────────────────
+// Each field has: id, section, label, type, required, locked (can't be removed), enabled
+// Schools can toggle, relabel, reorder, and add custom fields.
+export const DEFAULT_FORM_SCHEMA = [
+  // ── School / Application section (school-mode: hidden) ──
+  { id: 'entry_class',      section: 'application', label: 'Applying for Class',         type: 'class_select',  required: true,  locked: true,  enabled: true },
+  { id: 'entry_term',       section: 'application', label: 'Entry Term',                 type: 'term_select',   required: true,  locked: true,  enabled: true },
+  { id: 'boarding',         section: 'application', label: 'Residence Type',             type: 'boarding_pick', required: false, locked: true,  enabled: true },
+  // ── Student section ──
+  { id: 'first_name',       section: 'student', label: 'First Name',                     type: 'text',          required: true,  locked: true,  enabled: true },
+  { id: 'last_name',        section: 'student', label: 'Last Name',                      type: 'text',          required: true,  locked: true,  enabled: true },
+  { id: 'dob',              section: 'student', label: 'Date of Birth',                  type: 'date',          required: true,  locked: true,  enabled: true },
+  { id: 'gender',           section: 'student', label: 'Gender',                         type: 'gender_select', required: true,  locked: true,  enabled: true },
+  { id: 'nationality',      section: 'student', label: 'Nationality',                    type: 'nationality_select', required: false, locked: false, enabled: true },
+  { id: 'religion',         section: 'student', label: 'Religion',                       type: 'religion_select', required: false, locked: false, enabled: true },
+  { id: 'previous_school',  section: 'student', label: 'Previous School',               type: 'text',          required: false, locked: false, enabled: true },
+  { id: 'special_needs',    section: 'student', label: 'Special Needs / Medical',        type: 'textarea',      required: false, locked: false, enabled: true },
+  // ── Parent / Guardian section ──
+  { id: 'parent_name',      section: 'parent', label: 'Parent / Guardian Name',          type: 'text',          required: true,  locked: true,  enabled: true },
+  { id: 'relationship',     section: 'parent', label: 'Relationship to Student',         type: 'relationship_select', required: true, locked: true, enabled: true },
+  { id: 'parent_phone',     section: 'parent', label: 'Primary Phone',                  type: 'tel',           required: true,  locked: true,  enabled: true },
+  { id: 'parent_phone2',    section: 'parent', label: 'Secondary Phone',                type: 'tel',           required: false, locked: false, enabled: true },
+  { id: 'parent_email',     section: 'parent', label: 'Email Address',                  type: 'email',         required: false, locked: false, enabled: true },
+  { id: 'parent_address',   section: 'parent', label: 'Home Address',                   type: 'text',          required: false, locked: false, enabled: true },
+  { id: 'parent_occupation',section: 'parent', label: 'Occupation',                     type: 'text',          required: false, locked: false, enabled: false },
+  // ── Academic / Documents section ──
+  { id: 'last_school',      section: 'academic', label: 'Last School Attended',          type: 'text',          required: false, locked: false, enabled: true },
+  { id: 'last_class',       section: 'academic', label: 'Last Class Completed',          type: 'class_select',  required: false, locked: false, enabled: true },
+  { id: 'reason',           section: 'academic', label: 'Reason for Joining / Transfer', type: 'textarea',      required: false, locked: false, enabled: true },
+  { id: 'docs_passport',    section: 'documents', label: 'Passport-size photograph (×4)', type: 'checkbox',    required: false, locked: false, enabled: true },
+  { id: 'docs_birth',       section: 'documents', label: 'Birth certificate (original + copy)', type: 'checkbox', required: false, locked: false, enabled: true },
+  { id: 'docs_reports',     section: 'documents', label: 'Last school report card',      type: 'checkbox',      required: false, locked: false, enabled: true },
+  { id: 'docs_transfer',    section: 'documents', label: 'Transfer letter',              type: 'checkbox',      required: false, locked: false, enabled: true },
+];
+
+const _formSchemaCache = {}; // in-memory cache (production: use DB)
+
+/** Get the enrollment form schema for a school.
+ *  Merges DEFAULT_FORM_SCHEMA with any saved customisations (localStorage). */
+export function getFormSchema(school_id) {
+  if (!school_id) return DEFAULT_FORM_SCHEMA;
+  const key = `enroll_schema_${school_id}`;
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Merge: saved fields override defaults; new locked fields added at end
+      const savedIds = new Set(parsed.map(f => f.id));
+      const newDefaults = DEFAULT_FORM_SCHEMA.filter(f => f.locked && !savedIds.has(f.id));
+      return [...parsed, ...newDefaults];
+    }
+  } catch {}
+  return DEFAULT_FORM_SCHEMA.map(f => ({ ...f }));
+}
+
+/** Persist a customised form schema for a school. */
+export function saveFormSchema(school_id, schema) {
+  if (!school_id) return;
+  const key = `enroll_schema_${school_id}`;
+  try {
+    localStorage.setItem(key, JSON.stringify(schema));
+    _formSchemaCache[school_id] = schema;
+  } catch {}
 }
 
 // ── Billing calculator ───────────────────────────────────────
