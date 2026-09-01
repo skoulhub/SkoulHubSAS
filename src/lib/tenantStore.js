@@ -182,10 +182,19 @@ const USERS = {
   'admin@smck.ug':    { user_id: 'u-001', school_id: 'skh-001', role: 'school_admin', name: 'Agnes Namukwaya' },
   'head@smck.ug':     { user_id: 'u-002', school_id: 'skh-001', role: 'head_teacher', name: 'Robert Ssemanda' },
   'teacher@smck.ug':  { user_id: 'u-003', school_id: 'skh-001', role: 'teacher',      name: 'Grace Namutebi' },
-  'parent@smck.ug':   { user_id: 'u-004', school_id: 'skh-001', role: 'parent',       name: 'Peter Kabuye' },
+  'parent@smck.ug':   { user_id: 'u-004', school_id: 'skh-001', role: 'parent',       name: 'Peter Kabuye', children: ['Aisha Nakato', 'Grace Akello'] },
   'bursar@smck.ug':   { user_id: 'u-005', school_id: 'skh-001', role: 'bursar',       name: 'James Okoye' },
   'saas@skoulhub.com':{ user_id: 'u-000', school_id: null,      role: 'saas_admin',   name: 'SkoulHub Admin' },
 };
+
+/**
+ * Children visible to a parent user (empty for non-parent roles).
+ * In production this comes from a parent_students join table with RLS.
+ */
+export function parentChildren(user) {
+  if (!user || user.role !== 'parent') return [];
+  return Array.isArray(user.children) ? user.children : [];
+}
 
 // ── Tenant-scoped data store ──────────────────────────────────
 const STUDENTS_DB = [
@@ -364,7 +373,7 @@ export function getFormSchema(school_id) {
       const newDefaults = DEFAULT_FORM_SCHEMA.filter(f => f.locked && !savedIds.has(f.id));
       return [...parsed, ...newDefaults];
     }
-  } catch {}
+  } catch { /* localStorage unavailable (SSR/private mode) — use defaults */ }
   return DEFAULT_FORM_SCHEMA.map(f => ({ ...f }));
 }
 
@@ -375,7 +384,7 @@ export function saveFormSchema(school_id, schema) {
   try {
     localStorage.setItem(key, JSON.stringify(schema));
     _formSchemaCache[school_id] = schema;
-  } catch {}
+  } catch { /* localStorage unavailable — schema not persisted this session */ }
 }
 
 // ── Billing calculator ───────────────────────────────────────

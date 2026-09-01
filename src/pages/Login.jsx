@@ -69,7 +69,7 @@ const DEMO_ACCOUNTS = [
 ];
 
 /* ─── Main Login component ──────────────────────────────────── */
-export default function Login({ onLogin, onEnroll }) {
+export default function Login({ onLogin, onEnroll, onCreateSchool }) {
   const [step, setStep]           = useState('email'); // email | mfa
   const [email, setEmail]         = useState('');
   const [emailError, setEmailErr] = useState('');
@@ -78,6 +78,7 @@ export default function Login({ onLogin, onEnroll }) {
   const [tenantId, setTenantId]   = useState('');
   const [schoolError, setSchoolErr] = useState('');
   const [demoOpen, setDemoOpen]   = useState(false);
+  const [socialNotice, setSocialNotice] = useState('');
   const [resolvedRole, setResolvedRole] = useState(DEFAULT_ROLE);
 
   /* Quick-login from a demo card (bypass manual form) */
@@ -142,7 +143,8 @@ export default function Login({ onLogin, onEnroll }) {
 
           {/* Social buttons */}
           <div className="space-y-3 mb-5">
-            <button className="w-full flex items-center gap-3 py-3 px-4 rounded-2xl border border-gray-200 bg-white hover:border-brand-blue hover:bg-[#f5f7ff] transition-all text-sm font-medium text-gray-700">
+            <button onClick={() => setSocialNotice('Google sign-in is not connected in this demo. Use the sandbox demo accounts below instead.')}
+              className="w-full flex items-center gap-3 py-3 px-4 rounded-2xl border border-gray-200 bg-white hover:border-brand-blue hover:bg-[#f5f7ff] transition-all text-sm font-medium text-gray-700">
               <svg viewBox="0 0 24 24" width="18" height="18" className="flex-shrink-0">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -151,13 +153,21 @@ export default function Login({ onLogin, onEnroll }) {
               </svg>
               Continue with Google
             </button>
-            <button className="w-full flex items-center gap-3 py-3 px-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all text-sm font-medium text-gray-700">
+            <button onClick={() => setSocialNotice('Apple sign-in is not connected in this demo. Use the sandbox demo accounts below instead.')}
+              className="w-full flex items-center gap-3 py-3 px-4 rounded-2xl border border-gray-200 bg-white hover:border-gray-400 hover:bg-gray-50 transition-all text-sm font-medium text-gray-700">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" className="flex-shrink-0">
                 <path d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"/>
               </svg>
               Continue with Apple
             </button>
           </div>
+
+          {/* Social sign-in notice (demo) */}
+          {socialNotice && (
+            <div className="mb-4 px-3.5 py-2.5 rounded-xl text-xs font-medium text-amber-800 bg-amber-50 border border-amber-200">
+              ⚠️ {socialNotice}
+            </div>
+          )}
 
           {/* OR divider */}
           <div className="flex items-center gap-3 mb-5">
@@ -315,6 +325,26 @@ export default function Login({ onLogin, onEnroll }) {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* ── Alternate entry points ─────────────────────────── */}
+          <div className="mt-5 pt-4 border-t space-y-2.5" style={{ borderColor: '#f0f0f0' }}>
+            <button
+              type="button"
+              onClick={() => onEnroll?.()}
+              className="w-full text-xs font-semibold text-gray-500 hover:text-brand-blue transition-colors flex items-center justify-center gap-1.5"
+            >
+              🎓 Applying for admission? Start an application
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 7h8M8 3.5L11.5 7 8 10.5"/></svg>
+            </button>
+            <button
+              type="button"
+              onClick={() => onCreateSchool?.()}
+              className="w-full text-xs font-semibold text-gray-500 hover:text-brand-blue transition-colors flex items-center justify-center gap-1.5"
+            >
+              🏫 New to SkoulHub? Create your school account
+              <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M3 7h8M8 3.5L11.5 7 8 10.5"/></svg>
+            </button>
           </div>
 
         </div>

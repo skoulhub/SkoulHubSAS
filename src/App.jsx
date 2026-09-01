@@ -1,26 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import EnrollmentForm from './pages/EnrollmentForm';
+import Onboarding from './pages/Onboarding';
 import { resolveUser, queryTenant } from './lib/tenantStore';
 
-export default function App() {
-  const [view, setView] = useState('login'); // 'login' | 'dashboard' | 'enroll'
-  const [session, setSession] = useState(null);
-  const [enrollSchoolId, setEnrollSchoolId] = useState(null); // null = generic, 'skh-xxx' = school-specific
+/* Read the ?enroll= param once, lazily, so we never setState in an effect */
+function initialView() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('enroll') ? 'enroll' : 'login';
+}
+function initialEnrollSchoolId() {
+  return new URLSearchParams(window.location.search).get('enroll') ?? null;
+}
 
-  /* Auto-open enrollment form via URL param: ?enroll=skh-001 */
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const schoolParam = params.get('enroll');
-    if (schoolParam) {
-      setEnrollSchoolId(schoolParam);
-      setView('enroll');
-    }
-  }, []);
+export default function App() {
+  const [view, setView] = useState(initialView); // 'login' | 'dashboard' | 'enroll' | 'onboarding'
+  const [session, setSession] = useState(null);
+  const [enrollSchoolId, setEnrollSchoolId] = useState(initialEnrollSchoolId); // null = generic, 'skh-xxx' = school-specific
 
   const handleLogin = (email, roleId) => {
     const currentUser = resolveUser(email, roleId);
+    if (!currentUser) {
+      // Unknown user — reset to login (defensive; Login validates beforehand)
+      setSession(null);
+      setView('login');
+      return;
+    }
     const tenant = currentUser.school_id ? queryTenant(currentUser.school_id) : null;
     setSession({ currentUser, tenant });
     setView('dashboard');
@@ -44,6 +50,16 @@ export default function App() {
     setView('login');
   };
 
+  const handleCreateSchool = () => {
+    setView('onboarding');
+  };
+
+  const handleOnboardingComplete = ({ user, tenant }) => {
+    // Onboarding provisions a tenant + admin user; sign straight in as that admin
+    setSession({ currentUser: user, tenant });
+    setView('dashboard');
+  };
+
   if (view === 'dashboard' && session) {
     return (
       <Dashboard
@@ -63,5 +79,20 @@ export default function App() {
     );
   }
 
-  return <Login onLogin={handleLogin} onEnroll={handleEnroll} />;
+  if (view === 'onboarding') {
+    return (
+      <Onboarding
+        onComplete={handleOnboardingComplete}
+        onBackToLogin={() => setView('login')}
+      />
+    );
+  }
+
+  return (
+    <Login
+      onLogin={handleLogin}
+      onEnroll={handleEnroll}
+      onCreateSchool={handleCreateSchool}
+    />
+  );
 }

@@ -54,11 +54,12 @@ const PERMISSIONS = {
   'reports.comment_teacher':['teacher'],
   'reports.comment_head':  ['head_teacher','school_admin'],
 
-  // ── Finance — restricted to bursar/accountant only
-  'finance.view':          ['bursar','accountant'],
-  'finance.record':        ['bursar','accountant'],
-  'finance.approve':       ['bursar','accountant'],
-  'finance.payroll':       ['bursar','accountant'],
+  // ── Finance — bursar/accountant record & submit; head teacher/school admin approve
+  //    (segregation of duties: the role that records cannot be the sole approver)
+  'finance.view':          ['school_admin','head_teacher','bursar','accountant'],
+  'finance.record':        ['school_admin','bursar','accountant'],
+  'finance.approve':       ['school_admin','head_teacher'],
+  'finance.payroll':       ['school_admin','bursar','accountant'],
 
   // ── ID Cards
   'idcards.view':          ['school_admin','head_teacher','bursar'],

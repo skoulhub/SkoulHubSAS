@@ -1,12 +1,11 @@
-import { useState, useCallback, useEffect } from 'react';
-import { LogoIcon } from './Login';
+import { useState, useCallback, useRef } from 'react';
 import { TenantContext } from '../lib/TenantContext';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
 import {
   queryStudents, queryTeachers, queryPayments, queryParents,
   queryAllTenants, calcBilling, BILLING_RATE, getTeacherAssignment,
   getEnrollmentConfig, getFormSchema, saveFormSchema, DEFAULT_FORM_SCHEMA,
-  SCHOOL_ENROLLMENT_CONFIG,
+  parentChildren,
 } from '../lib/tenantStore';
 
 /* ─── SVG Icons ──────────────────────────────────────────────── */
@@ -54,6 +53,7 @@ const NAV_BY_ROLE = {
     { id: 'attendance', label: 'Attendance',    section: 'main' },
     { id: 'timetable',  label: 'Timetables',    section: 'academic' },
     { id: 'results',    label: 'Results',       section: 'academic' },
+    { id: 'finance',    label: 'Finance',       section: 'admin' },
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
     { id: 'idcards',    label: 'ID Cards',      section: 'admin' },
     { id: 'enrollment', label: 'Enrollment Form', section: 'admin' },
@@ -68,6 +68,7 @@ const NAV_BY_ROLE = {
     { id: 'attendance', label: 'Attendance',    section: 'main' },
     { id: 'timetable',  label: 'Timetables',    section: 'academic' },
     { id: 'results',    label: 'Results',       section: 'academic' },
+    { id: 'finance',    label: 'Finance',       section: 'admin' },
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
   ],
@@ -105,15 +106,20 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
   const [activeNav, setActiveNav] = useState('overview');
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const roleId   = currentUser.role;
   const nav      = NAV_BY_ROLE[roleId] || NAV_BY_ROLE.school_admin;
   const rl       = ROLE_META[roleId]   || ROLE_META.school_admin;
   const schoolId = currentUser.school_id;
 
+  /* Global search: Enter → jump to the Students page with the query applied */
+  const handleSearchKey = (e) => {
+    if (e.key !== 'Enter') return;
+    setActiveNav(can(roleId, 'students.view') ? 'students' : 'overview');
+  };
+
   const allowedNav = nav.filter(item => navAllowed(roleId, item.id));
-  const mainNav    = allowedNav.filter(i => i.section === 'main' || i.section === 'academic' || i.section === 'admin');
-  const otherNav   = allowedNav.filter(i => i.section === 'other');
 
   const ctxValue = { currentUser, tenant };
 
@@ -134,8 +140,8 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
           className={`flex-shrink-0 flex flex-col transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[220px]'}`}
           style={{ background: '#0B0F2A', marginTop: '32px' }}
         >
-          {/* Logo */}
-          <div className={`flex items-center gap-3 px-4 py-5 ${collapsed ? 'justify-center' : ''}`}>
+          {/* Logo + collapse toggle */}
+          <div className={`flex items-center px-4 py-4 ${collapsed ? 'justify-center gap-2' : 'gap-1.5'}`}>
             {!collapsed && (
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1E45FC' }}>
@@ -147,10 +153,24 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
               </div>
             )}
             {collapsed && (
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#1E45FC' }}>
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1E45FC' }}>
                 <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 18, height: 18, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
               </div>
             )}
+            <button
+              onClick={() => setCollapsed(c => !c)}
+              title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+              style={{ color: 'rgba(255,255,255,0.4)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'transparent'; }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                {collapsed
+                  ? <path d="M5 3l4 4-4 4"/>
+                  : <path d="M9 3L5 7l4 4"/>}
+              </svg>
+            </button>
           </div>
 
           {/* Nav */}
@@ -235,12 +255,18 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
             </div>
 
             {/* Search */}
-            <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm w-52"
+            <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm w-60"
               style={{ borderColor: '#e2e8f0', background: '#f8faff' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.6">
                 <circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/>
               </svg>
-              <span className="text-xs text-gray-400">Search...</span>
+              <input
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onKeyDown={handleSearchKey}
+                placeholder="Search students… (Enter)"
+                className="outline-none bg-transparent text-sm w-full text-gray-700 placeholder:text-gray-400"
+              />
             </div>
 
             {/* Bell */}
@@ -270,7 +296,7 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
           {/* Page content */}
           <main className="flex-1 overflow-y-auto" style={{ background: '#f0f2f8', padding: '20px 24px' }}>
             <PermissionGate roleId={roleId} navId={activeNav}>
-              <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} />
+              <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} searchQuery={searchQuery} />
             </PermissionGate>
           </main>
         </div>
@@ -310,7 +336,7 @@ function DemoBanner() {
 }
 
 /* ─── Notification dropdown ───────────────────────────────────── */
-function NotifDropdown({ onClose }) {
+function NotifDropdown() {
   const notifs = [
     { icon: '💳', text: 'Fee payment received from Kabuye Peter', time: '2m ago',  dot: '#10b981' },
     { icon: '👥', text: 'New student enrolled: Aisha Nakato, S.1', time: '15m ago', dot: '#1E45FC' },
@@ -341,11 +367,11 @@ function NotifDropdown({ onClose }) {
 /* ══════════════════════════════════════════════════
    Page Content Router
 ═══════════════════════════════════════════════════ */
-function PageContent({ activeNav, roleId, schoolId, tenant, currentUser }) {
+function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQuery }) {
   const props = { roleId, schoolId, tenant, currentUser };
   switch (activeNav) {
     case 'overview':   return roleId === 'saas_admin' ? <SaasOverviewPage /> : <OverviewPage {...props} />;
-    case 'students':   return <StudentsPage   {...props} />;
+    case 'students':   return <StudentsPage {...props} initialSearch={searchQuery} />;
     case 'parents':    return <ParentsPage    {...props} />;
     case 'teachers':   return <TeachersPage   {...props} />;
     case 'attendance': return <AttendancePage {...props} />;
@@ -434,19 +460,21 @@ function InfoModal({ title, subtitle, children, onClose, footer }) {
 }
 
 /* ── Stat card ── */
-function StatCard({ label, value, delta, deltaPositive = true, iconBg, iconColor, svgPath }) {
+function StatCard({ label, value, delta, deltaPositive = true, sub = 'this month', iconBg, iconColor, svgPath }) {
   return (
     <Card className="p-5">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-gray-400 mb-1">{label}</p>
           <div className="text-2xl font-extrabold mb-1" style={{ color: '#0B0F2A' }}>{value}</div>
-          <div className="flex items-center gap-1">
-            <span className={`text-xs font-semibold ${deltaPositive ? 'text-green-600' : 'text-red-500'}`}>
-              {deltaPositive ? '+' : '-'}{delta}
-            </span>
-            <span className="text-xs text-gray-400">this month</span>
-          </div>
+          {delta ? (
+            <div className="flex items-center gap-1">
+              <span className={`text-xs font-semibold ${deltaPositive ? 'text-green-600' : 'text-red-500'}`}>
+                {delta}
+              </span>
+              {sub && <span className="text-xs text-gray-400">{sub}</span>}
+            </div>
+          ) : null}
         </div>
         <div className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ml-3"
           style={{ background: iconBg }}>
@@ -462,58 +490,115 @@ function StatCard({ label, value, delta, deltaPositive = true, iconBg, iconColor
 /* ══════════════════════════════════════════════════
    OVERVIEW
 ═══════════════════════════════════════════════════ */
-function OverviewPage({ roleId, schoolId, tenant, currentUser }) {
-  const isTeacher = roleId === 'teacher';
+function OverviewPage({ roleId, schoolId, currentUser }) {
+  const isTeacher  = roleId === 'teacher';
+  const isParent   = roleId === 'parent';
+  const isHeadTeacher = roleId === 'head_teacher';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
+  const children   = isParent ? parentChildren(currentUser) : [];
+
   const allStudents = queryStudents(schoolId);
-  // Teacher sees only students in their assigned classes
+  // Teacher sees only students in their assigned classes; parent only their own children
   const students  = isTeacher && assignment
     ? allStudents.filter(s => assignment.classes.includes(s.class))
-    : allStudents;
+    : isParent
+      ? allStudents.filter(s => children.includes(s.name))
+      : allStudents;
   const teachers  = queryTeachers(schoolId);
   const payments  = queryPayments(schoolId);
   const confirmedPay = payments.filter(p => p.status === 'Confirmed');
-  const totalFees = confirmedPay.length * 450000;
+  const totalFees = confirmedPay.reduce((sum, p) => sum + (parseInt(String(p.amount).replace(/,/g, ''), 10) || 0), 0);
 
-  const bars  = [62, 75, 58, 88, 70, 95, 82];
-  const days  = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  /* ── Parent portal overview: scoped to the parent's children only ── */
+  if (isParent) {
+    const childGrade = (name) => {
+      // Deterministic mock average derived from the child's name (stable across reloads)
+      const h = [...name].reduce((a, c) => a + c.charCodeAt(0), 0);
+      const avg = 62 + (h % 26); // 62–87
+      return { avg, grade: avg >= 80 ? 'D1' : avg >= 70 ? 'D2' : avg >= 65 ? 'C3' : avg >= 60 ? 'C4' : avg >= 55 ? 'C5' : 'C6' };
+    };
+    return (
+      <div className="animate-fade-in space-y-5">
+        <div>
+          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>My Child</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{currentUser.name} · Parent Portal · {schoolId}</p>
+        </div>
 
-  const activity = [
-    { icon: '💳', text: 'Fee payment received: UGX 450,000 from Kabuye Peter', time: '2m ago',  dot: '#10b981', category: 'Finance' },
-    { icon: '👤', text: 'New student enrolled: Aisha Nakato — S.1 West',        time: '18m ago', dot: '#1E45FC', category: 'Enrollment' },
-    { icon: '📋', text: 'Attendance marked for S.3 East — 42/45 present',       time: '45m ago', dot: '#0891b2', category: 'Attendance' },
-    { icon: '📄', text: 'Report cards generated for Term 1 2026',               time: '2h ago',  dot: '#7c3aed', category: 'Reports' },
-    { icon: '🎓', text: 'Teacher Namutebi Grace marked sick leave',             time: '3h ago',  dot: '#f59e0b', category: 'Staff' },
-  ];
+        {children.length === 0 && (
+          <Card className="p-10 text-center">
+            <div className="text-3xl mb-2">👶</div>
+            <p className="text-sm font-semibold text-gray-500">No children linked to your account yet.</p>
+            <p className="text-xs text-gray-400 mt-1">Contact your school administrator to link your children.</p>
+          </Card>
+        )}
 
-  // Students by class
-  const classCounts = students.reduce((acc, s) => {
-    acc[s.class] = (acc[s.class] || 0) + 1;
-    return acc;
-  }, {});
-  const classData = Object.entries(classCounts).slice(0, 5).map(([cls, count]) => ({ cls, count, pct: Math.round((count / students.length) * 100) }));
+        {children.map(name => {
+          const st = allStudents.find(s => s.name === name);
+          const { avg, grade } = childGrade(name);
+          const childPay = payments.filter(p => p.student === name);
+          const paidTotal = childPay.filter(p => p.status === 'Confirmed')
+            .reduce((s, p) => s + (parseInt(String(p.amount).replace(/,/g, ''), 10) || 0), 0);
+          return (
+            <Card key={name} className="p-5">
+              <div className="flex items-start justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0" style={{ background: '#1E45FC' }}>
+                    {name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                  </div>
+                  <div>
+                    <div className="text-base font-extrabold" style={{ color: '#0B0F2A' }}>{name}</div>
+                    <div className="text-xs text-gray-400">{st?.class ?? '—'}</div>
+                  </div>
+                </div>
+                <div className="flex gap-2 flex-wrap">
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+                    style={{ background: st?.fee === 'Paid' ? '#d1fae5' : st?.fee === 'Partial' ? '#fef3c7' : '#fee2e2',
+                             color: st?.fee === 'Paid' ? '#059669' : st?.fee === 'Partial' ? '#d97706' : '#dc2626' }}>
+                    Fees: {st?.fee ?? '—'}
+                  </span>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#e8ecff', color: '#1E45FC' }}>
+                    Avg {avg}% · {grade}
+                  </span>
+                </div>
+              </div>
 
-  // Top subjects (mock)
-  const subjects = [
-    { name: 'Mathematics', score: 88, color: '#1E45FC' },
-    { name: 'English',     score: 82, color: '#059669' },
-    { name: 'Biology',     score: 76, color: '#0891b2' },
-    { name: 'History',     score: 71, color: '#7c3aed' },
-    { name: 'Chemistry',   score: 68, color: '#d97706' },
-  ];
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                <div className="rounded-xl p-3 text-center" style={{ background: '#f8faff' }}>
+                  <div className="text-lg font-extrabold" style={{ color: '#1E45FC' }}>{st?.class ?? '—'}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Class</div>
+                </div>
+                <div className="rounded-xl p-3 text-center" style={{ background: '#f0fdf4' }}>
+                  <div className="text-lg font-extrabold" style={{ color: '#059669' }}>{st?.status ?? '—'}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Status</div>
+                </div>
+                <div className="rounded-xl p-3 text-center" style={{ background: '#fef3c7' }}>
+                  <div className="text-lg font-extrabold" style={{ color: '#d97706' }}>UGX {paidTotal.toLocaleString()}</div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">Paid This Term</div>
+                </div>
+              </div>
 
-  // Upcoming events
-  const events = [
-    { title: 'Parent-Teacher Meeting', date: 'May 10, 2026', type: 'Meeting' },
-    { title: 'End of Term 2 Begin', date: 'May 15, 2026', type: 'Academic' },
-    { title: 'Sports Day', date: 'May 20, 2026', type: 'Event' },
-    { title: 'Term 2 Exams Begin', date: 'May 28, 2026', type: 'Exam' },
-  ];
-  const eventColors = { Meeting: '#1E45FC', Academic: '#059669', Event: '#d97706', Exam: '#dc2626' };
-  const eventBg = { Meeting: '#e8ecff', Academic: '#d1fae5', Event: '#fef3c7', Exam: '#fee2e2' };
+              {childPay.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Recent Payments</p>
+                  <div className="space-y-1.5">
+                    {childPay.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: '#f8faff', border: '1px solid #eef0f6' }}>
+                        <span className="font-semibold" style={{ color: '#0B0F2A' }}>UGX {p.amount}</span>
+                        <span className="text-gray-400">{p.method} · {p.date}</span>
+                        <span className="font-bold" style={{ color: p.status === 'Confirmed' ? '#059669' : '#d97706' }}>{p.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
-  // Timetable metrics (teacher & head_teacher)
-  const isHeadTeacher = roleId === 'head_teacher';
+  // Timetable metrics (teacher & head teacher)
   const showTimetable = isTeacher || isHeadTeacher;
 
   const TODAY_SCHEDULE_TEACHER = [
@@ -548,23 +633,9 @@ function OverviewPage({ roleId, schoolId, tenant, currentUser }) {
     { dept: 'Technical',    covered: 3, total: 4, color: '#7c3aed' },
   ];
 
-  // Quick links
-  const quickLinks = [
-    { label: 'Add Student', icon: '👥', color: '#1E45FC', bg: '#e8ecff' },
-    { label: 'Record Fee', icon: '💳', color: '#059669', bg: '#d1fae5' },
-    { label: 'Mark Attendance', icon: '📋', color: '#0891b2', bg: '#e0f2fe' },
-    { label: 'View Reports', icon: '📄', color: '#7c3aed', bg: '#f5f3ff' },
-    { label: 'Send Message', icon: '💬', color: '#d97706', bg: '#fef3c7' },
-    { label: 'ID Cards', icon: '🪪', color: '#db2777', bg: '#fce7f3' },
-  ];
+  // Quick links to other modules are handled by the sidebar — no separate widget
 
-  // Fee collection donut
-  const feeTarget = students.length * 450000;
   const feeCollected = totalFees;
-  const feePct = Math.min(100, Math.round((feeCollected / feeTarget) * 100)) || 92;
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (feePct / 100) * circumference;
 
   // Attendance donut
   const attPresent = 85, attAbsent = 10, attLate = 5;
@@ -686,7 +757,7 @@ function OverviewPage({ roleId, schoolId, tenant, currentUser }) {
               {[
                 { label: 'Present', pct: '85%', color: '#1E45FC' },
                 { label: 'Absent',  pct: '10%', color: '#f97316' },
-                { label: 'Late',    pct: '1%',  color: '#22c55e' },
+                { label: 'Late',    pct: '5%',  color: '#22c55e' },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
@@ -882,7 +953,7 @@ function OverviewPage({ roleId, schoolId, tenant, currentUser }) {
 /* ══════════════════════════════════════════════════
    STUDENTS
 ═══════════════════════════════════════════════════ */
-function StudentsPage({ roleId, schoolId, currentUser }) {
+function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
   const isTeacher = roleId === 'teacher';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
   const allSchool = queryStudents(schoolId);
@@ -891,12 +962,20 @@ function StudentsPage({ roleId, schoolId, currentUser }) {
     : allSchool;
 
   const [students, setStudents] = useState(all);
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(initialSearch || '');
   const [filter, setFilter] = useState('all');
   const [showModal, setModal] = useState(false);
   const [viewStudent, setViewStudent] = useState(null);
   const [editStudent, setEditStudent] = useState(null);
   const { toasts, show: toast } = useToast();
+
+  // Keep in sync with the global topbar search (adjust state during render,
+  // per the React docs — avoids a cascading-render effect)
+  const [prevInitial, setPrevInitial] = useState(initialSearch);
+  if (prevInitial !== initialSearch) {
+    setPrevInitial(initialSearch);
+    setSearch(initialSearch);
+  }
 
   const filtered = students.filter(s =>
     (filter === 'all' || s.status.toLowerCase() === filter) &&
@@ -1000,7 +1079,7 @@ function StudentsPage({ roleId, schoolId, currentUser }) {
         </table>
       </Card>
 
-      {showModal && <AddStudentModal onClose={() => setModal(false)} onAdd={s => { setStudents(p => [...p, s]); setModal(false); toast('Student added successfully'); }} />}
+      {showModal && <AddStudentModal schoolId={schoolId} onClose={() => setModal(false)} onAdd={s => { setStudents(p => [...p, s]); setModal(false); toast('Student added successfully'); }} />}
 
       {viewStudent && (
         <InfoModal title={viewStudent.name} subtitle={`${viewStudent.class} · ${viewStudent.status}`} onClose={() => setViewStudent(null)}
@@ -1027,7 +1106,7 @@ function StudentsPage({ roleId, schoolId, currentUser }) {
 
 const CLASSES_ALL = ['P.1','P.2','P.3','P.4','P.5','P.6','P.7','S.1 East','S.1 West','S.2 East','S.2 West','S.3 East','S.3 West','S.4 East','S.4 West','S.5 Arts','S.5 Science','S.6 Arts','S.6 Science'];
 
-function AddStudentModal({ onClose, onAdd }) {
+function AddStudentModal({ schoolId, onClose, onAdd }) {
   const [form, setForm] = useState({ name: '', class: '', parent: '', phone: '', fee: 'Unpaid', status: 'Active' });
   const [err, setErr] = useState({});
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1038,7 +1117,7 @@ function AddStudentModal({ onClose, onAdd }) {
     if (!form.parent.trim()) e.parent = 'Required';
     setErr(e);
     if (Object.keys(e).length) return;
-    onAdd({ ...form, id: 's-' + Date.now(), school_id: 'skh-001' });
+    onAdd({ ...form, id: 's-' + Date.now(), school_id: schoolId });
   };
   const f = (label, key, type = 'text', ph = '') => (
     <div key={key}>
@@ -1372,7 +1451,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
         <ContactParentModal
           parent={contactParent}
           onClose={() => setContactParent(null)}
-          onSent={(msg) => { setContactParent(null); toast(`Message sent to ${contactParent.name}`); }}
+          onSent={() => { setContactParent(null); toast(`Message sent to ${contactParent.name}`); }}
         />
       )}
 
@@ -1968,12 +2047,16 @@ function AssignClassModal({ teacher, onClose, onSave }) {
 ═══════════════════════════════════════════════════ */
 function AttendancePage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
+  const isParent   = roleId === 'parent';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
+  const children   = isParent ? parentChildren(currentUser) : [];
   const allStudents = queryStudents(schoolId);
-  // Teacher: only students from assigned classes
+  // Teacher: only students from assigned classes; parent: only their children (read-only)
   const students = isTeacher && assignment
     ? allStudents.filter(s => assignment.classes.includes(s.class))
-    : allStudents;
+    : isParent
+      ? allStudents.filter(s => children.includes(s.name))
+      : allStudents;
   const classes  = isTeacher && assignment
     ? assignment.classes
     : [...new Set(students.map(s => s.class))];
@@ -1993,11 +2076,20 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Attendance</h2>
+          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>
+            {isParent ? "My Child's Attendance" : 'Attendance'}
+          </h2>
           <p className="text-xs text-gray-400 mt-0.5">Today · {new Date().toLocaleDateString('en-UG', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}</p>
         </div>
         {can(roleId, 'attendance.mark') && <button onClick={saveAttendance} className="btn-brand-primary text-sm py-2 px-4">Save Attendance</button>}
       </div>
+
+      {isParent && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+          <span>👨‍👩‍👧</span>
+          Showing attendance for your children only: <strong className="ml-1">{children.join(', ')}</strong>
+        </div>
+      )}
 
       {isTeacher && assignment && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
@@ -2064,18 +2156,48 @@ const PERIODS = ['7:30–8:30','8:30–9:30','9:30–10:30','Break','11:00–12:
 const SUBJ    = ['Mathematics','English','Biology','History','Chemistry','Physics','Literature','Geography'];
 const SCOL    = { Mathematics:'#1E45FC', English:'#059669', Biology:'#0891b2', History:'#7c3aed', Chemistry:'#dc2626', Physics:'#d97706', Literature:'#db2777', Geography:'#0891b2' };
 
-const GRID = DAYS.reduce((a, d) => {
-  a[d] = PERIODS.map(p => {
-    if (p === 'Break') return { label:'Break', color:'#f8faff', text:'#94a3b8' };
-    if (p === 'Lunch') return { label:'Lunch', color:'#fef3c7', text:'#d97706' };
-    const s = SUBJ[Math.floor(Math.random()*SUBJ.length)];
-    return { label: s, color: SCOL[s]+'20', text: SCOL[s] };
-  });
-  return a;
-}, {});
+/* Deterministic pseudo-random generator — the timetable is stable across reloads */
+function mulberry32(seed) {
+  return function () {
+    let t = (seed += 0x6D2B79F5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-function TimetablePage({ roleId }) {
+const GRID = (() => {
+  const rng = mulberry32(20260501); // Term 2 2026 seed
+  return DAYS.reduce((a, d) => {
+    a[d] = PERIODS.map(p => ({
+      label: p === 'Break' ? 'Break' : p === 'Lunch' ? 'Lunch' : SUBJ[Math.floor(rng() * SUBJ.length)],
+    }));
+    return a;
+  }, {});
+})();
+
+/* Cell colouring — derived from the label so edited cells stay consistent */
+const cellStyle = (label) => {
+  if (label === 'Break') return { bg: '#f8faff', text: '#94a3b8' };
+  if (label === 'Lunch') return { bg: '#fef3c7', text: '#d97706' };
+  if (label === 'Free')  return { bg: '#f1f5f9', text: '#94a3b8' };
+  const c = SCOL[label] || '#94a3b8';
+  return { bg: c + '20', text: c };
+};
+
+function TimetablePage({ roleId, currentUser }) {
   const [tab, setTab] = useState('school');
+  const [editMode, setEditMode] = useState(false);
+  const [grid, setGrid] = useState(GRID);
+  const { toasts, show: toast } = useToast();
+  const canEdit = can(roleId, 'timetable.edit');
+  const isTeacher = roleId === 'teacher';
+  const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
+  const teacherSubjects = assignment?.subjects ?? [];
+
+  const setCell = (d, pi, label) =>
+    setGrid(g => ({ ...g, [d]: g[d].map((c, i) => (i === pi ? { ...c, label } : c)) }));
+
   return (
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
@@ -2083,7 +2205,13 @@ function TimetablePage({ roleId }) {
           <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Timetables</h2>
           <p className="text-xs text-gray-400 mt-0.5">Term 2 · 2026</p>
         </div>
-        {can(roleId, 'timetable.edit') && <button className="btn-brand-primary text-sm py-2 px-4">Edit Timetable</button>}
+        {canEdit && (
+          <button
+            onClick={() => { setEditMode(m => !m); if (editMode) toast('Timetable saved'); }}
+            className={`text-sm py-2 px-4 rounded-xl font-bold ${editMode ? 'btn-brand-secondary' : 'btn-brand-primary'}`}>
+            {editMode ? 'Done Editing' : 'Edit Timetable'}
+          </button>
+        )}
       </div>
       <div className="flex gap-2">
         {['school','teacher','prep','meals'].map(t => (
@@ -2108,11 +2236,24 @@ function TimetablePage({ roleId }) {
                 <tr key={p} className="border-b last:border-0" style={{ borderColor: '#f5f7fb' }}>
                   <td className="px-4 py-2.5 text-xs text-gray-400 font-medium whitespace-nowrap">{p}</td>
                   {DAYS.map(d => {
-                    const cell = GRID[d][pi];
+                    const cell = grid[d][pi];
+                    const dimmed = tab === 'teacher' && teacherSubjects.length > 0
+                      && !['Break', 'Lunch'].includes(cell.label) && !teacherSubjects.includes(cell.label);
+                    const { bg, text } = cellStyle(cell.label);
                     return (
                       <td key={d} className="px-2 py-2 text-center">
-                        <span className="inline-block px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap"
-                          style={{ background: cell.color, color: cell.text }}>{cell.label}</span>
+                        {editMode && canEdit ? (
+                          <select
+                            value={cell.label}
+                            onChange={e => setCell(d, pi, e.target.value)}
+                            className="text-xs px-1 py-1 rounded-lg border bg-white outline-none"
+                            style={{ borderColor: '#e2e8f0' }}>
+                            {['Free', 'Break', 'Lunch', ...SUBJ].map(s => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                        ) : (
+                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${dimmed ? 'opacity-25' : ''}`}
+                            style={{ background: bg, color: text }}>{cell.label}</span>
+                        )}
                       </td>
                     );
                   })}
@@ -2122,6 +2263,7 @@ function TimetablePage({ roleId }) {
           </table>
         </Card>
       )}
+      <Toast toasts={toasts} />
     </div>
   );
 }
@@ -2155,9 +2297,25 @@ function MealsSchedule() {
    RESULTS
 ═══════════════════════════════════════════════════ */
 const SUBJ_LIST = ['Mathematics','English','Biology','History','Chemistry','Physics'];
+
+/* ── Tiny CSV download helper (used by marks import & invoice export) ── */
+function downloadCSV(filename, content) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function ResultsPage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
+  const isParent   = roleId === 'parent';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
+  const children   = isParent ? parentChildren(currentUser) : [];
   // Teacher: only see and enter marks for assigned subjects in assigned classes
   const activeSubjects = isTeacher && assignment
     ? SUBJ_LIST.filter(s => assignment.subjects.includes(s))
@@ -2165,7 +2323,9 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
   const allSchoolStudents = queryStudents(schoolId);
   const baseStudents = isTeacher && assignment
     ? allSchoolStudents.filter(s => assignment.classes.includes(s.class)).slice(0, 10)
-    : allSchoolStudents.slice(0, 5);
+    : isParent
+      ? allSchoolStudents.filter(s => children.includes(s.name))
+      : allSchoolStudents.slice(0, 5);
 
   const [marks, setMarks] = useState(
     baseStudents.map(s => ({ ...s, scores: activeSubjects.reduce((a, sub) => ({ ...a, [sub]: Math.floor(Math.random()*40+55) }), {}) }))
@@ -2177,18 +2337,82 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
   const canEdit = can(roleId, 'results.enter');
   const { toasts, show: toast } = useToast();
   const [importModal, setImportModal] = useState(false);
+  const [importData, setImportData] = useState(null); // { rows: [{ name, scores }] }
+  const fileRef = useRef(null);
 
   const saveResults = () => toast(`Results saved for ${marks.length} students`);
+
+  /* ── CSV import: download template ── */
+  const downloadTemplate = () => {
+    const header = ['Student Name', ...activeSubjects];
+    const lines = [
+      header.join(','),
+      ...baseStudents.map(s => [s.name, ...activeSubjects.map(() => '')].join(',')),
+    ];
+    downloadCSV('marks-template.csv', lines.join('\n'));
+    toast('Template downloaded');
+    setImportModal(false);
+  };
+
+  /* ── CSV import: parse the selected file ── */
+  const handleFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '');
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length < 2) { toast('CSV must have a header row plus data rows', 'error'); return; }
+      const headers = lines[0].split(',').map(h => h.trim());
+      const nameIdx = headers.findIndex(h => /student|name/i.test(h));
+      if (nameIdx < 0) { toast('CSV must contain a "Student Name" column', 'error'); return; }
+      const rows = lines.slice(1).map(line => {
+        const cols = line.split(',').map(c => c.trim());
+        const scores = {};
+        activeSubjects.forEach(sub => {
+          const idx = headers.findIndex(h => h === sub);
+          const val = idx >= 0 ? parseInt(cols[idx], 10) : NaN;
+          if (!Number.isNaN(val) && val >= 0 && val <= 100) scores[sub] = val;
+        });
+        return { name: cols[nameIdx], scores };
+      }).filter(r => r.name);
+      setImportData({ rows });
+      toast(`Parsed ${rows.length} rows from ${file.name}`);
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  /* ── CSV import: apply parsed marks to matching students ── */
+  const applyImport = () => {
+    if (!importData) return;
+    let applied = 0;
+    setMarks(prev => prev.map(st => {
+      const match = importData.rows.find(r => r.name.toLowerCase() === st.name.toLowerCase());
+      if (match && Object.keys(match.scores).length) {
+        applied++;
+        return { ...st, scores: { ...st.scores, ...match.scores } };
+      }
+      return st;
+    }));
+    setImportModal(false);
+    setImportData(null);
+    toast(`Imported marks for ${applied} student${applied !== 1 ? 's' : ''}`);
+  };
 
   return (
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Academic Results</h2>
+          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>
+            {isParent ? "My Child's Results" : 'Academic Results'}
+          </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            {isTeacher && assignment
-              ? `${assignment.subjects.join(', ')} · ${assignment.classes.join(', ')}`
-              : `S.3 East · Term 2 Exams · ${schoolId}`}
+            {isParent
+              ? `Viewing results for: ${children.join(', ')}`
+              : isTeacher && assignment
+                ? `${assignment.subjects.join(', ')} · ${assignment.classes.join(', ')}`
+                : `S.3 East · Term 2 Exams · ${schoolId}`}
           </p>
         </div>
         {canEdit && (
@@ -2198,6 +2422,12 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
           </div>
         )}
       </div>
+      {isParent && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+          <span>👨‍👩‍👧</span>
+          Showing results for your children only: <strong className="ml-1">{children.join(', ')}</strong>
+        </div>
+      )}
       {isTeacher && assignment && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
@@ -2255,20 +2485,39 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
               <button onClick={() => setImportModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center py-10 gap-3 cursor-pointer hover:border-[#1E45FC] transition-colors" style={{ borderColor: '#e2e8f0' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                <div className="text-sm font-semibold text-gray-500">Click to upload CSV / Excel file</div>
-                <div className="text-xs text-gray-400">Columns: Student Name, {activeSubjects.join(', ')}</div>
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={handleFile}
+              />
+              <div
+                onClick={() => fileRef.current?.click()}
+                className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center py-10 gap-3 cursor-pointer hover:border-[#1E45FC] hover:bg-[#f5f7ff] transition-colors"
+                style={{ borderColor: importData ? '#1E45FC' : '#e2e8f0' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={importData ? '#1E45FC' : '#94a3b8'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                {importData ? (
+                  <div className="text-sm font-semibold text-[#1E45FC]">
+                    {importData.rows.length} rows ready to import
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-sm font-semibold text-gray-500">Click to upload a CSV file</div>
+                    <div className="text-xs text-gray-400">Columns: Student Name, {activeSubjects.join(', ')}</div>
+                  </>
+                )}
               </div>
               <a href="#" className="block text-center text-xs font-semibold text-[#1E45FC] hover:underline"
-                onClick={e => { e.preventDefault(); toast('Template downloaded'); setImportModal(false); }}>
+                onClick={e => { e.preventDefault(); downloadTemplate(); }}>
                 Download import template →
               </a>
             </div>
             <div className="flex gap-3 px-6 pb-6">
               <button onClick={() => setImportModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
-              <button onClick={() => { toast('Marks imported successfully'); setImportModal(false); }}
-                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Import</button>
+              <button onClick={applyImport} disabled={!importData}
+                className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity disabled:opacity-50"
+                style={{ background: '#1E45FC' }}>Import</button>
             </div>
           </div>
         </div>
@@ -2281,15 +2530,17 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
 /* ══════════════════════════════════════════════════
    FINANCE
 ═══════════════════════════════════════════════════ */
-function FinancePage({ roleId, schoolId, tenant }) {
+function FinancePage({ roleId, schoolId, tenant, currentUser }) {
   const basePayments = queryPayments(schoolId);
   const students     = queryStudents(schoolId);
   const canRecord    = can(roleId,'finance.record');
   const canApprove   = can(roleId,'finance.approve');
   const canPayroll   = can(roleId,'finance.payroll');
+  const isParent     = roleId === 'parent';
+  const children     = isParent ? parentChildren(currentUser) : [];
 
   /* ── Tab state ── */
-  const [tab, setTab] = useState('fees'); // fees | expenses | payroll | approvals
+  const [tab, setTab] = useState(roleId === 'head_teacher' ? 'approvals' : 'fees'); // fees | expenses | payroll | approvals
 
   /* ── Fees state ── */
   const [payments, setPayments] = useState([
@@ -2373,14 +2624,74 @@ function FinancePage({ roleId, schoolId, tenant }) {
   const TABS = [
     { id:'fees',      label:'Fee Payments',    badge: pending.length||null },
     { id:'expenses',  label:'Expenses',         badge: expenses.filter(e=>e.status==='Pending').length||null },
-    { id:'payroll',   label:'Payroll',          badge: null },
-    { id:'approvals', label:'Approvals',        badge: pendingApprovals.length||null },
+    ...(canPayroll ? [{ id:'payroll',   label:'Payroll',   badge: null }] : []),
+    ...(canApprove ? [{ id:'approvals', label:'Approvals', badge: pendingApprovals.length||null }] : []),
   ];
 
   const methodColors = { 'Mobile Money':'#1E45FC', 'Cash':'#059669', 'Cheque':'#7c3aed', 'Bank Transfer':'#0891b2', 'Online':'#d97706' };
   const methodBg     = { 'Mobile Money':'#e8ecff', 'Cash':'#d1fae5',  'Cheque':'#f5f3ff', 'Bank Transfer':'#e0f2fe', 'Online':'#fef3c7' };
   const expStatusColor = { Approved:'#059669', Pending:'#d97706', Rejected:'#dc2626' };
   const expStatusBg    = { Approved:'#d1fae5',  Pending:'#fef3c7',  Rejected:'#fee2e2' };
+
+  /* ── Parent view: their children's fee balance only (read-only) ── */
+  if (isParent) {
+    const myStudents = students.filter(s => children.includes(s.name));
+    return (
+      <div className="animate-fade-in space-y-5">
+        <div>
+          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Fee Balance</h2>
+          <p className="text-xs text-gray-400 mt-0.5">{currentUser.name} · {tenant?.name ?? schoolId}</p>
+        </div>
+        {myStudents.length === 0 && (
+          <Card className="p-10 text-center">
+            <div className="text-3xl mb-2">👶</div>
+            <p className="text-sm font-semibold text-gray-500">No children linked to your account yet.</p>
+          </Card>
+        )}
+        {myStudents.map(s => {
+          const childPay = payments.filter(p => p.student === s.name);
+          const paid = childPay.filter(p => p.status === 'Confirmed').reduce((sum, p) => sum + (parseInt(String(p.amount).replace(/,/g, ''), 10) || 0), 0);
+          const feeTarget = 450000; // mock term fee
+          const balance = Math.max(0, feeTarget - paid);
+          return (
+            <Card key={s.id} className="p-5">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ background: '#1E45FC' }}>
+                    {s.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>{s.name}</div>
+                    <div className="text-xs text-gray-400">{s.class}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Outstanding Balance</div>
+                  <div className="text-xl font-extrabold" style={{ color: balance > 0 ? '#dc2626' : '#059669' }}>
+                    UGX {balance.toLocaleString()}
+                  </div>
+                </div>
+              </div>
+              {childPay.length > 0 && (
+                <div className="mt-4">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payments</p>
+                  <div className="space-y-1.5">
+                    {childPay.map((p, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: '#f8faff', border: '1px solid #eef0f6' }}>
+                        <span className="font-semibold" style={{ color: '#0B0F2A' }}>UGX {p.amount}</span>
+                        <span className="text-gray-400">{p.method} · {p.date}</span>
+                        <span className="font-bold" style={{ color: p.status === 'Confirmed' ? '#059669' : '#d97706' }}>{p.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </Card>
+          );
+        })}
+      </div>
+    );
+  }
 
   return (
     <div className="animate-fade-in space-y-5">
@@ -2636,7 +2947,7 @@ function FinancePage({ roleId, schoolId, tenant }) {
                       : `UGX ${item.amount?.toLocaleString()} · ${item.category} · ${item.date}`}
                   </div>
                   <div className="text-[10px] mt-0.5 font-semibold" style={{ color:'#d97706' }}>
-                    {isFee ? '🔐 Awaiting bursar/admin confirmation' : '🔐 Awaiting head teacher / director approval'}
+                    🔐 Awaiting head teacher approval
                   </div>
                 </div>
                 {canApprove && (
@@ -2851,12 +3162,16 @@ function FinancePage({ roleId, schoolId, tenant }) {
 ═══════════════════════════════════════════════════ */
 function ReportCardsPage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
+  const isParent   = roleId === 'parent';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
+  const children   = isParent ? parentChildren(currentUser) : [];
   const allSchoolStudents = queryStudents(schoolId);
-  // Teacher: only students from assigned classes
+  // Teacher: only students from assigned classes; parent: only their children
   const allStudents = isTeacher && assignment
     ? allSchoolStudents.filter(s => assignment.classes.includes(s.class))
-    : allSchoolStudents;
+    : isParent
+      ? allSchoolStudents.filter(s => children.includes(s.name))
+      : allSchoolStudents;
 
   const canGen  = can(roleId, 'reports.generate');
   const canSend = can(roleId, 'reports.send');
@@ -2920,10 +3235,12 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Report Cards</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>
+            {isParent ? "My Child's Report Card" : 'Report Cards'}
+          </h2>
           <p className="text-xs text-gray-400 mt-0.5">
-            {termF} · {allStudents.length} students
-            {isTeacher && assignment ? ` · ${assignment.subjects.join(', ')}` : ` · ${schoolId}`}
+            {termF} · {allStudents.length} student{allStudents.length !== 1 ? 's' : ''}
+            {isParent ? ` · ${children.join(', ')}` : isTeacher && assignment ? ` · ${assignment.subjects.join(', ')}` : ` · ${schoolId}`}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -2953,6 +3270,14 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing performance for <strong className="mx-1">{assignment.subjects.join(', ')}</strong> in <strong className="mx-1">{assignment.classes.join(', ')}</strong>. Averages are calculated for your subjects only.
+        </div>
+      )}
+
+      {/* Parent scope notice */}
+      {isParent && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+          <span>👨‍👩‍👧</span>
+          Showing report cards for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
       )}
 
@@ -3121,7 +3446,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                 {isTeacher ? `My Subjects — ${SUBJECTS.join(', ')}` : 'Subject Results'}
               </h4>
               <div className="space-y-2.5">
-                {SUBJECTS.map((subj, idx)=>{
+                {SUBJECTS.map((subj) => {
                   const origIdx = ALL_SUBJECTS.indexOf(subj);
                   const m = selected.marks[origIdx]; const g=gradeOf(m);
                   return (
@@ -3857,8 +4182,7 @@ function EnrollmentBuilderPage({ schoolId, tenant }) {
         )}
 
         <div className="divide-y" style={{ borderColor:'#f5f7fb' }}>
-          {sectionFields(activeTab).map((field, idx) => {
-            const sectionArr = sectionFields(activeTab);
+          {sectionFields(activeTab).map((field) => {
             const absIdx = schema.findIndex(f => f.id === field.id);
             return (
               <div key={field.id} className={`flex items-center gap-3 px-5 py-3.5 transition-colors ${!field.enabled ? 'opacity-50' : ''}`}>
@@ -4056,10 +4380,10 @@ function SaasOverviewPage() {
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label:'Active Schools',  value:active, delta:'total tenants', icon:'🏫', iconBg:'#e8ecff', iconColor:'#1E45FC' },
-          { label:'Total Students',  value:totalStudents.toLocaleString(), delta:'Across all schools', icon:'👥', iconBg:'#d1fae5', iconColor:'#059669' },
-          { label:'Platform MRR',    value:`UGX ${(totalMRR/1000000).toFixed(1)}M`, delta:'+12% MoM', icon:'💰', iconBg:'#fef3c7', iconColor:'#d97706' },
-          { label:'Billing Rate',    value:`UGX ${BILLING_RATE.toLocaleString()}`, delta:'Per student / term', icon:'💳', iconBg:'#f5f3ff', iconColor:'#7c3aed' },
+          { label:'Active Schools',  value:active, delta:'', iconBg:'#e8ecff', iconColor:'#1E45FC', svgPath:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
+          { label:'Total Students',  value:totalStudents.toLocaleString(), delta:'', iconBg:'#d1fae5', iconColor:'#059669', svgPath:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
+          { label:'Platform MRR',    value:`UGX ${(totalMRR/1000000).toFixed(1)}M`, delta:'+12%', sub:'vs last month', iconBg:'#fef3c7', iconColor:'#d97706', svgPath:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
+          { label:'Billing Rate',    value:`UGX ${BILLING_RATE.toLocaleString()}`, delta:'', iconBg:'#f5f3ff', iconColor:'#7c3aed', svgPath:'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
         ].map((s,i) => (
           <StatCard key={i} {...s} />
         ))}
@@ -4341,6 +4665,14 @@ function SaasBillingPage() {
   const tenants = queryAllTenants();
   const totalMRR = tenants.reduce((a,t)=>a+calcBilling(t.school_id),0);
   const { toasts, show: toast } = useToast();
+
+  const exportInvoices = () => {
+    const header = ['School','Tenant ID','Plan','Students','Rate (UGX)','Term Billing (UGX)'];
+    const lines = tenants.map(t => [t.name, t.school_id, t.plan, t.student_count, BILLING_RATE, calcBilling(t.school_id)].join(','));
+    downloadCSV('skoulhub-invoices.csv', [header.join(','), ...lines].join('\n'));
+    toast('Invoices exported to CSV');
+  };
+
   return (
     <div className="animate-fade-in space-y-4">
       <div>
@@ -4363,7 +4695,7 @@ function SaasBillingPage() {
       <Card className="overflow-hidden">
         <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
           <h3 className="font-bold text-sm" style={{ color:'#0B0F2A' }}>Per-Tenant Billing</h3>
-          <button onClick={() => { toast('Invoices exported to CSV'); }} className="text-xs font-semibold hover:underline" style={{ color:'#1E45FC' }}>Export Invoices →</button>
+          <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'#1E45FC' }}>Export Invoices →</button>
         </div>
         <table className="w-full">
           <thead>
@@ -4400,7 +4732,11 @@ function SaasBillingPage() {
    SAAS — ONBOARDING
 ═══════════════════════════════════════════════════ */
 function SaasOnboardingPage() {
-  const recent = queryAllTenants().slice(-3).reverse();
+  const tenants = queryAllTenants();
+  const recent = tenants.slice(-3).reverse();
+  const thisMonth = tenants.filter(t => (t.created_at || '').startsWith('2026-05')).length;
+  const pending = tenants.filter(t => t.status === 'trial').length;
+  const onboarded = tenants.filter(t => t.status === 'active').length;
   const [configModal, setConfigModal] = useState(null);
   const { toasts, show: toast } = useToast();
   return (
@@ -4411,9 +4747,9 @@ function SaasOnboardingPage() {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { icon:'🚀', label:'Schools This Month', value:'3', color:'#1E45FC' },
-          { icon:'⏳', label:'Pending Setup',       value:'1', color:'#d97706' },
-          { icon:'✅', label:'Fully Onboarded',     value:'4', color:'#059669' },
+          { icon:'🚀', label:'Schools This Month', value:thisMonth, color:'#1E45FC' },
+          { icon:'⏳', label:'Pending Setup',       value:pending, color:'#d97706' },
+          { icon:'✅', label:'Fully Onboarded',     value:onboarded, color:'#059669' },
         ].map((s,i) => (
           <Card key={i} className="p-5 flex items-center gap-4">
             <div className="text-3xl">{s.icon}</div>

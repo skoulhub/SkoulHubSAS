@@ -147,7 +147,6 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
   const isSchoolMode = !!presetSchoolId;
   const STEPS = isSchoolMode ? STEPS_SCHOOL : STEPS_GENERIC;
 
-  const presetSchool  = presetSchoolId ? TENANTS[presetSchoolId] : null;
   const presetConfig  = presetSchoolId ? getEnrollmentConfig(presetSchoolId) : null;
   const themeColor    = presetConfig?.themeColor ?? '#1E45FC';
 
@@ -518,26 +517,30 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
               return rendered;
             })()}
 
-            {/* Document checklist — schema-driven */}
-            {schemaFor('documents').length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-600 mb-3">Documents to Submit on Arrival</p>
-                <div className="space-y-2.5">
-                  {schemaFor('documents').map(d => (
-                    <label key={d.id} className="flex items-center gap-3 cursor-pointer group">
-                      <div onClick={() => set(d.id, !form[d.id])}
-                        className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
-                        style={{ background: form[d.id] ? themeColor : 'white', border: `2px solid ${form[d.id] ? themeColor : '#d1d5db'}` }}>
-                        {form[d.id] && (
-                          <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>
-                        )}
-                      </div>
-                      <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">{d.label}</span>
-                    </label>
-                  ))}
+            {/* Document checklist — schema-driven (transfer letter hidden when the school doesn't require it) */}
+            {(() => {
+              const docs = schemaFor('documents').filter(d => !(d.id === 'docs_transfer' && !needsTransfer));
+              if (docs.length === 0) return null;
+              return (
+                <div>
+                  <p className="text-xs font-semibold text-gray-600 mb-3">Documents to Submit on Arrival</p>
+                  <div className="space-y-2.5">
+                    {docs.map(d => (
+                      <label key={d.id} className="flex items-center gap-3 cursor-pointer group">
+                        <div onClick={() => set(d.id, !form[d.id])}
+                          className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
+                          style={{ background: form[d.id] ? themeColor : 'white', border: `2px solid ${form[d.id] ? themeColor : '#d1d5db'}` }}>
+                          {form[d.id] && (
+                            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>
+                          )}
+                        </div>
+                        <span className="text-sm text-gray-600 group-hover:text-gray-800 transition-colors">{d.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Agreement */}
             <div className="rounded-xl p-4" style={{ background: '#f8faff', border: '1px solid #e2e8f0' }}>
