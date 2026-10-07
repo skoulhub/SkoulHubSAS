@@ -34,8 +34,10 @@ Row-level scoping ("which students/parents may this user see?") is centralised i
 accidentally show a teacher or parent the whole school.
 
 `src/lib/rbac.invariants.test.js` locks the pieces together: every role has metadata and
-navigation, every nav entry offered to a role is permitted for it, and no permission is
-left unenforced.
+navigation, every nav entry offered to a role is permitted for it, no permission is left
+unenforced, and the read-only guarantees hold — **a parent holds zero write permissions**,
+and a teacher may only mark attendance, enter marks, comment on report cards and contact
+parents.
 
 > These checks are UI-level only — see [Security model](#-security-model-target).
 

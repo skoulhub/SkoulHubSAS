@@ -30,6 +30,7 @@ export const PERMISSIONS = {
   // ── Parents
   // teacher can view parents, but Dashboard scopes them to assigned-class students only
   'parents.view':          ['school_admin','head_teacher','teacher'],
+  'parents.contact':       ['school_admin','head_teacher','teacher'], // 1:1 SMS / email / call log
   'parents.create':        ['school_admin'],
   'parents.edit':          ['school_admin','head_teacher'],
 

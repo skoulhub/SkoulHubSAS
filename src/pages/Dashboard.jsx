@@ -1342,13 +1342,15 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                 {/* Actions */}
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
-                    <button onClick={() => setContactParent(p)}
-                      className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                      style={{ borderColor: '#e2e8f0', color: '#64748b' }}
-                      onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E45FC'; e.currentTarget.style.color = '#1E45FC'; }}
-                      onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
-                      Contact
-                    </button>
+                    {can(roleId, 'parents.contact') && (
+                      <button onClick={() => setContactParent(p)}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                        style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E45FC'; e.currentTarget.style.color = '#1E45FC'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                        Contact
+                      </button>
+                    )}
                     {!isTeacher && (
                       <button onClick={() => setViewParent(p)}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
@@ -1384,7 +1386,9 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
           footer={
             <div className="flex gap-3">
               <button onClick={() => setViewParent(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Close</button>
-              <button onClick={() => { setContactParent(viewParent); setViewParent(null); }} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Contact</button>
+              {can(roleId, 'parents.contact') && (
+                <button onClick={() => { setContactParent(viewParent); setViewParent(null); }} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Contact</button>
+              )}
             </div>
           }>
           <div className="space-y-1">

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  PERMISSIONS, NAV_PERMISSION_MAP, NAV_ALWAYS_ALLOWED, ROLE_META, navAllowed,
+  PERMISSIONS, NAV_PERMISSION_MAP, NAV_ALWAYS_ALLOWED, ROLE_META, navAllowed, can,
 } from './permissions';
 import { NAV_BY_ROLE } from './navigation';
 
@@ -64,8 +64,7 @@ describe('RBAC invariants — navigation vs permissions', () => {
   });
 });
 
-describe('RBAC invariants — no dead permissions', () => {
-  it('every permission is enforced (direct can() call) or gates a nav entry', () => {
+describe('RBAC invariants — no dead permissions', () => {  it('every permission is enforced (direct can() call) or gates a nav entry', () => {
     // Scan the UI for direct `can(role, 'permission')` usages.
     const files = readdirSync('src', { recursive: true })
       .filter(f => /\.(js|jsx)$/.test(f))
@@ -77,5 +76,66 @@ describe('RBAC invariants — no dead permissions', () => {
       p => !navGated.has(p) && !source.includes(`'${p}'`)
     );
     expect(unused).toEqual([]);
+  });
+});
+
+/**
+ * Read-only guarantees.
+ *
+ * Parents are strictly read-only; teachers may only mark attendance, enter
+ * marks and write their own report-card comment. Everything else that mutates
+ * (approve, generate, send, create, edit, delete, payroll, settings, platform
+ * admin) is refused. These assertions are the contract, not a snapshot.
+ */
+const WRITE_PERMISSIONS = [
+  'students.create', 'students.edit', 'students.delete',
+  'parents.create', 'parents.edit', 'parents.contact',
+  'teachers.create', 'teachers.edit',
+  'attendance.mark', 'timetable.edit',
+  'results.enter', 'results.approve',
+  'reports.generate', 'reports.send', 'reports.comment_teacher', 'reports.comment_head',
+  'finance.record', 'finance.approve', 'finance.payroll',
+  'idcards.generate', 'notifs.send', 'enrollment.manage',
+  'saas.schools.manage', 'saas.onboarding.manage', 'saas.features.manage',
+  'settings.edit',
+];
+
+const heldWrites = role => WRITE_PERMISSIONS.filter(p => can(role, p)).sort();
+
+describe('RBAC invariants — read-only guarantees', () => {
+  it('every mutating permission is listed in the write inventory', () => {
+    const unclassified = Object.keys(PERMISSIONS).filter(
+      p => !p.endsWith('.view') && !WRITE_PERMISSIONS.includes(p)
+    );
+    expect(unclassified).toEqual([]);
+  });
+
+  it('a parent holds no write permission at all', () => {
+    expect(heldWrites('parent')).toEqual([]);
+  });
+
+  it('a teacher may only mark attendance, enter marks, comment on reports and contact parents', () => {
+    expect(heldWrites('teacher')).toEqual([
+      'attendance.mark', 'parents.contact', 'reports.comment_teacher', 'results.enter',
+    ]);
+  });
+
+  it('a teacher can never approve, generate, send, create, edit or delete', () => {
+    const forbidden = [
+      'results.approve', 'reports.generate', 'reports.send', 'notifs.send',
+      'students.create', 'students.edit', 'students.delete',
+      'parents.create', 'parents.edit', 'teachers.create', 'teachers.edit',
+      'finance.record', 'finance.approve', 'finance.payroll',
+      'timetable.edit', 'idcards.generate', 'settings.edit', 'enrollment.manage',
+    ];
+    const leaked = forbidden.filter(p => can('teacher', p));
+    expect(leaked).toEqual([]);
+  });
+
+  it('a parent can never mutate anything a teacher can', () => {
+    expect(can('parent', 'attendance.mark')).toBe(false);
+    expect(can('parent', 'results.enter')).toBe(false);
+    expect(can('parent', 'reports.comment_teacher')).toBe(false);
+    expect(can('parent', 'reports.comment_head')).toBe(false);
   });
 });

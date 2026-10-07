@@ -20,6 +20,14 @@ describe('permissions — can()', () => {
     expect(can('parent', 'results.view')).toBe(true);
     expect(can('parent', 'results.enter')).toBe(false);
     expect(can('parent', 'reports.view')).toBe(true);
+    expect(can('parent', 'parents.contact')).toBe(false);
+  });
+
+  it('staff who can see the parent directory can contact parents', () => {
+    expect(can('teacher', 'parents.contact')).toBe(true);
+    expect(can('head_teacher', 'parents.contact')).toBe(true);
+    expect(can('school_admin', 'parents.contact')).toBe(true);
+    expect(can('bursar', 'parents.contact')).toBe(false);
   });
 
   it('unknown permission returns false (default-deny)', () => {
