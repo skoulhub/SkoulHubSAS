@@ -104,7 +104,7 @@ const WRITE_PERMISSIONS = [
   'finance.record', 'finance.approve', 'finance.payroll',
   'idcards.generate', 'notifs.send', 'enrollment.manage',
   'saas.schools.manage', 'saas.onboarding.manage', 'saas.features.manage',
-  'settings.edit',
+  'settings.edit', 'subscription.manage',
 ];
 
 const heldWrites = role => WRITE_PERMISSIONS.filter(p => can(role, p)).sort();

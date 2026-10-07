@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import {
   queryStudents, queryTeachers, queryParents, queryPayments,
   queryTenant, queryAllTenants, provisionTenant, lookupUser, resolveUser,
-  calcBilling, BILLING_RATE, getFormSchema, DEFAULT_FORM_SCHEMA, parentChildren,
+  calcBilling, quoteForPlan, updateTenantPlan, tenantRate, getFormSchema, DEFAULT_FORM_SCHEMA, parentChildren,
   scopedStudents, scopedParents, updateUserProfile,
 } from './tenantStore';
+import { planRate } from './plans';
 
 describe('tenantStore — tenant isolation', () => {
   it('scopes every query helper to the requested school_id', () => {
@@ -34,10 +35,31 @@ describe('tenantStore — tenants & billing', () => {
     expect(queryTenant('nope')).toBeNull();
   });
 
-  it('billing = students × rate', () => {
-    const tenant = queryTenant('skh-001');
-    expect(calcBilling('skh-001')).toBe(tenant.student_count * BILLING_RATE);
+  it('bills each school at its own plan rate', () => {
+    for (const id of ['skh-001', 'skh-002', 'skh-005']) {
+      const tenant = queryTenant(id);
+      expect(calcBilling(id)).toBe(tenant.student_count * planRate(tenant.plan));
+      expect(tenantRate(id)).toBe(planRate(tenant.plan));
+    }
     expect(calcBilling('unknown')).toBe(0);
+  });
+
+  it('quotes another plan without changing the tenant', () => {
+    const tenant = queryTenant('skh-001');
+    const original = tenant.plan;
+    expect(quoteForPlan('skh-001', 'premium')).toBe(tenant.student_count * 20000);
+    expect(tenant.plan).toBe(original);
+    expect(quoteForPlan('unknown', 'basic')).toBe(0);
+  });
+
+  it('switches a plan and rebills accordingly', () => {
+    const tenant = queryTenant('skh-002');
+    const before = calcBilling('skh-002');
+    updateTenantPlan('skh-002', 'premium');
+    expect(queryTenant('skh-002').plan).toBe('premium');
+    expect(calcBilling('skh-002')).toBeGreaterThan(before);
+    expect(updateTenantPlan('skh-002', tenant.plan).plan).toBe(tenant.plan); // restore
+    expect(updateTenantPlan('nope', 'basic')).toBeNull();
   });
 });
 

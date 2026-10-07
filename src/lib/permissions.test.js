@@ -30,6 +30,15 @@ describe('permissions — can()', () => {
     expect(can('bursar', 'parents.contact')).toBe(false);
   });
 
+  it('only the school admin can manage the subscription', () => {
+    expect(can('school_admin', 'subscription.view')).toBe(true);
+    expect(can('school_admin', 'subscription.manage')).toBe(true);
+    for (const role of ['head_teacher', 'teacher', 'parent', 'bursar', 'saas_admin']) {
+      expect(can(role, 'subscription.view'), role).toBe(false);
+      expect(can(role, 'subscription.manage'), role).toBe(false);
+    }
+  });
+
   it('unknown permission returns false (default-deny)', () => {
     expect(can('school_admin', 'does.not.exist')).toBe(false);
     expect(can('anything', 'students.view')).toBe(false);
@@ -77,6 +86,12 @@ describe('permissions — canAny / navAllowed / ROLE_META', () => {
     expect(navAllowed('bursar', 'finance')).toBe(true);
     expect(navAllowed('parent', 'finance')).toBe(true);   // fee-balance view
     expect(navAllowed('teacher', 'finance')).toBe(false);
+  });
+
+  it('subscription nav is gated to the school admin', () => {
+    expect(navAllowed('school_admin', 'subscription')).toBe(true);
+    expect(navAllowed('head_teacher', 'subscription')).toBe(false);
+    expect(navAllowed('parent', 'subscription')).toBe(false);
   });
 
   it('every nav id used by the app is gated by a permission', () => {

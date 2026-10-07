@@ -1,13 +1,18 @@
 import { useState, useCallback, useRef } from 'react';
 import ProfilePage from './Profile';
+import SubscriptionPage from './Subscription';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
 import { NAV_BY_ROLE } from '../lib/navigation';
 import {
   queryStudents, queryTeachers, queryPayments,
-  queryAllTenants, calcBilling, BILLING_RATE, getTeacherAssignment,
+  queryAllTenants, calcBilling, getTeacherAssignment,
   getEnrollmentConfig, getFormSchema, saveFormSchema, DEFAULT_FORM_SCHEMA,
   parentChildren, scopedStudents, scopedParents,
 } from '../lib/tenantStore';
+import {
+  PLANS, BILLING_UNIT, DEFAULT_PLAN_ID, RATE_RANGE,
+  getPlan, planLabel, planRate, formatUGX, formatCompactUGX, normalisePlanId,
+} from '../lib/plans';
 
 /* ─── SVG Icons ──────────────────────────────────────────────── */
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 1.7 }) => (
@@ -39,7 +44,7 @@ const NAV_ICONS = {
 /* ══════════════════════════════════════════════════
    Dashboard Shell
 ═══════════════════════════════════════════════════ */
-export default function Dashboard({ currentUser, tenant, onLogout, theme, onTheme, onUpdateUser }) {
+export default function Dashboard({ currentUser, tenant, onLogout, theme, onTheme, onUpdateUser, onUpdateTenant }) {
   const [activeNav, setActiveNav] = useState('overview');
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -238,7 +243,7 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
           <main className="flex-1 overflow-y-auto" style={{ background: 'var(--app-bg)', padding: '20px 24px' }}>
             <PermissionGate roleId={roleId} navId={activeNav}>
               <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} searchQuery={searchQuery}
-                theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onLogout={onLogout} />
+                theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onUpdateTenant={onUpdateTenant} onLogout={onLogout} />
             </PermissionGate>
           </main>
         </div>
@@ -323,11 +328,12 @@ function NotifDropdown() {
 /* ══════════════════════════════════════════════════
    Page Content Router
 ═══════════════════════════════════════════════════ */
-function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQuery, theme, onTheme, onUpdateUser, onLogout }) {
+function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQuery, theme, onTheme, onUpdateUser, onUpdateTenant, onLogout }) {
   const props = { roleId, schoolId, tenant, currentUser };
   switch (activeNav) {
     case 'overview':   return roleId === 'saas_admin' ? <SaasOverviewPage /> : <OverviewPage {...props} />;
     case 'profile':    return <ProfilePage {...props} theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onLogout={onLogout} />;
+    case 'subscription': return <SubscriptionPage {...props} onUpdateTenant={onUpdateTenant} />;
     case 'students':   return <StudentsPage {...props} initialSearch={searchQuery} />;
     case 'parents':    return <ParentsPage    {...props} />;
     case 'teachers':   return <TeachersPage   {...props} />;
@@ -3974,7 +3980,7 @@ function SettingsPage({ roleId, schoolId, tenant }) {
   const [settings, setSettings] = useState({
     'School Name': tenant?.name ?? '—',
     'District':    tenant?.district ?? '—',
-    'Plan':        tenant?.plan ?? '—',
+    'Plan':        `${planLabel(tenant?.plan)} · ${formatUGX(planRate(tenant?.plan))}/student`,
     'Status':      tenant?.status ?? '—',
     'Admin Email': tenant?.admin_email ?? '—',
   });
@@ -3985,7 +3991,7 @@ function SettingsPage({ roleId, schoolId, tenant }) {
     ['Tenant ID (school_id)', schoolId ?? '—',       '🔑', true],
     ['School Name',          settings['School Name'], '🏫', false],
     ['District',             settings['District'],   '📍', false],
-    ['Plan',                 settings['Plan'],       '📋', false],
+    ['Plan',                 settings['Plan'],       '📋', true, 'Manage in Subscription'],
     ['Status',               settings['Status'],     '🟢', false],
     ['Admin Email',          settings['Admin Email'],'📧', false],
     ['Created',              tenant?.created_at ?? '—', '📅', true],
@@ -4001,7 +4007,7 @@ function SettingsPage({ roleId, schoolId, tenant }) {
         <p className="text-xs text-gray-400 mt-0.5">Configuration for your tenant</p>
       </div>
       <Card className="divide-y max-w-2xl" style={{ borderColor:'var(--border)' }}>
-        {rows.map(([label, value, icon, locked]) => (
+        {rows.map(([label, value, icon, locked, hint]) => (
           <div key={label} className="flex items-center gap-4 px-5 py-4">
             <span className="text-xl flex-shrink-0">{icon}</span>
             <div className="flex-1 min-w-0">
@@ -4010,7 +4016,7 @@ function SettingsPage({ roleId, schoolId, tenant }) {
             </div>
             {!locked && canEditSettings && <button onClick={() => openEdit(label, value)} className="text-xs font-semibold hover:underline flex-shrink-0" style={{ color:'var(--accent)' }}>Edit</button>}
             {!locked && !canEditSettings && <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
-            {locked && <span className="text-xs text-gray-300 flex-shrink-0">Auto-generated</span>}
+            {locked && <span className="text-xs text-gray-300 flex-shrink-0">{hint ?? 'Auto-generated'}</span>}
           </div>
         ))}
       </Card>
@@ -4412,7 +4418,7 @@ function SaasOverviewPage() {
           { label:'Active Schools',  value:active, delta:'', iconBg:'var(--tint-blue)', iconColor:'#1E45FC', svgPath:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
           { label:'Total Students',  value:totalStudents.toLocaleString(), delta:'', iconBg:'var(--tint-green)', iconColor:'#059669', svgPath:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
           { label:'Platform MRR',    value:`UGX ${(totalMRR/1000000).toFixed(1)}M`, delta:'+12%', sub:'vs last month', iconBg:'var(--tint-amber)', iconColor:'#d97706', svgPath:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
-          { label:'Billing Rate',    value:`UGX ${BILLING_RATE.toLocaleString()}`, delta:'', iconBg:'var(--tint-violet)', iconColor:'#7c3aed', svgPath:'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+          { label:'Per-student rate', value:`${formatUGX(RATE_RANGE.min)} – ${formatCompactUGX(RATE_RANGE.max)}`, delta:'', sub:BILLING_UNIT, iconBg:'var(--tint-violet)', iconColor:'#7c3aed', svgPath:'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
         ].map((s,i) => (
           <StatCard key={i} {...s} />
         ))}
@@ -4472,8 +4478,8 @@ function SaasSchoolsPage({ roleId }) {
   const [suspend, setSuspend] = useState(null);
   const { toasts, show: toast } = useToast();
 
-  const planCol = { Starter:'#1E45FC', Growth:'#059669', Enterprise:'#7c3aed' };
-  const planBg  = { Starter:'var(--tint-blue)', Growth:'var(--tint-green)', Enterprise:'var(--tint-violet)' };
+  const planColor = (id) => getPlan(id).color;
+  const planTint  = (id) => getPlan(id).tint;
 
   const doSuspend = (t) => {
     setSchools(ss => ss.map(s => s.school_id === t.school_id ? { ...s, status: s.status === 'active' ? 'suspended' : 'active' } : s));
@@ -4511,12 +4517,12 @@ function SaasSchoolsPage({ roleId }) {
                 <td className="px-4 py-3 text-sm text-gray-500">{t.district}</td>
                 <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planBg[t.plan]??'var(--tint-blue)', color:planCol[t.plan]??'var(--accent)' }}>{t.plan}</span>
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planTint(t.plan), color:planColor(t.plan) }}>{planLabel(t.plan)}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status==='active'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
                 </td>
-                <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {calcBilling(t.school_id).toLocaleString()}</td>
+                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--ok)' }}>{formatUGX(calcBilling(t.school_id))}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
                     {canManage ? (
@@ -4574,7 +4580,7 @@ function SaasSchoolsPage({ roleId }) {
 
 /* ── Onboard School Modal ─────────────────────────────────── */
 function OnboardSchoolModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({ name:'', district:'', plan:'Starter', admin_email:'' });
+  const [form, setForm] = useState({ name:'', district:'', plan:DEFAULT_PLAN_ID, admin_email:'' });
   const [err, setErr] = useState({});
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -4623,7 +4629,7 @@ function OnboardSchoolModal({ onClose, onAdd }) {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Plan</label>
               <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
-                {['Starter','Growth','Enterprise'].map(p => <option key={p}>{p}</option>)}
+                {PLANS.map(p => <option key={p.id} value={p.id}>{p.name} — {formatUGX(p.pricePerStudentPerTerm)}/student</option>)}
               </select>
             </div>
           </div>
@@ -4671,7 +4677,7 @@ function ManageSchoolModal({ tenant, onClose, onSave }) {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Plan</label>
               <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
-                {['Starter','Growth','Enterprise'].map(p => <option key={p}>{p}</option>)}
+                {PLANS.map(p => <option key={p.id} value={p.id}>{p.name} — {formatUGX(p.pricePerStudentPerTerm)}/student</option>)}
               </select>
             </div>
           </div>
@@ -4682,7 +4688,9 @@ function ManageSchoolModal({ tenant, onClose, onSave }) {
           <div className="rounded-xl p-3 text-xs" style={{ background:'var(--surface-2)', border:'1px solid #e8ecff' }}>
             <span className="text-gray-400">Students: </span><strong>{tenant.student_count.toLocaleString()}</strong>
             <span className="mx-2 text-gray-300">·</span>
-            <span className="text-gray-400">Billing: </span><strong className="text-green-700">UGX {calcBilling(tenant.school_id).toLocaleString()}/term</strong>
+            <span className="text-gray-400">Billing: </span><strong className="text-green-700">{formatUGX(calcBilling(tenant.school_id))}/term</strong>
+            <span className="mx-2 text-gray-300">·</span>
+            <span className="text-gray-400">Rate: </span><strong>{formatUGX(planRate(form.plan))} {BILLING_UNIT}</strong>
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
@@ -4705,7 +4713,7 @@ function SaasBillingPage({ roleId }) {
 
   const exportInvoices = () => {
     const header = ['School','Tenant ID','Plan','Students','Rate (UGX)','Term Billing (UGX)'];
-    const lines = tenants.map(t => [t.name, t.school_id, t.plan, t.student_count, BILLING_RATE, calcBilling(t.school_id)].join(','));
+    const lines = tenants.map(t => [t.name, t.school_id, planLabel(t.plan), t.student_count, planRate(t.plan), calcBilling(t.school_id)].join(','));
     downloadCSV('skoulhub-invoices.csv', [header.join(','), ...lines].join('\n'));
     toast('Invoices exported to CSV');
   };
@@ -4714,7 +4722,9 @@ function SaasBillingPage({ roleId }) {
     <div className="animate-fade-in space-y-4">
       <div>
         <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Billing</h2>
-        <p className="text-xs text-gray-400 mt-0.5">UGX {BILLING_RATE.toLocaleString()} × students per term</p>
+        <p className="text-xs text-gray-400 mt-0.5">
+          {formatUGX(RATE_RANGE.min)} – {formatUGX(RATE_RANGE.max)} {BILLING_UNIT} · {PLANS.length} plans
+        </p>
       </div>
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -4729,6 +4739,32 @@ function SaasBillingPage({ roleId }) {
           </Card>
         ))}
       </div>
+      <Card className="p-5">
+        <h3 className="font-bold text-sm mb-4" style={{ color:'var(--text)' }}>Revenue by plan</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {PLANS.map(plan => {
+            const onPlan = tenants.filter(t => normalisePlanId(t.plan) === plan.id);
+            const revenue = onPlan.reduce((a,t) => a + calcBilling(t.school_id), 0);
+            const students = onPlan.reduce((a,t) => a + t.student_count, 0);
+            const share = totalMRR ? Math.round((revenue / totalMRR) * 100) : 0;
+            return (
+              <div key={plan.id} className="rounded-xl border p-4" style={{ borderColor:'var(--border)', background:'var(--surface-2)' }}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:plan.tint, color:plan.color }}>{plan.name}</span>
+                  <span className="text-[10px] text-gray-400">{formatUGX(plan.pricePerStudentPerTerm)}/student</span>
+                </div>
+                <div className="text-lg font-extrabold" style={{ color:'var(--text)' }}>{formatUGX(revenue)}</div>
+                <div className="text-[11px] text-gray-400 mt-0.5">{onPlan.length} school{onPlan.length !== 1 ? 's' : ''} · {students.toLocaleString()} students</div>
+                <div className="h-1.5 rounded-full mt-3 overflow-hidden" style={{ background:'var(--surface-3)' }}>
+                  <div className="h-full rounded-full" style={{ width:`${share}%`, background:plan.color }} />
+                </div>
+                <div className="text-[10px] text-gray-400 mt-1">{share}% of revenue</div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
       <Card className="overflow-hidden">
         <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'var(--border)' }}>
           <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>Per-Tenant Billing</h3>
@@ -4749,15 +4785,17 @@ function SaasBillingPage({ roleId }) {
               <tr key={i} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.name}</td>
                 <td className="px-4 py-3 text-xs font-mono text-gray-400">{t.school_id}</td>
-                <td className="px-4 py-3 text-sm text-gray-500">{t.plan}</td>
+                <td className="px-4 py-3">
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:getPlan(t.plan).tint, color:getPlan(t.plan).color }}>{planLabel(t.plan)}</span>
+                </td>
                 <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-gray-400">UGX {BILLING_RATE.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {calcBilling(t.school_id).toLocaleString()}</td>
+                <td className="px-4 py-3 text-sm text-gray-400">{formatUGX(planRate(t.plan))}</td>
+                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--ok)' }}>{formatUGX(calcBilling(t.school_id))}</td>
               </tr>
             ))}
-            <tr style={{ background:'var(--surface-2)', borderTop:'2px solid #eef0f6' }}>
-              <td colSpan={5} className="px-4 py-3 text-sm font-bold text-right" style={{ color:'var(--text)' }}>Total MRR</td>
-              <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {totalMRR.toLocaleString()}</td>
+            <tr style={{ background:'var(--surface-2)', borderTop:'1px solid var(--border)' }}>
+              <td colSpan={5} className="px-4 py-3 text-sm font-bold text-right" style={{ color:'var(--text)' }}>Total per term</td>
+              <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--ok)' }}>{formatUGX(totalMRR)}</td>
             </tr>
           </tbody>
         </table>
@@ -4838,9 +4876,9 @@ function SaasOnboardingPage({ roleId }) {
               {[
                 { label:'SMS Notifications', key:'sms', checked: true },
                 { label:'Parent Portal Access', key:'portal', checked: true },
-                { label:'Online Fee Payments', key:'payments', checked: configModal.plan !== 'Starter' },
+                { label:'Online Fee Payments', key:'payments', checked: normalisePlanId(configModal.plan) !== 'basic' },
                 { label:'Bulk Import (CSV)', key:'csv', checked: true },
-                { label:'API Access', key:'api', checked: configModal.plan === 'Enterprise' },
+                { label:'API Access', key:'api', checked: normalisePlanId(configModal.plan) === 'premium' },
               ].map(f => (
                 <label key={f.key} className="flex items-center justify-between cursor-pointer">
                   <span className="text-sm font-medium text-gray-700">{f.label}</span>

@@ -13,6 +13,8 @@
  * ─────────────────────────────────────────────────────────────
  */
 
+import { DEFAULT_PLAN_ID, normalisePlanId, planRate, calcPlanCost } from './plans';
+
 // ── UUID v4 generator (crypto.randomUUID with fallback) ──────
 export function generateUUID() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -30,7 +32,7 @@ export const TENANTS = {
   'skh-001': {
     school_id:   'skh-001',
     name:        "St. Mary's College Kisubi",
-    plan:        'Growth',
+    plan:        'standard',
     status:      'active',
     student_count: 1284,
     created_at:  '2024-01-15',
@@ -41,7 +43,7 @@ export const TENANTS = {
   'skh-002': {
     school_id:   'skh-002',
     name:        'Arua Public School',
-    plan:        'Starter',
+    plan:        'basic',
     status:      'active',
     student_count: 634,
     created_at:  '2024-03-02',
@@ -52,7 +54,7 @@ export const TENANTS = {
   'skh-003': {
     school_id:   'skh-003',
     name:        'Kampala High School',
-    plan:        'Growth',
+    plan:        'standard',
     status:      'active',
     student_count: 890,
     created_at:  '2024-04-11',
@@ -63,7 +65,7 @@ export const TENANTS = {
   'skh-004': {
     school_id:   'skh-004',
     name:        'Gulu Academy',
-    plan:        'Starter',
+    plan:        'basic',
     status:      'trial',
     student_count: 210,
     created_at:  '2026-04-28',
@@ -74,7 +76,7 @@ export const TENANTS = {
   'skh-005': {
     school_id:   'skh-005',
     name:        'Makerere Hill School',
-    plan:        'Enterprise',
+    plan:        'premium',
     status:      'active',
     student_count: 1050,
     created_at:  '2023-09-01',
@@ -329,12 +331,12 @@ export function queryAllTenants() {
 }
 
 // ── Tenant provisioning (onboarding) ────────────────────────
-export function provisionTenant({ schoolName, district, adminEmail, adminName, plan = 'Starter' }) {
+export function provisionTenant({ schoolName, district, adminEmail, adminName, plan = DEFAULT_PLAN_ID }) {
   const school_id = 'skh-' + generateUUID().slice(0, 8);
   const tenant = {
     school_id,
     name:          schoolName,
-    plan,
+    plan:          normalisePlanId(plan),
     status:        'trial',
     student_count: 0,
     created_at:    new Date().toISOString().slice(0, 10),
@@ -447,10 +449,30 @@ export function saveFormSchema(school_id, schema) {
 }
 
 // ── Billing calculator ───────────────────────────────────────
-export const BILLING_RATE = 15000; // UGX per student per term
-
+/** Term cost for a school, priced at its own plan's per-student rate. */
 export function calcBilling(school_id) {
   const tenant = queryTenant(school_id);
   if (!tenant) return 0;
-  return tenant.student_count * BILLING_RATE;
+  return calcPlanCost(tenant.plan, tenant.student_count);
+}
+
+/** What a school would pay on a different plan (used by the plan switcher). */
+export function quoteForPlan(school_id, plan_id) {
+  const tenant = queryTenant(school_id);
+  if (!tenant) return 0;
+  return calcPlanCost(plan_id, tenant.student_count);
+}
+
+/** Switch a tenant's plan (up/down-grade at the start of a term). */
+export function updateTenantPlan(school_id, plan_id) {
+  const tenant = queryTenant(school_id);
+  if (!tenant) return null;
+  tenant.plan = normalisePlanId(plan_id);
+  return tenant;
+}
+
+/** Effective per-student rate for a school. */
+export function tenantRate(school_id) {
+  const tenant = queryTenant(school_id);
+  return tenant ? planRate(tenant.plan) : 0;
 }

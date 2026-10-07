@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { provisionTenant } from '../lib/tenantStore';
 import { LoginShell, Logo, ArrowRight } from './Login';
+import { PLANS, DEFAULT_PLAN_ID, formatUGX, BILLING_UNIT } from '../lib/plans';
 
 const STEPS = ['School Info', 'Admin Account', 'MFA Setup', 'Confirm'];
 
@@ -9,39 +10,6 @@ const DISTRICTS = [
   'Fort Portal','Lira','Soroti','Masaka','Entebbe','Iganga','Tororo',
 ];
 
-const PLANS = [
-  {
-    id: 'starter',
-    name: 'Starter',
-    price: 'UGX 10,000',
-    unit: '/ student / term',
-    max: '300 students',
-    color: 'var(--accent)',
-    bg: 'var(--tint-blue)',
-    features: ['Attendance','Fee Collection','SMS (50/mo)','Email Support'],
-  },
-  {
-    id: 'growth',
-    name: 'Growth',
-    price: 'UGX 8,500',
-    unit: '/ student / term',
-    max: '1,000 students',
-    color: 'var(--ok)',
-    bg: 'var(--tint-green)',
-    badge: 'Most Popular',
-    features: ['Everything in Starter','Exam Results','Report Cards','Unlimited SMS','Priority Support'],
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: 'Custom',
-    unit: 'contact us',
-    max: 'Unlimited',
-    color: 'var(--violet)',
-    bg: 'var(--tint-violet)',
-    features: ['Everything in Growth','Multi-School','Custom Branding','API Access','Dedicated Manager'],
-  },
-];
 
 export default function Onboarding({ onComplete, onBackToLogin }) {
   const [step, setStep]     = useState(0);
@@ -52,7 +20,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
   const [form, setForm] = useState({
     schoolName: '', district: '', address: '', phone: '',
     adminName: '', adminEmail: '', adminPhone: '',
-    plan: 'growth',
+    plan: DEFAULT_PLAN_ID,
     mfaMethod: 'otp',
   });
 
@@ -224,8 +192,8 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
                         style={{ background: '#A3CF2E', color: 'var(--text)', fontSize: '9px' }}>{p.badge}</span>
                     )}
                     <span className="text-xs font-bold" style={{ color: p.color }}>{p.name}</span>
-                    <span className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text)' }}>{p.price}</span>
-                    <span className="text-xs text-gray-400">{p.unit}</span>
+                    <span className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text)' }}>{formatUGX(p.pricePerStudentPerTerm)}</span>
+                    <span className="text-xs text-gray-400">{BILLING_UNIT}</span>
                   </button>
                 ))}
               </div>

@@ -89,6 +89,10 @@ export const PERMISSIONS = {
   // ── School settings
   'settings.view':         ['school_admin'],
   'settings.edit':         ['school_admin'],
+
+  // ── Subscription / billing (tenant-facing plan management)
+  'subscription.view':     ['school_admin'],
+  'subscription.manage':   ['school_admin'],
 };
 
 /**
@@ -130,6 +134,7 @@ export const NAV_PERMISSION_MAP = {
   onboarding: 'saas.onboarding.manage',
   features:   'saas.features.manage',
   settings:   'settings.view',
+  subscription: 'subscription.view',
 };
 
 /** Screens that are public to every authenticated role. */

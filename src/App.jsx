@@ -25,6 +25,10 @@ export default function App() {
   const handleUpdateUser = (patch) =>
     setSession(s => (s ? { ...s, currentUser: { ...s.currentUser, ...patch } } : s));
 
+  /** Patch the active tenant (e.g. a plan change on the Subscription page) */
+  const handleUpdateTenant = (patch) =>
+    setSession(s => (s && s.tenant ? { ...s, tenant: { ...s.tenant, ...patch } } : s));
+
   const handleLogin = (email, roleId) => {
     const currentUser = resolveUser(email, roleId);
     if (!currentUser) {
@@ -75,6 +79,7 @@ export default function App() {
         theme={theme}
         onTheme={setTheme}
         onUpdateUser={handleUpdateUser}
+        onUpdateTenant={handleUpdateTenant}
       />
     );
   }

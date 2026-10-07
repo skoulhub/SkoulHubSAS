@@ -54,9 +54,33 @@ report cards and contact parents.
 - **ID Cards** — editable ID numbers with generated QR codes and card preview
 - **Notifications** — feed + broadcast composer (SMS/Email/Push)
 - **Settings** — tenant (school) profile
+- **Subscription** — the school's plan, a live cost estimator, a three-tier comparison with the
+  published prices, and the billing FAQ (school admin only)
 - **My Profile** — personal info, **change email / phone** (6-digit verification), **password change**
   with a strength meter, **two-factor authentication** (OTP / authenticator app / passkey + recovery
   codes), active sessions, and **preferences**: appearance, notifications and locale
+
+### Subscription plans
+Pricing is modelled on the published price list at
+[skoulhub.com/pricing](https://skoulhub.com/pricing) (retrieved 2026-10-07) and lives in
+`src/lib/plans.js` as the single source of truth:
+
+| Plan | Rate | Positioned for | Badge |
+|---|---|---|---|
+| **Basic** | UGX 10,000 / student / term | small schools | — |
+| **Standard** | UGX 15,000 / student / term | growing secondary schools | Most Popular |
+| **Premium** | UGX 20,000 / student / term | large multi-campus schools | Full Suite |
+
+**Billing is per student, per term** — the site's own example (400 students on Standard =
+400 × UGX 15,000 = UGX 6,000,000) is asserted in `plans.test.js`, so a price change has to be a
+deliberate edit. Each tenant stores a plan id; `calcBilling()` prices it at that plan's rate and
+`quoteForPlan()` prices an alternative without mutating the tenant. Legacy prototype plan names
+(`Starter` / `Growth` / `Enterprise`) normalise onto `Basic` / `Standard` / `Premium`.
+
+The twelve core capabilities are included on every tier (as the live page lists them); multi-campus
+management and on-site setup in the Kampala region are Premium-only, taken from the tier copy and
+the pricing FAQ. Plans can be switched at the start of a term from **Subscription** — with a
+confirmation step that shows the new term cost.
 
 ### User profile & preferences
 Every role gets a **My Profile** screen (sidebar → *My Profile*, or click the avatar).

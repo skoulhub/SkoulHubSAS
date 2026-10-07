@@ -34,6 +34,7 @@ export const NAV_BY_ROLE = {
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
     { id: 'idcards',    label: 'ID Cards',      section: 'admin' },
     { id: 'enrollment', label: 'Enrollment Form', section: 'admin' },
+    { id: 'subscription', label: 'Subscription', section: 'admin' },
     { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
     { id: 'settings',   label: 'Settings',      section: 'other' },
