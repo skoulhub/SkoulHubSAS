@@ -24,8 +24,20 @@ Admin) oversees all schools, billing, onboarding and feature requests.
 | **Parent** | Only their own children (attendance, results, report cards, fee balance) |
 | **Bursar / Accountant** | Records payments, expenses, payroll — submits for head-teacher approval |
 
-Permissions are defined in `src/lib/permissions.js` (one matrix, enforced in the UI via
-`PermissionGate` + per-role navigation).
+Permissions are defined in **one matrix** (`src/lib/permissions.js`), with the sidebar
+configuration kept alongside it in `src/lib/navigation.js`. Enforcement is default-deny:
+an unknown permission, an unmapped nav id or an unrecognised role is refused rather than
+falling back to a broader role.
+
+Row-level scoping ("which students/parents may this user see?") is centralised in
+`scopedStudents()` / `scopedParents()` in `src/lib/tenantStore.js`, so pages cannot
+accidentally show a teacher or parent the whole school.
+
+`src/lib/rbac.invariants.test.js` locks the pieces together: every role has metadata and
+navigation, every nav entry offered to a role is permitted for it, and no permission is
+left unenforced.
+
+> These checks are UI-level only — see [Security model](#-security-model-target).
 
 ### Modules
 - **Overview** — stats, fee chart, attendance donut, activity feed, teacher/head daily schedule
@@ -95,9 +107,9 @@ src/
 │   ├── EnrollmentForm.jsx# public admission application form
 │   └── Dashboard.jsx     # the role-based dashboard (all modules)
 └── lib/
-    ├── tenantStore.js    # mock multi-tenant data layer (mirrors RLS behaviour)
-    ├── permissions.js    # role × permission matrix
-    └── TenantContext.jsx # session context + permission helpers
+    ├── tenantStore.js    # mock multi-tenant data layer + role-scoped queries
+    ├── permissions.js    # role × permission matrix + nav gating
+    └── navigation.js     # per-role sidebar config (invariant-tested)
 ```
 
 ## 🔒 Security model (target)

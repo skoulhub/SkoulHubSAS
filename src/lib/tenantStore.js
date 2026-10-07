@@ -196,6 +196,42 @@ export function parentChildren(user) {
   return Array.isArray(user.children) ? user.children : [];
 }
 
+/* ── Role-scoped queries ────────────────────────────────────────
+ * The single place where "which rows may this role see?" is decided.
+ * Pages must use these rather than re-implementing the filter, so a
+ * new page cannot accidentally leak the whole school to a teacher or
+ * parent. Mirrors what per-role RLS would do in production. */
+
+/** Students visible to the given user within a school. */
+export function scopedStudents(school_id, user) {
+  const all = queryStudents(school_id);
+  if (!user) return all;
+  if (user.role === 'teacher') {
+    const assignment = getTeacherAssignment(user.user_id);
+    return assignment ? all.filter(s => assignment.classes.includes(s.class)) : all;
+  }
+  if (user.role === 'parent') {
+    const children = parentChildren(user);
+    return all.filter(s => children.includes(s.name));
+  }
+  return all;
+}
+
+/** Parents visible to the given user within a school. */
+export function scopedParents(school_id, user) {
+  const all = queryParents(school_id);
+  if (!user) return all;
+  if (user.role === 'teacher') {
+    const names = scopedStudents(school_id, user).map(s => s.name);
+    return all.filter(p => p.children.some(c => names.includes(c)));
+  }
+  if (user.role === 'parent') {
+    const children = parentChildren(user);
+    return all.filter(p => p.children.some(c => children.includes(c)));
+  }
+  return all;
+}
+
 // ── Tenant-scoped data store ──────────────────────────────────
 const STUDENTS_DB = [
   { id: 's-01', school_id: 'skh-001', name: 'Aisha Nakato',     class: 'S.1 West', parent: 'Nakato Grace',   status: 'Active', fee: 'Paid' },

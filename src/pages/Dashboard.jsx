@@ -1,11 +1,11 @@
 import { useState, useCallback, useRef } from 'react';
-import { TenantContext } from '../lib/TenantContext';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
+import { NAV_BY_ROLE } from '../lib/navigation';
 import {
-  queryStudents, queryTeachers, queryPayments, queryParents,
+  queryStudents, queryTeachers, queryPayments,
   queryAllTenants, calcBilling, BILLING_RATE, getTeacherAssignment,
   getEnrollmentConfig, getFormSchema, saveFormSchema, DEFAULT_FORM_SCHEMA,
-  parentChildren,
+  parentChildren, scopedStudents, scopedParents,
 } from '../lib/tenantStore';
 
 /* ─── SVG Icons ──────────────────────────────────────────────── */
@@ -35,70 +35,6 @@ const NAV_ICONS = {
   features:   'M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3M6.343 6.343l-.707-.707M6.343 17.657l-.707.707M15.657 6.343l.707-.707M15.657 17.657l.707.707M9 12a3 3 0 116 0 3 3 0 01-6 0z',
 };
 
-/* ─── Nav config per role ──────────────────────────────────── */
-const NAV_BY_ROLE = {
-  saas_admin: [
-    { id: 'overview',   label: 'Overview',         section: 'main' },
-    { id: 'schools',    label: 'All Schools',       section: 'main' },
-    { id: 'billing',    label: 'Billing',           section: 'main' },
-    { id: 'onboarding', label: 'Onboarding',        section: 'main' },
-    { id: 'features',   label: 'Feature Requests',  section: 'main' },
-    { id: 'notifs',     label: 'Notifications',     section: 'other' },
-  ],
-  school_admin: [
-    { id: 'overview',   label: 'Dashboard',     section: 'main' },
-    { id: 'students',   label: 'Students',      section: 'main' },
-    { id: 'teachers',   label: 'Teachers',      section: 'main' },
-    { id: 'parents',    label: 'Parents',       section: 'main' },
-    { id: 'attendance', label: 'Attendance',    section: 'main' },
-    { id: 'timetable',  label: 'Timetables',    section: 'academic' },
-    { id: 'results',    label: 'Results',       section: 'academic' },
-    { id: 'finance',    label: 'Finance',       section: 'admin' },
-    { id: 'reports',    label: 'Report Cards',  section: 'academic' },
-    { id: 'idcards',    label: 'ID Cards',      section: 'admin' },
-    { id: 'enrollment', label: 'Enrollment Form', section: 'admin' },
-    { id: 'notifs',     label: 'Notifications', section: 'other' },
-    { id: 'settings',   label: 'Settings',      section: 'other' },
-  ],
-  head_teacher: [
-    { id: 'overview',   label: 'Dashboard',     section: 'main' },
-    { id: 'students',   label: 'Students',      section: 'main' },
-    { id: 'teachers',   label: 'Teachers',      section: 'main' },
-    { id: 'parents',    label: 'Parents',       section: 'main' },
-    { id: 'attendance', label: 'Attendance',    section: 'main' },
-    { id: 'timetable',  label: 'Timetables',    section: 'academic' },
-    { id: 'results',    label: 'Results',       section: 'academic' },
-    { id: 'finance',    label: 'Finance',       section: 'admin' },
-    { id: 'reports',    label: 'Report Cards',  section: 'academic' },
-    { id: 'notifs',     label: 'Notifications', section: 'other' },
-  ],
-  teacher: [
-    { id: 'overview',   label: 'My Overview',   section: 'main' },
-    { id: 'students',   label: 'My Students',   section: 'main' },
-    { id: 'attendance', label: 'Attendance',    section: 'main' },
-    { id: 'timetable',  label: 'My Timetable',  section: 'academic' },
-    { id: 'results',    label: 'Enter Marks',   section: 'academic' },
-    { id: 'reports',    label: 'Report Cards',  section: 'academic' },
-    { id: 'parents',    label: 'Parents',       section: 'main' },
-    { id: 'notifs',     label: 'Notifications', section: 'other' },
-  ],
-  parent: [
-    { id: 'overview',   label: 'My Child',      section: 'main' },
-    { id: 'attendance', label: 'Attendance',    section: 'main' },
-    { id: 'results',    label: 'Results',       section: 'main' },
-    { id: 'finance',    label: 'Fee Balance',   section: 'main' },
-    { id: 'reports',    label: 'Report Cards',  section: 'main' },
-    { id: 'notifs',     label: 'Messages',      section: 'other' },
-  ],
-  bursar: [
-    { id: 'overview',   label: 'Finance Overview', section: 'main' },
-    { id: 'finance',    label: 'Payments',          section: 'main' },
-    { id: 'students',   label: 'Students',          section: 'main' },
-    { id: 'idcards',    label: 'ID Cards',          section: 'main' },
-    { id: 'notifs',     label: 'Notifications',     section: 'other' },
-  ],
-};
-
 /* ══════════════════════════════════════════════════
    Dashboard Shell
 ═══════════════════════════════════════════════════ */
@@ -109,9 +45,13 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const roleId   = currentUser.role;
-  const nav      = NAV_BY_ROLE[roleId] || NAV_BY_ROLE.school_admin;
-  const rl       = ROLE_META[roleId]   || ROLE_META.school_admin;
+  const nav      = NAV_BY_ROLE[roleId];
+  const rl       = ROLE_META[roleId];
   const schoolId = currentUser.school_id;
+
+  /* Fail closed: a role with no configuration gets no dashboard at all
+     (never inherit the school-admin nav/label by default) */
+  if (!nav || !rl) return <UnknownRole roleId={roleId} onLogout={onLogout} />;
 
   /* Global search: Enter → jump to the Students page with the query applied */
   const handleSearchKey = (e) => {
@@ -121,8 +61,6 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
 
   const allowedNav = nav.filter(item => navAllowed(roleId, item.id));
 
-  const ctxValue = { currentUser, tenant };
-
   const sectionGroups = [
     { label: null,       items: allowedNav.filter(i => i.section === 'main') },
     { label: 'Academic', items: allowedNav.filter(i => i.section === 'academic') },
@@ -131,8 +69,7 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
   ].filter(g => g.items.length > 0);
 
   return (
-    <TenantContext.Provider value={ctxValue}>
-      <div className="flex h-screen overflow-hidden bg-gray-50" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+    <div className="flex h-screen overflow-hidden bg-gray-50" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
         <DemoBanner />
 
         {/* ── Sidebar ─────────────────────────────── */}
@@ -301,7 +238,21 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
           </main>
         </div>
       </div>
-    </TenantContext.Provider>
+  );
+}
+
+/* ─── Unknown role (fail closed) ─────────────────────────────── */
+function UnknownRole({ roleId, onLogout }) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: '#f0f2f8' }}>
+      <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-2xl">🚫</div>
+      <p className="text-base font-semibold" style={{ color: '#0B0F2A' }}>Unrecognised role</p>
+      <p className="text-sm text-gray-500 max-w-sm">
+        The role <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-white border" style={{ borderColor: '#e2e8f0' }}>{String(roleId)}</code> has
+        no access configuration. Contact your platform administrator.
+      </p>
+      <button onClick={onLogout} className="btn-brand-primary text-sm py-2 px-4 mt-1">Back to sign-in</button>
+    </div>
   );
 }
 
@@ -382,10 +333,10 @@ function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQ
     case 'idcards':    return <IDCardsPage    {...props} />;
     case 'enrollment': return <EnrollmentBuilderPage {...props} />;
     case 'notifs':     return <NotificationsPage {...props} />;
-    case 'schools':    return <SaasSchoolsPage />;
-    case 'billing':    return <SaasBillingPage />;
-    case 'onboarding': return <SaasOnboardingPage />;
-    case 'features':   return <SaasFeaturesPage />;
+    case 'schools':    return <SaasSchoolsPage roleId={roleId} />;
+    case 'billing':    return <SaasBillingPage roleId={roleId} />;
+    case 'onboarding': return <SaasOnboardingPage roleId={roleId} />;
+    case 'features':   return <SaasFeaturesPage roleId={roleId} />;
     case 'settings':   return <SettingsPage   {...props} />;
     default:           return <ComingSoon label={activeNav} />;
   }
@@ -495,15 +446,11 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
   const isParent   = roleId === 'parent';
   const isHeadTeacher = roleId === 'head_teacher';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
-  const children   = isParent ? parentChildren(currentUser) : [];
+  const children   = parentChildren(currentUser);
 
   const allStudents = queryStudents(schoolId);
-  // Teacher sees only students in their assigned classes; parent only their own children
-  const students  = isTeacher && assignment
-    ? allStudents.filter(s => assignment.classes.includes(s.class))
-    : isParent
-      ? allStudents.filter(s => children.includes(s.name))
-      : allStudents;
+  // Role-scoped rows (teacher → assigned classes, parent → own children)
+  const students = scopedStudents(schoolId, currentUser);
   const teachers  = queryTeachers(schoolId);
   const payments  = queryPayments(schoolId);
   const confirmedPay = payments.filter(p => p.status === 'Confirmed');
@@ -956,10 +903,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
   const isTeacher = roleId === 'teacher';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
-  const allSchool = queryStudents(schoolId);
-  const all = isTeacher && assignment
-    ? allSchool.filter(s => assignment.classes.includes(s.class))
-    : allSchool;
+  const all = scopedStudents(schoolId, currentUser);
 
   const [students, setStudents] = useState(all);
   const [search, setSearch] = useState(initialSearch || '');
@@ -967,6 +911,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
   const [showModal, setModal] = useState(false);
   const [viewStudent, setViewStudent] = useState(null);
   const [editStudent, setEditStudent] = useState(null);
+  const [deleteStudent, setDeleteStudent] = useState(null);
   const { toasts, show: toast } = useToast();
 
   // Keep in sync with the global topbar search (adjust state during render,
@@ -1068,6 +1013,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
                   <div className="flex gap-2">
                     <button onClick={() => setViewStudent(s)} className="text-xs font-semibold hover:underline" style={{ color: '#1E45FC' }}>View</button>
                     {can(roleId, 'students.edit') && <button onClick={() => setEditStudent(s)} className="text-xs text-gray-400 hover:text-gray-600">Edit</button>}
+                    {can(roleId, 'students.delete') && <button onClick={() => setDeleteStudent(s)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Delete</button>}
                   </div>
                 </td>
               </tr>
@@ -1097,6 +1043,21 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
       {editStudent && (
         <EditStudentModal student={editStudent} onClose={() => setEditStudent(null)}
           onSave={updated => { setStudents(p => p.map(s => s.id === updated.id ? updated : s)); setEditStudent(null); toast('Student record updated'); }} />
+      )}
+
+      {deleteStudent && (
+        <ConfirmDialog
+          title={`Delete ${deleteStudent.name}?`}
+          body="This removes the student record from this school. This action cannot be undone."
+          confirmLabel="Delete student"
+          danger
+          onConfirm={() => {
+            setStudents(p => p.filter(s => s.id !== deleteStudent.id));
+            toast(`${deleteStudent.name} deleted`, 'error');
+            setDeleteStudent(null);
+          }}
+          onClose={() => setDeleteStudent(null)}
+        />
       )}
 
       <Toast toasts={toasts} />
@@ -1222,20 +1183,14 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
 
-  const assignedStudentNames = isTeacher && assignment
-    ? queryStudents(schoolId).filter(s => assignment.classes.includes(s.class)).map(s => s.name)
-    : null;
-
-  const allParents = queryParents(schoolId);
-  const baseAll = isTeacher && assignedStudentNames
-    ? allParents.filter(p => p.children.some(c => assignedStudentNames.includes(c)))
-    : allParents;
+  const baseAll = scopedParents(schoolId, currentUser);
 
   const [parents, setParents] = useState(baseAll);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all');
   const [viewParent, setViewParent] = useState(null);
   const [contactParent, setContactParent] = useState(null);
+  const [editParent, setEditParent] = useState(null);
   const [addModal, setAddModal] = useState(false);
   const { toasts, show: toast } = useToast();
 
@@ -1403,6 +1358,15 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                         View
                       </button>
                     )}
+                    {can(roleId, 'parents.edit') && (
+                      <button onClick={() => setEditParent(p)}
+                        className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
+                        style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                        onMouseEnter={e => { e.currentTarget.style.borderColor = '#A3CF2E'; e.currentTarget.style.color = '#5a7a0a'; }}
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                        Edit
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -1410,11 +1374,6 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
           </tbody>
         </table>
       </Card>
-
-      {/* ADD PARENT BUTTON wire */}
-      {can(roleId, 'parents.create') && (
-        <div style={{ display: 'none' }}>{/* button already in header, wired below */}</div>
-      )}
 
       {/* VIEW PARENT MODAL */}
       {viewParent && (
@@ -1460,6 +1419,19 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
         <AddParentModal
           onClose={() => setAddModal(false)}
           onAdd={(p) => { setParents(prev => [...prev, p]); setAddModal(false); toast('Parent added successfully'); }}
+        />
+      )}
+
+      {/* EDIT PARENT MODAL */}
+      {editParent && (
+        <AddParentModal
+          parent={editParent}
+          onClose={() => setEditParent(null)}
+          onAdd={(p) => {
+            setParents(prev => prev.map(x => x.id === p.id ? p : x));
+            setEditParent(null);
+            toast(`${p.name} updated`);
+          }}
         />
       )}
 
@@ -1544,9 +1516,18 @@ function ContactParentModal({ parent, onClose, onSent }) {
   );
 }
 
-/* ── Add Parent Modal ────────────────────────────────────── */
-function AddParentModal({ onClose, onAdd }) {
-  const [form, setForm] = useState({ name: '', phone: '', email: '', relationship: 'Parent', children: '', status: 'Active', balance: 0 });
+/* ── Add / Edit Parent Modal ─────────────────────────────── */
+function AddParentModal({ parent = null, onClose, onAdd }) {
+  const isEdit = !!parent;
+  const [form, setForm] = useState({
+    name:         parent?.name ?? '',
+    phone:        parent?.phone ?? '',
+    email:        parent?.email ?? '',
+    relationship: parent?.relationship ?? 'Parent',
+    children:     (parent?.children ?? []).join(', '),
+    status:       parent?.status ?? 'Active',
+    balance:      parent?.balance ?? 0,
+  });
   const [err, setErr] = useState({});
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -1562,7 +1543,7 @@ function AddParentModal({ onClose, onAdd }) {
   const handleAdd = () => {
     if (!validate()) return;
     onAdd({
-      id: 'par-' + Date.now(),
+      id: parent?.id ?? ('par-' + Date.now()),
       name: form.name.trim(),
       phone: form.phone.trim(),
       email: form.email.trim(),
@@ -1570,7 +1551,7 @@ function AddParentModal({ onClose, onAdd }) {
       children: form.children.split(',').map(c => c.trim()).filter(Boolean),
       status: form.status,
       balance: parseInt(form.balance, 10) || 0,
-      lastContact: new Date().toISOString().slice(0, 10),
+      lastContact: parent?.lastContact ?? new Date().toISOString().slice(0, 10),
     });
   };
 
@@ -1582,7 +1563,7 @@ function AddParentModal({ onClose, onAdd }) {
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Add Parent / Guardian</h3>
+          <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>{isEdit ? 'Edit Parent / Guardian' : 'Add Parent / Guardian'}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -1620,7 +1601,7 @@ function AddParentModal({ onClose, onAdd }) {
         </div>
         <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
-          <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Add Parent</button>
+          <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>{isEdit ? 'Save Changes' : 'Add Parent'}</button>
         </div>
       </div>
     </div>
@@ -2049,14 +2030,9 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
   const isParent   = roleId === 'parent';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
-  const children   = isParent ? parentChildren(currentUser) : [];
-  const allStudents = queryStudents(schoolId);
-  // Teacher: only students from assigned classes; parent: only their children (read-only)
-  const students = isTeacher && assignment
-    ? allStudents.filter(s => assignment.classes.includes(s.class))
-    : isParent
-      ? allStudents.filter(s => children.includes(s.name))
-      : allStudents;
+  const children   = parentChildren(currentUser);
+  // Role-scoped rows (teacher → assigned classes, parent → own children, read-only)
+  const students = scopedStudents(schoolId, currentUser);
   const classes  = isTeacher && assignment
     ? assignment.classes
     : [...new Set(students.map(s => s.class))];
@@ -2237,8 +2213,10 @@ function TimetablePage({ roleId, currentUser }) {
                   <td className="px-4 py-2.5 text-xs text-gray-400 font-medium whitespace-nowrap">{p}</td>
                   {DAYS.map(d => {
                     const cell = grid[d][pi];
-                    const dimmed = tab === 'teacher' && teacherSubjects.length > 0
-                      && !['Break', 'Lunch'].includes(cell.label) && !teacherSubjects.includes(cell.label);
+                    const isBreakOrLunch = ['Break', 'Lunch'].includes(cell.label);
+                    // In "My Timetable" a teacher only sees their own subjects
+                    const notMine = tab === 'teacher' && teacherSubjects.length > 0
+                      && !isBreakOrLunch && !teacherSubjects.includes(cell.label);
                     const { bg, text } = cellStyle(cell.label);
                     return (
                       <td key={d} className="px-2 py-2 text-center">
@@ -2250,8 +2228,10 @@ function TimetablePage({ roleId, currentUser }) {
                             style={{ borderColor: '#e2e8f0' }}>
                             {['Free', 'Break', 'Lunch', ...SUBJ].map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
+                        ) : notMine ? (
+                          <span className="inline-block px-2 py-1 text-xs text-gray-200">—</span>
                         ) : (
-                          <span className={`inline-block px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap ${dimmed ? 'opacity-25' : ''}`}
+                          <span className="inline-block px-2 py-1 rounded-lg text-xs font-semibold whitespace-nowrap"
                             style={{ background: bg, color: text }}>{cell.label}</span>
                         )}
                       </td>
@@ -2315,17 +2295,15 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
   const isParent   = roleId === 'parent';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
-  const children   = isParent ? parentChildren(currentUser) : [];
+  const children   = parentChildren(currentUser);
   // Teacher: only see and enter marks for assigned subjects in assigned classes
   const activeSubjects = isTeacher && assignment
     ? SUBJ_LIST.filter(s => assignment.subjects.includes(s))
     : SUBJ_LIST;
-  const allSchoolStudents = queryStudents(schoolId);
-  const baseStudents = isTeacher && assignment
-    ? allSchoolStudents.filter(s => assignment.classes.includes(s.class)).slice(0, 10)
-    : isParent
-      ? allSchoolStudents.filter(s => children.includes(s.name))
-      : allSchoolStudents.slice(0, 5);
+  const scoped = scopedStudents(schoolId, currentUser);
+  const baseStudents = isTeacher ? scoped.slice(0, 10)
+    : isParent ? scoped
+    : scoped.slice(0, 5);
 
   const [marks, setMarks] = useState(
     baseStudents.map(s => ({ ...s, scores: activeSubjects.reduce((a, sub) => ({ ...a, [sub]: Math.floor(Math.random()*40+55) }), {}) }))
@@ -2335,12 +2313,15 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
   const grade = a  => a>=80?'D1':a>=70?'D2':a>=65?'C3':a>=60?'C4':a>=55?'C5':a>=50?'C6':'F9';
   const gcol  = a  => a>=70?'#059669':a>=55?'#d97706':'#dc2626';
   const canEdit = can(roleId, 'results.enter');
+  const canApproveResults = can(roleId, 'results.approve');
   const { toasts, show: toast } = useToast();
   const [importModal, setImportModal] = useState(false);
   const [importData, setImportData] = useState(null); // { rows: [{ name, scores }] }
+  const [approved, setApproved] = useState(false);
   const fileRef = useRef(null);
 
-  const saveResults = () => toast(`Results saved for ${marks.length} students`);
+  // Saving (or importing) marks sends the set back for approval
+  const saveResults = () => { setApproved(false); toast(`Results saved for ${marks.length} students — pending approval`); };
 
   /* ── CSV import: download template ── */
   const downloadTemplate = () => {
@@ -2397,7 +2378,8 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
     }));
     setImportModal(false);
     setImportData(null);
-    toast(`Imported marks for ${applied} student${applied !== 1 ? 's' : ''}`);
+    setApproved(false);
+    toast(`Imported marks for ${applied} student${applied !== 1 ? 's' : ''} — pending approval`);
   };
 
   return (
@@ -2415,12 +2397,24 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
                 : `S.3 East · Term 2 Exams · ${schoolId}`}
           </p>
         </div>
-        {canEdit && (
-          <div className="flex gap-2">
-            <button onClick={() => setImportModal(true)} className="btn-brand-secondary text-sm py-2 px-4">Import Marks</button>
-            <button onClick={saveResults} className="btn-brand-primary text-sm py-2 px-4">Save Results</button>
-          </div>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold px-2.5 py-1 rounded-full"
+            style={approved ? { background: '#d1fae5', color: '#059669' } : { background: '#fef3c7', color: '#d97706' }}>
+            {approved ? 'Approved' : 'Pending approval'}
+          </span>
+          {canEdit && (
+            <>
+              <button onClick={() => setImportModal(true)} className="btn-brand-secondary text-sm py-2 px-4">Import Marks</button>
+              <button onClick={saveResults} className="btn-brand-primary text-sm py-2 px-4">Save Results</button>
+            </>
+          )}
+          {canApproveResults && !approved && (
+            <button onClick={() => { setApproved(true); toast('Results approved'); }}
+              className="text-sm py-2 px-4 rounded-xl font-bold text-white" style={{ background: '#059669' }}>
+              Approve Results
+            </button>
+          )}
+        </div>
       </div>
       {isParent && (
         <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
@@ -3164,14 +3158,9 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
   const isTeacher  = roleId === 'teacher';
   const isParent   = roleId === 'parent';
   const assignment = isTeacher ? getTeacherAssignment(currentUser?.user_id) : null;
-  const children   = isParent ? parentChildren(currentUser) : [];
-  const allSchoolStudents = queryStudents(schoolId);
-  // Teacher: only students from assigned classes; parent: only their children
-  const allStudents = isTeacher && assignment
-    ? allSchoolStudents.filter(s => assignment.classes.includes(s.class))
-    : isParent
-      ? allSchoolStudents.filter(s => children.includes(s.name))
-      : allSchoolStudents;
+  const children   = parentChildren(currentUser);
+  // Role-scoped rows (teacher → assigned classes, parent → own children)
+  const allStudents = scopedStudents(schoolId, currentUser);
 
   const canGen  = can(roleId, 'reports.generate');
   const canSend = can(roleId, 'reports.send');
@@ -3393,7 +3382,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                       onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
                       View
                     </button>
-                    {can(roleId,'reports.comment_head') && (
+                    {(can(roleId,'reports.comment_head') || can(roleId,'reports.comment_teacher')) && (
                       <button onClick={()=>setEditing(s)}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
                         style={{ borderColor:'#e2e8f0', color:'#64748b' }}
@@ -3486,22 +3475,34 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
               <button onClick={()=>setEditing(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Head Teacher's Comment</label>
-                <textarea rows={3} defaultValue="A hardworking student who has shown great improvement this term."
-                  className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
-                  style={{ borderColor:'#e2e8f0' }}/>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Conduct</label>
-                <select className="w-full px-3 py-2 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
-                  {['Excellent','Very Good','Good','Satisfactory','Needs Improvement'].map(o=><option key={o}>{o}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Next Term Fees (UGX)</label>
-                <input type="text" defaultValue="450,000" className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
-              </div>
+              {can(roleId,'reports.comment_teacher') && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Teacher's Comment</label>
+                  <textarea rows={3} defaultValue="A hardworking student who has shown great improvement this term."
+                    className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
+                    style={{ borderColor:'#e2e8f0' }}/>
+                </div>
+              )}
+              {can(roleId,'reports.comment_head') && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Head Teacher's Comment</label>
+                    <textarea rows={3} defaultValue="A hardworking student who has shown great improvement this term."
+                      className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
+                      style={{ borderColor:'#e2e8f0' }}/>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Conduct</label>
+                    <select className="w-full px-3 py-2 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                      {['Excellent','Very Good','Good','Satisfactory','Needs Improvement'].map(o=><option key={o}>{o}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Next Term Fees (UGX)</label>
+                    <input type="text" defaultValue="450,000" className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+                  </div>
+                </>
+              )}
             </div>
             <div className="flex gap-3 px-6 py-4 border-t" style={{ borderColor:'#eef0f6' }}>
               <button onClick={()=>setEditing(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
@@ -3811,13 +3812,13 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
 /* ══════════════════════════════════════════════════
    NOTIFICATIONS
 ═══════════════════════════════════════════════════ */
-function NotificationsPage({ roleId }) {
+function NotificationsPage({ roleId, currentUser }) {
   const [notifs, setNotifs] = useState([
-    { id:1, icon:'💳', title:'Fee Payment Received',  body:'UGX 450,000 from Kabuye Peter for Aisha Nakato',          time:'2m ago',  type:'finance',       read:false },
-    { id:2, icon:'👤', title:'New Student Enrolled',  body:'Aisha Nakato enrolled in S.1 West.',                       time:'18m ago', type:'student',       read:false },
-    { id:3, icon:'📊', title:'Results Submitted',     body:'Term 2 marks for S.3 East submitted by Ms. Grace.',        time:'1h ago',  type:'academic',      read:false },
-    { id:4, icon:'📧', title:'Emails Sent',           body:'42 parents notified about Term 2 report cards via email.', time:'3h ago',  type:'communication', read:true  },
-    { id:5, icon:'⚠️', title:'Low Attendance Alert',  body:'David Opiyo (S.1 East) absent 5 consecutive days.',        time:'5h ago',  type:'alert',         read:true  },
+    { id:1, icon:'💳', title:'Fee Payment Received',  body:'UGX 450,000 from Kabuye Peter for Aisha Nakato',          time:'2m ago',  type:'finance',       read:false, audience:['school_admin','head_teacher','bursar','parent'] },
+    { id:2, icon:'👤', title:'New Student Enrolled',  body:'Aisha Nakato enrolled in S.1 West.',                       time:'18m ago', type:'student',       read:false, audience:['school_admin','head_teacher','teacher','parent'] },
+    { id:3, icon:'📊', title:'Results Submitted',     body:'Term 2 marks for S.3 East submitted by Ms. Grace.',        time:'1h ago',  type:'academic',      read:false, audience:['school_admin','head_teacher','teacher'] },
+    { id:4, icon:'📧', title:'Emails Sent',           body:'42 parents notified about Term 2 report cards via email.', time:'3h ago',  type:'communication', read:true,  audience:['school_admin','head_teacher'] },
+    { id:5, icon:'⚠️', title:'Low Attendance Alert',  body:'David Opiyo (S.1 East) absent 5 consecutive days.',        time:'5h ago',  type:'alert',         read:true,  audience:['school_admin','head_teacher','teacher'] },
   ]);
   const [sendModal, setSendModal] = useState(false);
   const { toasts, show: toast } = useToast();
@@ -3825,17 +3826,32 @@ function NotificationsPage({ roleId }) {
 
   const markRead = (id) => setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
 
+  // Only show notifications addressed to this role; parents additionally only
+  // see items that concern their own children.
+  const children = parentChildren(currentUser);
+  const visible = notifs.filter(n => {
+    if (!n.audience?.includes(roleId)) return false;
+    if (roleId === 'parent') return children.some(k => `${n.title} ${n.body}`.includes(k));
+    return true;
+  });
+
   return (
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Notifications</h2>
-          <p className="text-xs text-gray-400 mt-0.5">{notifs.filter(n=>!n.read).length} unread</p>
+          <p className="text-xs text-gray-400 mt-0.5">{visible.filter(n=>!n.read).length} unread</p>
         </div>
         {can(roleId,'notifs.send') && <button onClick={() => setSendModal(true)} className="btn-brand-primary text-sm py-2 px-4">Send Notification</button>}
       </div>
       <div className="flex flex-col gap-3">
-        {notifs.map((n) => (
+        {visible.length === 0 && (
+          <Card className="p-10 text-center">
+            <div className="text-3xl mb-2">🔔</div>
+            <p className="text-sm font-semibold text-gray-500">No notifications for you right now.</p>
+          </Card>
+        )}
+        {visible.map((n) => (
           <div key={n.id} className={`flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${n.read?'bg-white opacity-70':'bg-white shadow-sm'}`}
             style={{ borderColor: n.read?'#eef0f6':tCol[n.type]+'30' }}
             onClick={() => markRead(n.id)}>
@@ -3942,7 +3958,8 @@ function SendNotificationModal({ onClose, onSent }) {
 /* ══════════════════════════════════════════════════
    SETTINGS
 ═══════════════════════════════════════════════════ */
-function SettingsPage({ schoolId, tenant }) {
+function SettingsPage({ roleId, schoolId, tenant }) {
+  const canEditSettings = can(roleId, 'settings.edit');
   const [editField, setEditField] = useState(null);
   const [settings, setSettings] = useState({
     'School Name': tenant?.name ?? '—',
@@ -3981,7 +3998,8 @@ function SettingsPage({ schoolId, tenant }) {
               <div className="text-xs text-gray-400">{label}</div>
               <div className="text-sm font-semibold truncate" style={{ color:'#0B0F2A', fontFamily: locked ? 'monospace' : undefined }}>{value}</div>
             </div>
-            {!locked && <button onClick={() => openEdit(label, value)} className="text-xs font-semibold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Edit</button>}
+            {!locked && canEditSettings && <button onClick={() => openEdit(label, value)} className="text-xs font-semibold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Edit</button>}
+            {!locked && !canEditSettings && <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
             {locked && <span className="text-xs text-gray-300 flex-shrink-0">Auto-generated</span>}
           </div>
         ))}
@@ -4026,7 +4044,8 @@ const SECTION_META = {
   documents:   { label: 'Documents Checklist',   color: '#0891b2' },
 };
 
-function EnrollmentBuilderPage({ schoolId, tenant }) {
+function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
+  const canManage = can(roleId, 'enrollment.manage');
   const cfg = getEnrollmentConfig(schoolId);
   const themeColor = cfg?.themeColor ?? '#1E45FC';
 
@@ -4106,13 +4125,13 @@ function EnrollmentBuilderPage({ schoolId, tenant }) {
           <p className="text-xs text-gray-400 mt-0.5">Customise the fields shown on your school's online enrollment form</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={handleReset}
-            className="px-3.5 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+          <button onClick={handleReset} disabled={!canManage}
+            className="px-3.5 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
             style={{ borderColor:'#e2e8f0' }}>
             Reset to Default
           </button>
-          <button onClick={handleSave}
-            className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90"
+          <button onClick={handleSave} disabled={!canManage}
+            className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
             style={{ background: themeColor }}>
             Save Form
           </button>
@@ -4435,7 +4454,8 @@ function SaasOverviewPage() {
 /* ══════════════════════════════════════════════════
    SAAS — ALL SCHOOLS
 ═══════════════════════════════════════════════════ */
-function SaasSchoolsPage() {
+function SaasSchoolsPage({ roleId }) {
+  const canManage = can(roleId, 'saas.schools.manage');
   const [schools, setSchools] = useState(queryAllTenants());
   const [onboard, setOnboard] = useState(false);
   const [manage,  setManage]  = useState(null);
@@ -4458,7 +4478,9 @@ function SaasSchoolsPage() {
           <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>All Schools (Tenants)</h2>
           <p className="text-xs text-gray-400 mt-0.5">{schools.length} registered · tenant isolation enforced</p>
         </div>
-        <button onClick={() => setOnboard(true)} className="btn-brand-primary text-sm py-2 px-4">+ Onboard School</button>
+        {canManage && (
+          <button onClick={() => setOnboard(true)} className="btn-brand-primary text-sm py-2 px-4">+ Onboard School</button>
+        )}
       </div>
       <Card className="overflow-hidden">
         <table className="w-full">
@@ -4487,8 +4509,12 @@ function SaasSchoolsPage() {
                 <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {calcBilling(t.school_id).toLocaleString()}</td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    <button onClick={() => setManage(t)} className="text-xs font-bold hover:underline" style={{ color:'#1E45FC' }}>Manage →</button>
-                    <button onClick={() => setSuspend(t)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">{t.status === 'active' ? 'Suspend' : 'Reactivate'}</button>
+                    {canManage ? (
+                      <>
+                        <button onClick={() => setManage(t)} className="text-xs font-bold hover:underline" style={{ color:'#1E45FC' }}>Manage →</button>
+                        <button onClick={() => setSuspend(t)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">{t.status === 'active' ? 'Suspend' : 'Reactivate'}</button>
+                      </>
+                    ) : <span className="text-xs text-gray-300">View only</span>}
                   </div>
                 </td>
               </tr>
@@ -4661,7 +4687,8 @@ function ManageSchoolModal({ tenant, onClose, onSave }) {
 /* ══════════════════════════════════════════════════
    SAAS — BILLING
 ═══════════════════════════════════════════════════ */
-function SaasBillingPage() {
+function SaasBillingPage({ roleId }) {
+  const canExport = can(roleId, 'saas.billing.view');
   const tenants = queryAllTenants();
   const totalMRR = tenants.reduce((a,t)=>a+calcBilling(t.school_id),0);
   const { toasts, show: toast } = useToast();
@@ -4695,7 +4722,9 @@ function SaasBillingPage() {
       <Card className="overflow-hidden">
         <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
           <h3 className="font-bold text-sm" style={{ color:'#0B0F2A' }}>Per-Tenant Billing</h3>
-          <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'#1E45FC' }}>Export Invoices →</button>
+          {canExport && (
+            <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'#1E45FC' }}>Export Invoices →</button>
+          )}
         </div>
         <table className="w-full">
           <thead>
@@ -4731,7 +4760,8 @@ function SaasBillingPage() {
 /* ══════════════════════════════════════════════════
    SAAS — ONBOARDING
 ═══════════════════════════════════════════════════ */
-function SaasOnboardingPage() {
+function SaasOnboardingPage({ roleId }) {
+  const canManage = can(roleId, 'saas.onboarding.manage');
   const tenants = queryAllTenants();
   const recent = tenants.slice(-3).reverse();
   const thisMonth = tenants.filter(t => (t.created_at || '').startsWith('2026-05')).length;
@@ -4774,7 +4804,9 @@ function SaasOnboardingPage() {
               </div>
             </div>
             <span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status==='active'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
-            <button onClick={() => setConfigModal(t)} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Configure →</button>
+            {canManage
+              ? <button onClick={() => setConfigModal(t)} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Configure →</button>
+              : <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
           </Card>
         ))}
       </div>
@@ -4825,7 +4857,8 @@ function SaasOnboardingPage() {
 /* ══════════════════════════════════════════════════
    SAAS — FEATURE REQUESTS
 ═══════════════════════════════════════════════════ */
-function SaasFeaturesPage() {
+function SaasFeaturesPage({ roleId }) {
+  const canManage = can(roleId, 'saas.features.manage');
   const [features, setFeatures] = useState([
     { id:1, title:'Bulk SMS to parents',      votes:24, status:'In Progress', school:"St. Mary's College" },
     { id:2, title:'Parent mobile app',        votes:19, status:'Planned',     school:'Kampala High School' },
@@ -4855,7 +4888,9 @@ function SaasFeaturesPage() {
               <div className="text-xs text-gray-400">{f.school}</div>
             </div>
             <span className="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0" style={{ background:sb[f.status]??'#f1f5f9', color:sc[f.status]??'#94a3b8' }}>{f.status}</span>
-            <button onClick={() => setUpdateModal({ ...f })} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Update</button>
+            {canManage
+              ? <button onClick={() => setUpdateModal({ ...f })} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Update</button>
+              : <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
           </Card>
         ))}
       </div>
