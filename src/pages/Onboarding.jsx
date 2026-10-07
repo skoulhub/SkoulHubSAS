@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { provisionTenant } from '../lib/tenantStore';
 import { LoginShell, Logo, ArrowRight } from './Login';
-import { PLANS, DEFAULT_PLAN_ID, formatUGX, BILLING_UNIT } from '../lib/plans';
+import { PLANS, DEFAULT_PLAN_ID, TRIAL_DAYS, formatUGX, BILLING_UNIT } from '../lib/plans';
 
 const STEPS = ['School Info', 'Admin Account', 'MFA Setup', 'Confirm'];
 
@@ -94,7 +94,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
               {[
                 ['Tenant ID',  result.tenant.school_id],
                 ['Plan',       result.tenant.plan],
-                ['Status',     'Trial — 7 days free'],
+                ['Status',     `Trial — ${TRIAL_DAYS} days free`],
                 ['Admin',      result.user.name],
               ].map(([label, val]) => (
                 <div key={label} className="rounded-lg p-2.5" style={{ background: 'rgba(255,255,255,0.06)' }}>
@@ -133,7 +133,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
           <h1 className="mt-4 text-xl font-bold font-display" style={{ color: 'var(--text)' }}>
             Set up your school
           </h1>
-          <p className="text-xs text-gray-500 mt-1">Free 7-day trial · No credit card needed</p>
+          <p className="text-xs text-gray-500 mt-1">Free {TRIAL_DAYS}-day trial · No credit card needed</p>
         </div>
 
         {/* Step progress */}
