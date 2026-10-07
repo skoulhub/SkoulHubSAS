@@ -13,7 +13,7 @@
  * ─────────────────────────────────────────────────────────────
  */
 
-import { DEFAULT_PLAN_ID, normalisePlanId, planRate, calcPlanCost } from './plans';
+import { DEFAULT_PLAN_ID, TRIAL_DAYS, normalisePlanId, planRate, calcPlanCost } from './plans';
 
 // ── UUID v4 generator (crypto.randomUUID with fallback) ──────
 export function generateUUID() {
@@ -28,6 +28,11 @@ export function generateUUID() {
 }
 
 // ── Tenant (school) registry ─────────────────────────────────
+// Subscription timestamps are seeded relative to load time so the demo
+// shows the whole lifecycle: active, in trial, in grace, auto-suspended.
+const DAY = 86_400_000;
+const _now = Date.now();
+const daysFromNow = (d) => _now + d * DAY;
 export const TENANTS = {
   'skh-001': {
     school_id:   'skh-001',
@@ -39,6 +44,11 @@ export const TENANTS = {
     admin_email: 'admin@smck.ug',
     district:    'Wakiso',
     logo_initials: 'SM',
+    current_period_start: daysFromNow(-45),
+    current_period_end:   daysFromNow(45),
+    last_payment_at:      daysFromNow(-45),
+    next_due_at:          daysFromNow(45),
+    created_ms:           daysFromNow(-500),
   },
   'skh-002': {
     school_id:   'skh-002',
@@ -50,6 +60,11 @@ export const TENANTS = {
     admin_email: 'admin@arua.ug',
     district:    'Arua',
     logo_initials: 'AP',
+    current_period_start: daysFromNow(-78),
+    current_period_end:   daysFromNow(12),
+    last_payment_at:      daysFromNow(-78),
+    next_due_at:          daysFromNow(12),
+    created_ms:           daysFromNow(-320),
   },
   'skh-003': {
     school_id:   'skh-003',
@@ -61,6 +76,8 @@ export const TENANTS = {
     admin_email: 'admin@khs.ug',
     district:    'Kampala',
     logo_initials: 'KH',
+    trial_ends_at:        daysFromNow(18),   // day 12 of a 30-day trial
+    created_ms:           daysFromNow(-12),
   },
   'skh-004': {
     school_id:   'skh-004',
@@ -72,6 +89,8 @@ export const TENANTS = {
     admin_email: 'admin@gulu.ug',
     district:    'Gulu',
     logo_initials: 'GA',
+    trial_ends_at:        daysFromNow(-3),   // trial lapsed → grace period
+    created_ms:           daysFromNow(-33),
   },
   'skh-005': {
     school_id:   'skh-005',
@@ -83,6 +102,10 @@ export const TENANTS = {
     admin_email: 'admin@mhs.ug',
     district:    'Kampala',
     logo_initials: 'MH',
+    current_period_start: daysFromNow(-110),
+    current_period_end:   daysFromNow(-20),  // unpaid 20 days → auto-suspended
+    last_payment_at:      daysFromNow(-110),
+    created_ms:           daysFromNow(-400),
   },
 };
 
@@ -337,7 +360,9 @@ export function provisionTenant({ schoolName, district, adminEmail, adminName, p
     school_id,
     name:          schoolName,
     plan:          normalisePlanId(plan),
-    status:        'trial',
+    status:        'trial',                    // new schools start on the trial
+    trial_ends_at: Date.now() + TRIAL_DAYS * 86_400_000,
+    created_ms:    Date.now(),
     student_count: 0,
     created_at:    new Date().toISOString().slice(0, 10),
     admin_email:   adminEmail,

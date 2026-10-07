@@ -26,9 +26,21 @@ export const PRICING_SOURCE  = 'https://skoulhub.com/pricing';
 export const PRICING_UPDATED = '2026-10-07';
 export const CURRENCY        = 'UGX';
 export const BILLING_UNIT    = 'per student / term';
-export const TRIAL_DAYS      = 7;
 export const ESTIMATOR_MIN   = 50;
 export const ESTIMATOR_MAX   = 2000;
+
+/* ── Billing policy ──────────────────────────────────────────
+ * Platform defaults that drive the subscription lifecycle in
+ * lib/billing.js. Collected here so every screen quotes the same
+ * numbers.
+ *
+ * NOTE: the marketing page currently advertises a 7-day trial; the
+ * platform policy implemented here is a 30-day trial with a 7-day
+ * grace period before automatic revocation. Change TRIAL_DAYS to
+ * bring the two back in line. */
+export const TRIAL_DAYS = 30;
+export const GRACE_DAYS = 7;   // access retained after a period/trial ends while payment is chased
+export const TERM_DAYS  = 90;  // one school term ≈ 90 days
 
 export const PLANS = [
   {

@@ -2,32 +2,16 @@ import { useState } from 'react';
 import { can } from '../lib/permissions';
 import { updateTenantPlan, quoteForPlan } from '../lib/tenantStore';
 import {
-  PLANS, PLAN_FEATURES, PRICING_FAQ, PRICING_SOURCE, PRICING_UPDATED, BILLING_UNIT, TRIAL_DAYS,
+  PLANS, PLAN_FEATURES, PRICING_FAQ, PRICING_SOURCE, PRICING_UPDATED, BILLING_UNIT, TRIAL_DAYS, GRACE_DAYS, TERM_DAYS,
   ESTIMATOR_MIN, ESTIMATOR_MAX, getPlan, planLabel, planRate, formatUGX, formatCompactUGX, normalisePlanId,
 } from '../lib/plans';
+import {
+  SUB_STATUS, PAYMENT_METHODS, tenantBilling, markInvoicePaid,
+  statusMeta, statusSentence, dateLabel,
+} from '../lib/billing';
+import { Card, SectionHeader, PrimaryButton, GhostButton, TextInput, Select } from '../components/ui';
 
-/* ── Primitives (token-based so they follow the theme) ───────── */
-
-function Card({ children, className = '' }) {
-  return (
-    <div className={`rounded-2xl border ${className}`} style={{ background: 'var(--surface)', borderColor: 'var(--border)' }}>
-      {children}
-    </div>
-  );
-}
-
-function SectionHeader({ title, subtitle, right }) {
-  return (
-    <div className="flex items-start justify-between gap-3 px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
-      <div>
-        <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>{title}</h3>
-        {subtitle && <p className="text-xs mt-0.5" style={{ color: 'var(--text-dim)' }}>{subtitle}</p>}
-      </div>
-      {right}
-    </div>
-  );
-}
-
+/* Local badge — the plan pill used in the page header. */
 function PlanBadge({ plan }) {
   return (
     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: plan.tint, color: plan.color }}>
@@ -47,6 +31,22 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
   const [toast, setToast] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
   const [confirming, setConfirming] = useState(null);
+  const [tick, setTick] = useState(0);                       // re-read billing after a payment
+  const [payOpen, setPayOpen] = useState(null);
+  const [pay, setPay] = useState({ method: PAYMENT_METHODS[0], reference: '' });
+
+  const { subscription, invoices, openInvoice: open } = tenantBilling(tenant?.school_id);
+  const statusMetaNow = statusMeta(subscription?.status);
+
+  const settle = () => {
+    if (!payOpen) return;
+    markInvoicePaid(payOpen.id, { method: pay.method, reference: pay.reference });
+    setPayOpen(null);
+    setPay({ method: PAYMENT_METHODS[0], reference: '' });
+    setTick(t => t + 1);
+    onUpdateTenant?.({ status: SUB_STATUS.ACTIVE });
+    notify(`${payOpen.id} paid — access restored for a ${TERM_DAYS}-day term`);
+  };
 
   const notify = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -61,7 +61,7 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
   };
 
   return (
-    <div className="animate-fade-in space-y-5 max-w-5xl">
+    <div key={tick} className="animate-fade-in space-y-5 max-w-5xl">
 
       {/* Current plan */}
       <Card className="p-5">
@@ -77,6 +77,11 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
               )}
             </div>
             <p className="text-xs mt-1" style={{ color: 'var(--text-dim)' }}>{plan.tagline}</p>
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
+                style={{ background: statusMetaNow.tint, color: statusMetaNow.color }}>{statusMetaNow.label}</span>
+              <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>{statusSentence(subscription)}</span>
+            </div>
           </div>
           <div className="text-right">
             <div className="text-xs" style={{ color: 'var(--text-dim)' }}>This term</div>
@@ -100,6 +105,104 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
             </div>
           ))}
         </div>
+      </Card>
+
+      {/* Trial / payment callout */}
+      {subscription?.status === SUB_STATUS.TRIAL && (
+        <div className="rounded-2xl border px-5 py-4" style={{ borderColor: 'var(--border)', background: 'var(--tint-amber)' }}>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>
+                {subscription.trialDaysLeft} day{subscription.trialDaysLeft === 1 ? '' : 's'} left in your {TRIAL_DAYS}-day trial
+              </div>
+              <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+                Trial ends {dateLabel(subscription.trialEndsAt)}. We&apos;ll raise an invoice for {formatUGX(subscription.termCost)},
+                payable within {GRACE_DAYS} days — after that access is suspended automatically.
+              </p>
+            </div>
+            <div className="h-1.5 rounded-full w-full sm:w-40 overflow-hidden" style={{ background: 'var(--surface-3)' }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.round((subscription.trialProgress ?? 0) * 100)}%`, background: 'var(--warn)' }} />
+            </div>
+          </div>
+        </div>
+      )}
+      {subscription?.status === SUB_STATUS.PAST_DUE && (
+        <div className="rounded-2xl border px-5 py-4 flex items-center justify-between flex-wrap gap-3"
+          style={{ borderColor: 'var(--danger)', background: 'var(--tint-red)' }}>
+          <div>
+            <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>{subscription.reason}</div>
+            <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+              {formatUGX(subscription.outstanding)} outstanding · access ends {dateLabel(subscription.graceEndsAt)}
+            </p>
+          </div>
+          {canManage && open && (
+            <PrimaryButton onClick={() => setPayOpen(open)} style={{ background: 'var(--danger)' }}>Pay {formatUGX(open.amount)}</PrimaryButton>
+          )}
+        </div>
+      )}
+      {subscription?.locked && (
+        <div className="rounded-2xl border px-5 py-4" style={{ borderColor: 'var(--danger)', background: 'var(--tint-red)' }}>
+          <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>🔒 {subscription.reason}</div>
+          <p className="text-[11px] mt-0.5" style={{ color: 'var(--text-muted)' }}>
+            Most areas of SkoulHub are unavailable until the outstanding {formatUGX(subscription.outstanding)} is settled.
+          </p>
+          {canManage && open && (
+            <div className="mt-3"><PrimaryButton onClick={() => setPayOpen(open)}>Settle invoice</PrimaryButton></div>
+          )}
+        </div>
+      )}
+
+      {/* Invoices */}
+      <Card className="overflow-hidden">
+        <SectionHeader title="Invoices" subtitle={`Billed per term (${TERM_DAYS} days) at your plan rate`}
+          right={open && canManage ? <PrimaryButton onClick={() => setPayOpen(open)}>Pay now</PrimaryButton> : null} />
+        {invoices.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm" style={{ color: 'var(--text-dim)' }}>
+            No invoices yet — you are still inside your {TRIAL_DAYS}-day trial.
+          </div>
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
+                {['Invoice','Period','Amount','Issued','Due','Status',''].map(h => (
+                  <th key={h} className="text-left px-5 py-3 text-[11px] font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+              {invoices.map(inv => {
+                const m = inv.display_status === 'paid'
+                  ? { label: 'Paid', color: 'var(--ok)', tint: 'var(--tint-green)' }
+                  : inv.display_status === 'overdue'
+                    ? { label: 'Overdue', color: 'var(--danger)', tint: 'var(--tint-red)' }
+                    : inv.display_status === 'void'
+                      ? { label: 'Void', color: 'var(--text-dim)', tint: 'var(--surface-3)' }
+                      : { label: 'Due', color: 'var(--warn)', tint: 'var(--tint-amber)' };
+                return (
+                  <tr key={inv.id}>
+                    <td className="px-5 py-3 text-xs font-mono font-bold" style={{ color: 'var(--text)' }}>{inv.id}</td>
+                    <td className="px-5 py-3 text-[11px]" style={{ color: 'var(--text-muted)' }}>
+                      {dateLabel(inv.period_start)} → {dateLabel(inv.period_end)}
+                    </td>
+                    <td className="px-5 py-3 text-sm font-bold" style={{ color: 'var(--text)' }}>{formatUGX(inv.amount)}</td>
+                    <td className="px-5 py-3 text-[11px]" style={{ color: 'var(--text-dim)' }}>{dateLabel(inv.issued_at)}</td>
+                    <td className="px-5 py-3 text-[11px]" style={{ color: inv.display_status === 'overdue' ? 'var(--danger)' : 'var(--text-dim)' }}>{dateLabel(inv.due_at)}</td>
+                    <td className="px-5 py-3">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: m.tint, color: m.color }}>{m.label}</span>
+                      {inv.paid_at && <div className="text-[10px] mt-1" style={{ color: 'var(--text-dim)' }}>{inv.method}</div>}
+                    </td>
+                    <td className="px-5 py-3">
+                      {canManage && inv.status === 'due' && (
+                        <button onClick={() => setPayOpen(inv)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white"
+                          style={{ background: 'var(--ok)' }}>Pay now</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </Card>
 
       {/* Cost estimator */}
@@ -244,6 +347,42 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
                 style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Cancel</button>
               <button onClick={() => switchPlan(confirming)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white"
                 style={{ background: getPlan(confirming).color }}>Confirm switch</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PAY INVOICE MODAL */}
+      {payOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }} onClick={() => setPayOpen(null)}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-md p-6" style={{ background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-base mb-1" style={{ color: 'var(--text)' }}>Pay invoice {payOpen.id}</h3>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              {planLabel(payOpen.plan)} · {payOpen.students.toLocaleString()} students × {formatUGX(payOpen.rate)}
+            </p>
+            <div className="rounded-xl px-4 py-3 mb-4 flex items-center justify-between" style={{ background: 'var(--surface-2)' }}>
+              <span className="text-xs" style={{ color: 'var(--text-dim)' }}>Amount due</span>
+              <strong className="text-lg" style={{ color: 'var(--ok)' }}>{formatUGX(payOpen.amount)}</strong>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Payment method</label>
+                <Select value={pay.method} onChange={e => setPay(p => ({ ...p, method: e.target.value }))}>
+                  {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                </Select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Reference (optional)</label>
+                <TextInput value={pay.reference} onChange={e => setPay(p => ({ ...p, reference: e.target.value }))} placeholder="MTN-XXXXXXXX" />
+              </div>
+              <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+                Demo mode — no money moves. Confirming restores access for a {TERM_DAYS}-day term.
+              </p>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <GhostButton onClick={() => setPayOpen(null)} className="flex-1">Cancel</GhostButton>
+              <PrimaryButton onClick={settle} className="flex-1">Confirm payment</PrimaryButton>
             </div>
           </div>
         </div>

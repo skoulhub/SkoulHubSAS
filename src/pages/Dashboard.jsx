@@ -4,15 +4,20 @@ import SubscriptionPage from './Subscription';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
 import { NAV_BY_ROLE } from '../lib/navigation';
 import {
-  queryStudents, queryTeachers, queryPayments,
+  queryStudents, queryTeachers, queryPayments, queryTenant,
   queryAllTenants, calcBilling, getTeacherAssignment,
   getEnrollmentConfig, getFormSchema, saveFormSchema, DEFAULT_FORM_SCHEMA,
   parentChildren, scopedStudents, scopedParents,
 } from '../lib/tenantStore';
 import {
-  PLANS, BILLING_UNIT, DEFAULT_PLAN_ID, RATE_RANGE,
-  getPlan, planLabel, planRate, formatUGX, formatCompactUGX, normalisePlanId,
+  PLANS, BILLING_UNIT, DEFAULT_PLAN_ID, RATE_RANGE, TRIAL_DAYS, GRACE_DAYS, TERM_DAYS,
+  getPlan, planLabel, planRate, calcPlanCost, formatUGX, formatCompactUGX, normalisePlanId,
 } from '../lib/plans';
+import {
+  SUB_STATUS, PAYMENT_METHODS, evaluateTenant, refreshSubscriptions, billingSummary,
+  listInvoices, openInvoice, markInvoicePaid, assignPlan, startTrial, extendTrial,
+  suspendTenant, reactivateTenant, statusMeta, statusSentence, dateLabel, daysUntil,
+} from '../lib/billing';
 
 /* ─── SVG Icons ──────────────────────────────────────────────── */
 const Icon = ({ d, size = 18, stroke = 'currentColor', fill = 'none', strokeWidth = 1.7 }) => (
@@ -65,7 +70,16 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
     setActiveNav(can(roleId, 'students.view') ? 'students' : 'overview');
   };
 
-  const allowedNav = nav.filter(item => navAllowed(roleId, item.id));
+  /* Auto-revocation: a school whose subscription lapsed keeps access only to
+     the pages needed to settle the invoice. SaaS admins are never locked out. */
+  const billing = tenant ? evaluateTenant(tenant.school_id) : null;
+  const LOCKED_NAV = ['subscription', 'profile'];
+  const locked = !!billing?.locked && roleId !== 'saas_admin';
+  const visibleNav = locked ? nav.filter(i => LOCKED_NAV.includes(i.id)) : nav;
+
+  const allowedNav = visibleNav.filter(item => navAllowed(roleId, item.id));
+  // render the paywall instead of an unreachable page
+  const effectiveNav = locked && !LOCKED_NAV.includes(activeNav) ? 'subscription' : activeNav;
 
   const sectionGroups = [
     { label: null,       items: allowedNav.filter(i => i.section === 'main') },
@@ -195,7 +209,7 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
             {/* Page title */}
             <div className="flex-1 min-w-0">
               <h1 className="text-xl font-bold truncate" style={{ color: 'var(--text)' }}>
-                {allowedNav.find(n => n.id === activeNav)?.label ?? 'Dashboard'}
+                {allowedNav.find(n => n.id === effectiveNav)?.label ?? 'Dashboard'}
               </h1>
             </div>
 
@@ -241,8 +255,11 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
 
           {/* Page content */}
           <main className="flex-1 overflow-y-auto" style={{ background: 'var(--app-bg)', padding: '20px 24px' }}>
-            <PermissionGate roleId={roleId} navId={activeNav}>
-              <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} searchQuery={searchQuery}
+            {billing && roleId !== 'saas_admin' && billing.status !== SUB_STATUS.ACTIVE && (
+              <BillingBanner billing={billing} locked={locked} onOpen={() => setActiveNav('subscription')} />
+            )}
+            <PermissionGate roleId={roleId} navId={effectiveNav}>
+              <PageContent activeNav={effectiveNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} searchQuery={searchQuery}
                 theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onUpdateTenant={onUpdateTenant} onLogout={onLogout} />
             </PermissionGate>
           </main>
@@ -262,6 +279,41 @@ function UnknownRole({ roleId, onLogout }) {
         no access configuration. Contact your platform administrator.
       </p>
       <button onClick={onLogout} className="btn-brand-primary text-sm py-2 px-4 mt-1">Back to sign-in</button>
+    </div>
+  );
+}
+
+/* ─── Subscription banner (trial / past due / revoked) ───────── */
+function BillingBanner({ billing, locked, onOpen }) {
+  const meta = statusMeta(billing.status);
+  const tone = locked ? 'var(--danger)' : billing.status === SUB_STATUS.PAST_DUE ? 'var(--danger)' : 'var(--warn)';
+  const tint = locked ? 'var(--tint-red)' : 'var(--tint-amber)';
+
+  return (
+    <div className="mb-4 rounded-2xl border px-4 py-3 flex items-start gap-3 flex-wrap"
+      style={{ background: tint, borderColor: tone + '55' }}>
+      <span className="text-lg flex-shrink-0">{locked ? '🔒' : billing.status === SUB_STATUS.PAST_DUE ? '⚠️' : '⏳'}</span>
+      <div className="flex-1 min-w-[200px]">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: meta.tint, color: meta.color }}>
+            {meta.label}
+          </span>
+          <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>
+            {locked ? 'School access paused' : statusSentence(billing)}
+          </span>
+        </div>
+        <p className="text-[11px] mt-1" style={{ color: 'var(--text-muted)' }}>
+          {locked
+            ? `${billing.reason}. Settle the outstanding invoice to restore access.`
+            : billing.status === SUB_STATUS.TRIAL
+              ? `Your ${TRIAL_DAYS}-day trial ends ${dateLabel(billing.trialEndsAt)}. Add a payment method to keep access.`
+              : `Outstanding ${formatUGX(billing.outstanding)} — access ends in ${billing.graceDaysLeft} day${billing.graceDaysLeft === 1 ? '' : 's'}.`}
+        </p>
+      </div>
+      <button onClick={onOpen} className="text-xs font-bold px-4 py-2 rounded-xl text-white flex-shrink-0"
+        style={{ background: tone }}>
+        {locked || billing.status === SUB_STATUS.PAST_DUE ? 'Settle invoice' : 'View plans'}
+      </button>
     </div>
   );
 }
@@ -4480,10 +4532,14 @@ function SaasSchoolsPage({ roleId }) {
 
   const planColor = (id) => getPlan(id).color;
   const planTint  = (id) => getPlan(id).tint;
+  const refresh = () => setSchools([...queryAllTenants()]);
 
   const doSuspend = (t) => {
-    setSchools(ss => ss.map(s => s.school_id === t.school_id ? { ...s, status: s.status === 'active' ? 'suspended' : 'active' } : s));
-    toast(`${t.name} ${t.status === 'active' ? 'suspended' : 'reactivated'}`);
+    const state = evaluateTenant(t.school_id);
+    if (state.locked) reactivateTenant(t.school_id);
+    else suspendTenant(t.school_id, 'Suspended from the SaaS console');
+    refresh();
+    toast(`${t.name} ${state.locked ? 'reactivated' : 'suspended'}`);
     setSuspend(null);
   };
 
@@ -4502,7 +4558,7 @@ function SaasSchoolsPage({ roleId }) {
         <table className="w-full">
           <thead>
             <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
-              {['School / Tenant ID','District','Students','Plan','Status','Monthly Billing','Actions'].map(h => (
+              {['School / Tenant ID','District','Students','Plan','Status','Term billing','Actions'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
@@ -4520,7 +4576,16 @@ function SaasSchoolsPage({ roleId }) {
                   <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planTint(t.plan), color:planColor(t.plan) }}>{planLabel(t.plan)}</span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status==='active'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
+                  {(() => {
+                    const st = evaluateTenant(t.school_id);
+                    const meta = statusMeta(st.status);
+                    return (
+                      <>
+                        <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: meta.tint, color: meta.color }}>{meta.label}</span>
+                        <div className="text-[10px] text-gray-400 mt-1">{statusSentence(st)}</div>
+                      </>
+                    );
+                  })()}
                 </td>
                 <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--ok)' }}>{formatUGX(calcBilling(t.school_id))}</td>
                 <td className="px-4 py-3">
@@ -4528,7 +4593,9 @@ function SaasSchoolsPage({ roleId }) {
                     {canManage ? (
                       <>
                         <button onClick={() => setManage(t)} className="text-xs font-bold hover:underline" style={{ color:'var(--accent)' }}>Manage →</button>
-                        <button onClick={() => setSuspend(t)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">{t.status === 'active' ? 'Suspend' : 'Reactivate'}</button>
+                        <button onClick={() => setSuspend(t)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">
+                          {evaluateTenant(t.school_id).locked ? 'Reactivate' : 'Suspend'}
+                        </button>
                       </>
                     ) : <span className="text-xs text-gray-300">View only</span>}
                   </div>
@@ -4552,23 +4619,19 @@ function SaasSchoolsPage({ roleId }) {
         <ManageSchoolModal
           tenant={manage}
           onClose={() => setManage(null)}
-          onSave={(updated) => {
-            setSchools(ss => ss.map(s => s.school_id === updated.school_id ? updated : s));
-            setManage(null);
-            toast(`${updated.name} updated`);
-          }}
+          onChanged={(msg) => { refresh(); toast(msg); }}
         />
       )}
 
       {/* SUSPEND CONFIRM */}
       {suspend && (
         <ConfirmDialog
-          title={suspend.status === 'active' ? `Suspend ${suspend.name}?` : `Reactivate ${suspend.name}?`}
-          body={suspend.status === 'active'
-            ? 'This will disable all access for this school until reactivated.'
-            : 'This will restore full access for this school.'}
-          confirmLabel={suspend.status === 'active' ? 'Suspend' : 'Reactivate'}
-          danger={suspend.status === 'active'}
+          title={evaluateTenant(suspend.school_id).locked ? `Reactivate ${suspend.name}?` : `Suspend ${suspend.name}?`}
+          body={evaluateTenant(suspend.school_id).locked
+            ? 'This restores full access for this school.'
+            : 'This revokes access for every user at this school immediately, except its administrator who can still settle invoices.'}
+          confirmLabel={evaluateTenant(suspend.school_id).locked ? 'Reactivate' : 'Suspend'}
+          danger={!evaluateTenant(suspend.school_id).locked}
           onConfirm={() => doSuspend(suspend)}
           onClose={() => setSuspend(null)}
         />
@@ -4647,55 +4710,173 @@ function OnboardSchoolModal({ onClose, onAdd }) {
   );
 }
 
-/* ── Manage School Modal ──────────────────────────────────── */
-function ManageSchoolModal({ tenant, onClose, onSave }) {
-  const [form, setForm] = useState({ name: tenant.name, district: tenant.district, plan: tenant.plan, admin_email: tenant.admin_email ?? '' });
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+/* ── Manage School Modal — plan assignment, trials, access ── */
+function ManageSchoolModal({ tenant, onClose, onChanged }) {
+  const [form, setForm] = useState({
+    name: tenant.name,
+    district: tenant.district,
+    admin_email: tenant.admin_email ?? '',
+  });
+  const [planId, setPlanId] = useState(normalisePlanId(tenant.plan));
+  const [effective, setEffective] = useState('next_term');
+  const t = queryTenant(tenant.school_id) ?? tenant;
+  const state = evaluateTenant(t.school_id);
+  const plan = getPlan(planId);
+  const changedPlan = planId !== normalisePlanId(t.plan);
+  const students = t.student_count;
+
+  const saveProfile = () => {
+    Object.assign(t, { name: form.name, district: form.district, admin_email: form.admin_email });
+    onChanged('School details updated');
+  };
+  const applyPlan = () => {
+    assignPlan(t.school_id, planId, { effective });
+    onChanged(effective === 'next_term'
+      ? `${plan.name} scheduled for next term`
+      : `Plan changed to ${plan.name} — invoice re-rated`);
+  };
+  const trial = (days) => { extendTrial(t.school_id, days); onChanged(`Trial extended by ${days} days`); };
+  const restartTrial = () => { startTrial(t.school_id, TRIAL_DAYS); onChanged(`${TRIAL_DAYS}-day trial restarted`); };
+  const doSuspend = () => { suspendTenant(t.school_id, 'Suspended from the SaaS console'); onChanged('School suspended — access revoked'); };
+  const doReactivate = () => { reactivateTenant(t.school_id); onChanged('School reactivated'); };
+
+  const meta = statusMeta(state.status);
+  const daysToDue = state.nextDueAt ? daysUntil(state.nextDueAt) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
+      style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+      <div className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] overflow-y-auto"
+        style={{ background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <div>
-            <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Manage School</h3>
-            <p className="text-xs text-gray-400 font-mono">{tenant.school_id}</p>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Manage school</h3>
+            <p className="text-xs text-gray-400 font-mono">{t.school_id}</p>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">School Name</label>
-            <input value={form.name} onChange={e => set('name', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'var(--border-strong)' }} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">District</label>
-              <input value={form.district} onChange={e => set('district', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'var(--border-strong)' }} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Plan</label>
-              <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
-                {PLANS.map(p => <option key={p.id} value={p.id}>{p.name} — {formatUGX(p.pricePerStudentPerTerm)}/student</option>)}
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 mb-1.5">Admin Email</label>
-            <input type="email" value={form.admin_email} onChange={e => set('admin_email', e.target.value)} placeholder="admin@school.ac.ug" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'var(--border-strong)' }} />
-          </div>
-          <div className="rounded-xl p-3 text-xs" style={{ background:'var(--surface-2)', border:'1px solid #e8ecff' }}>
-            <span className="text-gray-400">Students: </span><strong>{tenant.student_count.toLocaleString()}</strong>
-            <span className="mx-2 text-gray-300">·</span>
-            <span className="text-gray-400">Billing: </span><strong className="text-green-700">{formatUGX(calcBilling(tenant.school_id))}/term</strong>
-            <span className="mx-2 text-gray-300">·</span>
-            <span className="text-gray-400">Rate: </span><strong>{formatUGX(planRate(form.plan))} {BILLING_UNIT}</strong>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold px-2 py-1 rounded-full" style={{ background: meta.tint, color: meta.color }}>{meta.label}</span>
+            <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
           </div>
         </div>
-        <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
-          <button onClick={() => onSave({ ...tenant, ...form })} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Save Changes</button>
+
+        <div className="p-6 space-y-5">
+          {/* status summary */}
+          <div className="rounded-xl px-4 py-3" style={{ background: 'var(--surface-2)' }}>
+            <div className="text-xs font-semibold" style={{ color: 'var(--text)' }}>{statusSentence(state)}</div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-[11px]">
+              <div><div style={{ color: 'var(--text-dim)' }}>Students</div><strong style={{ color: 'var(--text)' }}>{students.toLocaleString()}</strong></div>
+              <div><div style={{ color: 'var(--text-dim)' }}>Rate</div><strong style={{ color: 'var(--text)' }}>{formatUGX(state.rate)}</strong></div>
+              <div><div style={{ color: 'var(--text-dim)' }}>Term cost</div><strong style={{ color: 'var(--text)' }}>{formatUGX(state.termCost)}</strong></div>
+              <div><div style={{ color: 'var(--text-dim)' }}>{state.status === SUB_STATUS.TRIAL ? 'Trial ends' : 'Next due'}</div>
+                <strong style={{ color: daysToDue != null && daysToDue < 0 ? 'var(--danger)' : 'var(--text)' }}>
+                  {dateLabel(state.nextDueAt)}{daysToDue != null ? ` (${daysToDue}d)` : ''}
+                </strong></div>
+            </div>
+          </div>
+
+          {/* school details */}
+          <div className="space-y-3">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>School details</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>School name</label>
+                <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--text)' }} />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>District</label>
+                <input value={form.district} onChange={e => setForm(f => ({ ...f, district: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--text)' }} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Admin email</label>
+              <input value={form.admin_email} onChange={e => setForm(f => ({ ...f, admin_email: e.target.value }))}
+                placeholder="admin@school.ac.ug" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
+                style={{ background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--text)' }} />
+            </div>
+            <button onClick={saveProfile} className="text-xs font-bold px-4 py-2 rounded-xl border"
+              style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Save details</button>
+          </div>
+
+          {/* plan assignment */}
+          <div className="space-y-3 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+            <div className="flex items-center justify-between pt-4">
+              <p className="text-xs font-bold uppercase tracking-wider" style={{ color: 'var(--text-dim)' }}>Assign plan</p>
+              {t.pending_plan && (
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-amber)', color: 'var(--warn)' }}>
+                  {planLabel(t.pending_plan)} scheduled for next term
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {PLANS.map(p => {
+                const active = planId === p.id;
+                return (
+                  <button key={p.id} onClick={() => setPlanId(p.id)}
+                    className="text-left rounded-xl border-2 p-3.5 transition-all"
+                    style={{ borderColor: active ? p.color : 'var(--border-strong)', background: active ? p.tint : 'var(--surface)' }}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{p.name}</span>
+                      {p.badge && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
+                        style={{ background: p.badge === 'Most Popular' ? '#A3CF2E' : p.tint, color: p.badge === 'Most Popular' ? '#1a2a00' : p.color }}>{p.badge}</span>}
+                    </div>
+                    <div className="text-xs font-bold mt-1" style={{ color: 'var(--text)' }}>{formatUGX(p.pricePerStudentPerTerm)}</div>
+                    <div className="text-[10px]" style={{ color: 'var(--text-dim)' }}>per student / term</div>
+                    <div className="text-[11px] font-semibold mt-2" style={{ color: p.color }}>
+                      {formatUGX(calcPlanCost(p.id, students))} / term
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-end gap-3 flex-wrap">
+              <div className="w-52">
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Apply from</label>
+                <select value={effective} onChange={e => setEffective(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--text)' }}>
+                  <option value="next_term">Next term (standard)</option>
+                  <option value="immediate">Immediately (re-rate invoice)</option>
+                </select>
+              </div>
+              <button onClick={applyPlan} disabled={!changedPlan && effective !== 'next_term'}
+                className="text-sm font-bold px-4 py-2.5 rounded-xl text-white disabled:opacity-50" style={{ background: plan.color }}>
+                {changedPlan ? `Assign ${plan.name}` : 'Re-apply plan'}
+              </button>
+            </div>
+          </div>
+
+          {/* trial + access controls */}
+          <div className="space-y-3 pt-1 border-t" style={{ borderColor: 'var(--border)' }}>
+            <p className="text-xs font-bold uppercase tracking-wider pt-4" style={{ color: 'var(--text-dim)' }}>
+              Trial &amp; access
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => trial(7)} className="text-xs font-bold px-3 py-2 rounded-xl border"
+                style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Extend trial +7d</button>
+              <button onClick={() => trial(30)} className="text-xs font-bold px-3 py-2 rounded-xl border"
+                style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Extend trial +30d</button>
+              <button onClick={restartTrial} className="text-xs font-bold px-3 py-2 rounded-xl border"
+                style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Restart {TRIAL_DAYS}-day trial</button>
+              {state.locked
+                ? <button onClick={doReactivate} className="text-xs font-bold px-3 py-2 rounded-xl text-white" style={{ background: 'var(--ok)' }}>Reactivate school</button>
+                : <button onClick={doSuspend} className="text-xs font-bold px-3 py-2 rounded-xl text-white" style={{ background: 'var(--danger)' }}>Suspend school</button>}
+            </div>
+            <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+              A school is auto-suspended {GRACE_DAYS} days after an unpaid invoice is due. Suspending revokes access for
+              every user at the school except its administrator, who can still settle the invoice.
+            </p>
+          </div>
+
+          <div className="flex gap-3 pt-2">
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+              style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -4706,100 +4887,282 @@ function ManageSchoolModal({ tenant, onClose, onSave }) {
    SAAS — BILLING
 ═══════════════════════════════════════════════════ */
 function SaasBillingPage({ roleId }) {
-  const canExport = can(roleId, 'saas.billing.view');
-  const tenants = queryAllTenants();
-  const totalMRR = tenants.reduce((a,t)=>a+calcBilling(t.school_id),0);
+  const canManage = can(roleId, 'saas.billing.view');
+  const [tab, setTab] = useState('invoices');
+  const [tick, setTick] = useState(0);                 // re-read the stores after a mutation
+  const [payTarget, setPayTarget] = useState(null);
+  const [pay, setPay] = useState({ method: PAYMENT_METHODS[0], reference: '' });
   const { toasts, show: toast } = useToast();
+  const refresh = () => setTick(t => t + 1);
+
+  const tenants  = queryAllTenants();
+  const summary  = billingSummary();
+  const invoices = listInvoices();
+  const states   = tenants.map(t => ({ tenant: t, state: evaluateTenant(t.school_id) }));
+
+  const runBilling = () => {
+    const { created, suspended } = refreshSubscriptions();
+    refresh();
+    const bits = [];
+    if (created.length) bits.push(`${created.length} invoice${created.length === 1 ? '' : 's'} raised`);
+    if (suspended.length) bits.push(`${suspended.length} school${suspended.length === 1 ? '' : 's'} suspended`);
+    toast(bits.length ? bits.join(' · ') : 'Nothing due — all schools are up to date');
+  };
+
+  const settle = () => {
+    if (!payTarget) return;
+    markInvoicePaid(payTarget.id, { method: pay.method, reference: pay.reference });
+    toast(`${payTarget.id} marked paid — ${payTarget.school_name} reactivated`);
+    setPayTarget(null);
+    setPay({ method: PAYMENT_METHODS[0], reference: '' });
+    refresh();
+  };
 
   const exportInvoices = () => {
-    const header = ['School','Tenant ID','Plan','Students','Rate (UGX)','Term Billing (UGX)'];
-    const lines = tenants.map(t => [t.name, t.school_id, planLabel(t.plan), t.student_count, planRate(t.plan), calcBilling(t.school_id)].join(','));
+    const header = ['Invoice','School','Tenant ID','Plan','Students','Rate (UGX)','Amount (UGX)','Issued','Due','Status'];
+    const lines = invoices.map(i => [
+      i.id, i.school_name, i.school_id, planLabel(i.plan), i.students, i.rate, i.amount,
+      dateLabel(i.issued_at), dateLabel(i.due_at), i.display_status,
+    ].join(','));
     downloadCSV('skoulhub-invoices.csv', [header.join(','), ...lines].join('\n'));
     toast('Invoices exported to CSV');
   };
 
+  const STATS = [
+    { label: 'Collected',    value: formatUGX(summary.collected),    sub: `${summary.paidCount} paid`,            color: 'var(--ok)' },
+    { label: 'Outstanding',  value: formatUGX(summary.outstanding),  sub: `${summary.dueCount} open`,             color: 'var(--warn)' },
+    { label: 'Overdue',      value: formatUGX(summary.overdue),      sub: `${summary.overdueCount} past due date`, color: 'var(--danger)' },
+    { label: 'Schools at risk', value: `${summary.atRisk}`,          sub: `${summary.suspended} suspended`,       color: 'var(--violet)' },
+  ];
+
+  const TABS = [['invoices', `Invoices (${summary.invoiceCount})`], ['tenants', `By tenant (${tenants.length})`], ['plans', 'By plan']];
+
   return (
-    <div className="animate-fade-in space-y-4">
-      <div>
-        <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Billing</h2>
-        <p className="text-xs text-gray-400 mt-0.5">
-          {formatUGX(RATE_RANGE.min)} – {formatUGX(RATE_RANGE.max)} {BILLING_UNIT} · {PLANS.length} plans
-        </p>
+    <div key={tick} className="animate-fade-in space-y-4">
+      <div className="flex items-start justify-between flex-wrap gap-3">
+        <div>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>Billing</h2>
+          <p className="text-xs text-gray-400 mt-0.5">
+            {formatUGX(RATE_RANGE.min)} – {formatUGX(RATE_RANGE.max)} {BILLING_UNIT} · {TRIAL_DAYS}-day trial · {GRACE_DAYS}-day grace
+          </p>
+        </div>
+        {canManage && (
+          <div className="flex gap-2">
+            <button onClick={exportInvoices} className="text-xs font-bold px-4 py-2 rounded-xl border"
+              style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Export CSV</button>
+            <button onClick={runBilling} className="btn-brand-primary text-xs py-2 px-4">Run billing</button>
+          </div>
+        )}
       </div>
-      <div className="grid grid-cols-3 gap-4">
-        {[
-          { label:'Platform MRR',   value:`UGX ${(totalMRR/1000000).toFixed(2)}M`, delta:'+12% MoM',      color:'var(--accent)', bg:'var(--tint-blue)' },
-          { label:'Active Schools', value:tenants.filter(t=>t.status==='active').length, delta:'paying tenants', color:'var(--ok)', bg:'var(--tint-green)' },
-          { label:'Total Students', value:tenants.reduce((a,t)=>a+t.student_count,0).toLocaleString(), delta:'billed this term', color:'var(--violet)', bg:'var(--tint-violet)' },
-        ].map((s,i) => (
-          <Card key={i} className="p-5">
-            <div className="text-xs text-gray-400 mb-1">{s.label}</div>
-            <div className="text-2xl font-extrabold mb-0.5" style={{ color:'var(--text)' }}>{s.value}</div>
-            <div className="text-xs font-bold" style={{ color:s.color }}>{s.delta}</div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {STATS.map(st => (
+          <Card key={st.label} className="p-4">
+            <div className="text-xs text-gray-400 mb-1">{st.label}</div>
+            <div className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>{st.value}</div>
+            <div className="text-[11px] font-semibold mt-0.5" style={{ color: st.color }}>{st.sub}</div>
           </Card>
         ))}
       </div>
-      <Card className="p-5">
-        <h3 className="font-bold text-sm mb-4" style={{ color:'var(--text)' }}>Revenue by plan</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {PLANS.map(plan => {
-            const onPlan = tenants.filter(t => normalisePlanId(t.plan) === plan.id);
-            const revenue = onPlan.reduce((a,t) => a + calcBilling(t.school_id), 0);
-            const students = onPlan.reduce((a,t) => a + t.student_count, 0);
-            const share = totalMRR ? Math.round((revenue / totalMRR) * 100) : 0;
-            return (
-              <div key={plan.id} className="rounded-xl border p-4" style={{ borderColor:'var(--border)', background:'var(--surface-2)' }}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:plan.tint, color:plan.color }}>{plan.name}</span>
-                  <span className="text-[10px] text-gray-400">{formatUGX(plan.pricePerStudentPerTerm)}/student</span>
-                </div>
-                <div className="text-lg font-extrabold" style={{ color:'var(--text)' }}>{formatUGX(revenue)}</div>
-                <div className="text-[11px] text-gray-400 mt-0.5">{onPlan.length} school{onPlan.length !== 1 ? 's' : ''} · {students.toLocaleString()} students</div>
-                <div className="h-1.5 rounded-full mt-3 overflow-hidden" style={{ background:'var(--surface-3)' }}>
-                  <div className="h-full rounded-full" style={{ width:`${share}%`, background:plan.color }} />
-                </div>
-                <div className="text-[10px] text-gray-400 mt-1">{share}% of revenue</div>
-              </div>
-            );
-          })}
-        </div>
-      </Card>
 
-      <Card className="overflow-hidden">
-        <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'var(--border)' }}>
-          <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>Per-Tenant Billing</h3>
-          {canExport && (
-            <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'var(--accent)' }}>Export Invoices →</button>
-          )}
-        </div>
-        <table className="w-full">
-          <thead>
-            <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
-              {['School','Tenant ID','Plan','Students','Rate','Term Billing'].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
-            {tenants.map((t,i) => (
-              <tr key={i} className="hover:bg-gray-50/50">
-                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.name}</td>
-                <td className="px-4 py-3 text-xs font-mono text-gray-400">{t.school_id}</td>
-                <td className="px-4 py-3">
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:getPlan(t.plan).tint, color:getPlan(t.plan).color }}>{planLabel(t.plan)}</span>
-                </td>
-                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</td>
-                <td className="px-4 py-3 text-sm text-gray-400">{formatUGX(planRate(t.plan))}</td>
-                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--ok)' }}>{formatUGX(calcBilling(t.school_id))}</td>
+      <div className="flex gap-1.5 flex-wrap">
+        {TABS.map(([id, label]) => (
+          <button key={id} onClick={() => setTab(id)}
+            className="px-3.5 py-2 rounded-xl text-xs font-bold transition-all"
+            style={tab === id ? { background: '#1E45FC', color: 'white' } : { background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'invoices' && (
+        <Card className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
+            <thead>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
+                {['Invoice','School','Plan','Period','Amount','Issued','Due','Status',''].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                ))}
               </tr>
-            ))}
-            <tr style={{ background:'var(--surface-2)', borderTop:'1px solid var(--border)' }}>
-              <td colSpan={5} className="px-4 py-3 text-sm font-bold text-right" style={{ color:'var(--text)' }}>Total per term</td>
-              <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--ok)' }}>{formatUGX(totalMRR)}</td>
-            </tr>
-          </tbody>
-        </table>
-      </Card>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+              {invoices.length === 0 && (
+                <tr><td colSpan={9} className="px-4 py-10 text-center text-sm text-gray-400">
+                  No invoices yet — press “Run billing” to raise what is due.
+                </td></tr>
+              )}
+              {invoices.map(inv => {
+                const meta = inv.display_status === 'paid'
+                  ? { label: 'Paid', color: 'var(--ok)', tint: 'var(--tint-green)' }
+                  : inv.display_status === 'overdue'
+                    ? { label: 'Overdue', color: 'var(--danger)', tint: 'var(--tint-red)' }
+                    : inv.display_status === 'void'
+                      ? { label: 'Void', color: 'var(--text-dim)', tint: 'var(--surface-3)' }
+                      : { label: 'Due', color: 'var(--warn)', tint: 'var(--tint-amber)' };
+                return (
+                  <tr key={inv.id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3 text-xs font-mono font-bold" style={{ color: 'var(--text)' }}>{inv.id}</td>
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{inv.school_name}</div>
+                      <div className="text-[10px] font-mono text-gray-400">{inv.school_id}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-bold px-2 py-1 rounded-full"
+                        style={{ background: getPlan(inv.plan).tint, color: getPlan(inv.plan).color }}>{planLabel(inv.plan)}</span>
+                      <div className="text-[10px] text-gray-400 mt-1">{inv.students.toLocaleString()} × {formatUGX(inv.rate)}</div>
+                    </td>
+                    <td className="px-4 py-3 text-[11px] text-gray-500">
+                      {dateLabel(inv.period_start)} → {dateLabel(inv.period_end)}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-bold" style={{ color: 'var(--text)' }}>{formatUGX(inv.amount)}</td>
+                    <td className="px-4 py-3 text-[11px] text-gray-500">{dateLabel(inv.issued_at)}</td>
+                    <td className="px-4 py-3 text-[11px]" style={{ color: inv.display_status === 'overdue' ? 'var(--danger)' : 'var(--text-dim)' }}>
+                      {dateLabel(inv.due_at)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: meta.tint, color: meta.color }}>{meta.label}</span>
+                      {inv.paid_at && <div className="text-[10px] text-gray-400 mt-1">{inv.method} · {inv.reference}</div>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {canManage && inv.status === 'due' && (
+                        <button onClick={() => { setPayTarget(inv); setPay({ method: PAYMENT_METHODS[0], reference: '' }); }}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background: 'var(--ok)' }}>
+                          Mark paid
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {tab === 'tenants' && (
+        <Card className="overflow-x-auto">
+          <table className="w-full min-w-[900px]">
+            <thead>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
+                {['School','Plan','Students','Rate','Term cost','Status','Next due',''].map(h => (
+                  <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
+              {states.map(({ tenant: t, state }) => {
+                const meta = statusMeta(state.status);
+                const open = openInvoice(t.school_id);
+                return (
+                  <tr key={t.school_id} className="hover:bg-gray-50/50">
+                    <td className="px-4 py-3">
+                      <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>{t.name}</div>
+                      <div className="text-[10px] font-mono text-gray-400">{t.school_id}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-xs font-bold px-2 py-1 rounded-full"
+                        style={{ background: getPlan(t.plan).tint, color: getPlan(t.plan).color }}>{planLabel(t.plan)}</span>
+                      {t.pending_plan && <div className="text-[10px] text-gray-400 mt-1">→ {planLabel(t.pending_plan)} next term</div>}
+                    </td>
+                    <td className="px-4 py-3 text-sm" style={{ color: 'var(--text)' }}>{t.student_count.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-xs text-gray-500">{formatUGX(state.rate)}</td>
+                    <td className="px-4 py-3 text-sm font-bold" style={{ color: 'var(--text)' }}>{formatUGX(state.termCost)}</td>
+                    <td className="px-4 py-3">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: meta.tint, color: meta.color }}>{meta.label}</span>
+                      <div className="text-[10px] text-gray-400 mt-1">{statusSentence(state)}</div>
+                    </td>
+                    <td className="px-4 py-3 text-[11px] text-gray-500">{dateLabel(state.nextDueAt)}</td>
+                    <td className="px-4 py-3">
+                      {canManage && open && (
+                        <button onClick={() => { setPayTarget(open); setPay({ method: PAYMENT_METHODS[0], reference: '' }); }}
+                          className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background: 'var(--ok)' }}>
+                          Record payment
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
+      {tab === 'plans' && (
+        <Card className="p-5">
+          <h3 className="font-bold text-sm mb-4" style={{ color: 'var(--text)' }}>Revenue by plan</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {PLANS.map(plan => {
+              const onPlan = tenants.filter(t => normalisePlanId(t.plan) === plan.id);
+              const revenue = onPlan.reduce((a, t) => a + calcBilling(t.school_id), 0);
+              const students = onPlan.reduce((a, t) => a + t.student_count, 0);
+              const share = summary.contractedValue ? Math.round((revenue / summary.contractedValue) * 100) : 0;
+              return (
+                <div key={plan.id} className="rounded-xl border p-4" style={{ borderColor: 'var(--border)', background: 'var(--surface-2)' }}>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background: plan.tint, color: plan.color }}>{plan.name}</span>
+                    <span className="text-[10px] text-gray-400">{formatUGX(plan.pricePerStudentPerTerm)}/student</span>
+                  </div>
+                  <div className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>{formatUGX(revenue)}</div>
+                  <div className="text-[11px] text-gray-400 mt-0.5">{onPlan.length} school{onPlan.length !== 1 ? 's' : ''} · {students.toLocaleString()} students</div>
+                  <div className="h-1.5 rounded-full mt-3 overflow-hidden" style={{ background: 'var(--surface-3)' }}>
+                    <div className="h-full rounded-full" style={{ width: `${share}%`, background: plan.color }} />
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-1">{share}% of contracted value</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* RECORD PAYMENT MODAL */}
+      {payTarget && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+          style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }} onClick={() => setPayTarget(null)}>
+          <div className="rounded-2xl shadow-2xl w-full max-w-md p-6" style={{ background: 'var(--surface)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-base mb-1" style={{ color: 'var(--text)' }}>Record payment</h3>
+            <p className="text-xs mb-4" style={{ color: 'var(--text-muted)' }}>
+              {payTarget.id} · {payTarget.school_name} · {planLabel(payTarget.plan)}
+            </p>
+            <div className="rounded-xl px-4 py-3 mb-4 space-y-1 text-xs" style={{ background: 'var(--surface-2)' }}>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Students</span>
+                <strong style={{ color: 'var(--text)' }}>{payTarget.students.toLocaleString()}</strong></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Rate</span>
+                <strong style={{ color: 'var(--text)' }}>{formatUGX(payTarget.rate)}</strong></div>
+              <div className="flex justify-between"><span style={{ color: 'var(--text-dim)' }}>Amount due</span>
+                <strong style={{ color: 'var(--ok)' }}>{formatUGX(payTarget.amount)}</strong></div>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Method</label>
+                <select value={pay.method} onChange={e => setPay(p => ({ ...p, method: e.target.value }))}
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--text)' }}>
+                  {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold mb-1.5" style={{ color: 'var(--text-muted)' }}>Reference (optional)</label>
+                <input value={pay.reference} onChange={e => setPay(p => ({ ...p, reference: e.target.value }))}
+                  placeholder="MTN-XXXXXXXX" className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono outline-none"
+                  style={{ background: 'var(--surface)', borderColor: 'var(--border-strong)', color: 'var(--text)' }} />
+              </div>
+              <p className="text-[11px]" style={{ color: 'var(--text-dim)' }}>
+                Settling this invoice reactivates {payTarget.school_name} for a {TERM_DAYS}-day term.
+              </p>
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setPayTarget(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
+                style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Cancel</button>
+              <button onClick={settle} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: 'var(--ok)' }}>
+                Confirm payment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Toast toasts={toasts} />
     </div>
   );

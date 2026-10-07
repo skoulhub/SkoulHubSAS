@@ -54,8 +54,8 @@ report cards and contact parents.
 - **ID Cards** — editable ID numbers with generated QR codes and card preview
 - **Notifications** — feed + broadcast composer (SMS/Email/Push)
 - **Settings** — tenant (school) profile
-- **Subscription** — the school's plan, a live cost estimator, a three-tier comparison with the
-  published prices, and the billing FAQ (school admin only)
+- **Subscription** — the school's plan, trial countdown, invoices with pay-now, a live cost
+  estimator, a three-tier comparison with the published prices, and the billing FAQ (school admin)
 - **My Profile** — personal info, **change email / phone** (6-digit verification), **password change**
   with a strength meter, **two-factor authentication** (OTP / authenticator app / passkey + recovery
   codes), active sessions, and **preferences**: appearance, notifications and locale
@@ -81,6 +81,40 @@ The twelve core capabilities are included on every tier (as the live page lists 
 management and on-site setup in the Kampala region are Premium-only, taken from the tier copy and
 the pricing FAQ. Plans can be switched at the start of a term from **Subscription** — with a
 confirmation step that shows the new term cost.
+
+### Subscription lifecycle & billing
+The lifecycle engine lives in `src/lib/billing.js` and is driven by timestamps, so no cron is
+needed in the demo — `refreshSubscriptions()` (called from `main.jsx` before the first paint, and on
+every sign-in) is what a nightly billing job would do.
+
+```
+trial ──(trial_ends_at)──▶ past_due ──(+7-day grace)──▶ suspended
+active ─(period_end)─────▶ past_due ──(+7-day grace)──▶ suspended
+any ────(invoice paid)───▶ active            (fresh 90-day term)
+```
+
+| Rule | Value |
+|---|---|
+| Trial for a new school | **30 days** (`TRIAL_DAYS`) |
+| Grace period after a trial/term ends | **7 days** (`GRACE_DAYS`), access retained while payment is chased |
+| Billing term | **90 days** (`TERM_DAYS`), priced per student at the school's plan rate |
+| Auto-revocation | After an unpaid invoice passes the grace window the school is **suspended automatically** |
+| Payment methods | Mobile Money (MTN, Airtel), Bank Transfer, Cash |
+
+> ⚠️ The marketing page currently advertises a **7-day** trial; the platform policy implemented here
+> is **30 days**. `TRIAL_DAYS` in `src/lib/plans.js` is the single switch that reconciles them.
+
+**Enforcement.** A suspended school is refused at sign-in. Its **administrator** is the exception:
+they can still sign in, but the dashboard is locked to *Subscription* and *My Profile* so they can
+settle the invoice — every other route renders the paywall and the sidebar is filtered to those two
+items. A prominent banner shows trial days remaining, the grace countdown, or the revocation notice.
+
+**SaaS admin controls.** From *All Schools → Manage* an admin can assign any plan (applied
+**immediately** with the open invoice re-rated, or **parked for the next term** as the pricing FAQ
+describes), extend a trial by 7/30 days, restart the 30-day trial, and suspend or reactivate a school.
+The *Billing* console lists every invoice with collected / outstanding / overdue totals, a
+*Run billing* action that raises what is due and suspends what has lapsed, one-click payment capture
+(method + reference, which reactivates the school for a fresh term) and CSV export.
 
 ### User profile & preferences
 Every role gets a **My Profile** screen (sidebar → *My Profile*, or click the avatar).
@@ -161,8 +195,12 @@ src/
 │   ├── EnrollmentForm.jsx# public admission application form
 │   ├── Profile.jsx       # user profile, security (password/MFA), preferences, sessions
 │   └── Dashboard.jsx     # the role-based dashboard (all modules)
+├── components/
+│   └── ui.jsx            # shared token-based primitives (Card, Field, Toggle…)
 └── lib/
     ├── tenantStore.js    # mock multi-tenant data layer + role-scoped queries
+    ├── plans.js          # price list, feature matrix, billing policy constants
+    ├── billing.js        # subscription lifecycle, invoices, payments, revocation
     ├── permissions.js    # role × permission matrix + nav gating
     ├── navigation.js     # per-role sidebar config (invariant-tested)
     ├── userPrefs.js      # theme, MFA / notification / locale preferences

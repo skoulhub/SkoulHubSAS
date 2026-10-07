@@ -23,7 +23,8 @@ describe('plans — published catalogue', () => {
   it('records where the prices came from', () => {
     expect(PRICING_SOURCE).toContain('skoulhub.com/pricing');
     expect(PRICING_UPDATED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-    expect(TRIAL_DAYS).toBe(7);
+    // Platform policy is a 30-day trial; the marketing page still says 7 days.
+    expect(TRIAL_DAYS).toBe(30);
   });
 
   it('marks Standard as the most popular tier', () => {
