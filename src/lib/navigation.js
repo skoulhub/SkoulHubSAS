@@ -19,6 +19,7 @@ export const NAV_BY_ROLE = {
     { id: 'billing',    label: 'Billing',           section: 'main' },
     { id: 'onboarding', label: 'Onboarding',        section: 'main' },
     { id: 'features',   label: 'Feature Requests',  section: 'main' },
+    { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Notifications',     section: 'other' },
   ],
   school_admin: [
@@ -33,6 +34,7 @@ export const NAV_BY_ROLE = {
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
     { id: 'idcards',    label: 'ID Cards',      section: 'admin' },
     { id: 'enrollment', label: 'Enrollment Form', section: 'admin' },
+    { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
     { id: 'settings',   label: 'Settings',      section: 'other' },
   ],
@@ -47,6 +49,7 @@ export const NAV_BY_ROLE = {
     { id: 'finance',    label: 'Finance',       section: 'admin' },
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
     { id: 'idcards',    label: 'ID Cards',      section: 'admin' },
+    { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
   ],
   teacher: [
@@ -57,6 +60,7 @@ export const NAV_BY_ROLE = {
     { id: 'results',    label: 'Enter Marks',   section: 'academic' },
     { id: 'reports',    label: 'Report Cards',  section: 'academic' },
     { id: 'parents',    label: 'Parents',       section: 'main' },
+    { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Notifications', section: 'other' },
   ],
   parent: [
@@ -66,6 +70,7 @@ export const NAV_BY_ROLE = {
     { id: 'results',    label: 'Results',       section: 'main' },
     { id: 'finance',    label: 'Fee Balance',   section: 'main' },
     { id: 'reports',    label: 'Report Cards',  section: 'main' },
+    { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Messages',      section: 'other' },
   ],
   bursar: [
@@ -73,6 +78,7 @@ export const NAV_BY_ROLE = {
     { id: 'finance',    label: 'Payments',          section: 'main' },
     { id: 'students',   label: 'Students',          section: 'main' },
     { id: 'idcards',    label: 'ID Cards',          section: 'main' },
+    { id: 'profile',    label: 'My Profile', section: 'other' },
     { id: 'notifs',     label: 'Notifications',     section: 'other' },
   ],
 };

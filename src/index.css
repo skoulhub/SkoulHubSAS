@@ -4,6 +4,60 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────
+   Theme tokens
+   Light is the default; `.dark` on <html> (set by lib/userPrefs.js)
+   flips the semantic tokens. Components reference these variables
+   so a single toggle re-themes the whole app.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --app-bg:          #f0f2f8;
+  --surface:         #ffffff;
+  --surface-2:       #f8faff;
+  --surface-3:       #f1f5f9;
+  --border:          #eef0f6;
+  --border-strong:   #e2e8f0;
+  --border-subtle:   #f5f7fb;
+  --text:            #0B0F2A;
+  --text-muted:      #64748b;
+  --text-dim:        #94a3b8;
+  --sidebar:         #0B0F2A;
+  --surface-translucent: rgba(255, 255, 255, 0.9);
+  --page-gradient:   linear-gradient(135deg, #f0f4ff 0%, #fafbff 60%, #f5f3ff 100%);
+
+  --tint-blue:       #e8ecff;
+  --tint-green:      #d1fae5;
+  --tint-amber:      #fef3c7;
+  --tint-red:        #fee2e2;
+  --tint-violet:     #f5f3ff;
+  --tint-sky:        #e0f2fe;
+  --tint-pink:       #fce7f3;
+}
+
+html.dark {
+  --app-bg:          #0b1020;
+  --surface:         #151b2e;
+  --surface-2:       #1b2237;
+  --surface-3:       #232c45;
+  --border:          #262f4a;
+  --border-strong:   #313b5c;
+  --border-subtle:   #1f2740;
+  --text:            #e9edf9;
+  --text-muted:      #a6b1cd;
+  --text-dim:        #7381a3;
+  --sidebar:         #070a16;
+  --surface-translucent: rgba(21, 27, 46, 0.88);
+  --page-gradient:   linear-gradient(135deg, #0b1020 0%, #10162b 60%, #140f2c 100%);
+
+  --tint-blue:       rgba(30, 69, 252, 0.22);
+  --tint-green:      rgba(5, 150, 105, 0.22);
+  --tint-amber:      rgba(217, 119, 6, 0.22);
+  --tint-red:        rgba(220, 38, 38, 0.22);
+  --tint-violet:     rgba(124, 58, 237, 0.22);
+  --tint-sky:        rgba(8, 145, 178, 0.22);
+  --tint-pink:       rgba(219, 39, 119, 0.22);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -14,10 +68,37 @@ html { scroll-behavior: smooth; }
 
 body {
   font-family: 'Plus Jakarta Sans', sans-serif;
-  background: #F8FAFF;
-  color: #0B0F2A;
+  background: var(--app-bg);
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Dark-mode bridges for the Tailwind utility classes used across
+   the app (the components mostly style inline with tokens; these
+   cover the utility classes that cannot read a variable).
+   ───────────────────────────────────────────────────────────── */
+html.dark .bg-white        { background-color: var(--surface) !important; }
+html.dark .bg-gray-50      { background-color: var(--surface-2) !important; }
+html.dark .bg-gray-100     { background-color: var(--surface-3) !important; }
+html.dark .text-gray-700,
+html.dark .text-gray-600,
+html.dark .text-gray-500   { color: var(--text-muted) !important; }
+html.dark .text-gray-400,
+html.dark .text-gray-300   { color: var(--text-dim) !important; }
+html.dark .border-gray-200,
+html.dark .border-gray-100 { border-color: var(--border-strong) !important; }
+html.dark .divide-y > :not([hidden]) ~ :not([hidden]) { border-color: var(--border-subtle) !important; }
+html.dark .hover\:bg-gray-50:hover,
+html.dark .hover\:bg-gray-50\/50:hover,
+html.dark .hover\:bg-gray-50\/60:hover,
+html.dark .hover\:bg-gray-100:hover { background-color: var(--surface-3) !important; }
+html.dark .hover\:bg-\[\#f5f7ff\]:hover { background-color: var(--surface-3) !important; }
+html.dark .btn-brand-secondary { background: var(--surface); }
+html.dark .btn-brand-secondary:hover { background: var(--surface-3); }
+html.dark input, html.dark textarea, html.dark select { color: var(--text); }
+html.dark input::placeholder, html.dark textarea::placeholder { color: var(--text-dim); }
 
 /* ─── Animations ─── */
 @keyframes fadeIn {

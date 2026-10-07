@@ -17,7 +17,7 @@ const PLANS = [
     unit: '/ student / term',
     max: '300 students',
     color: '#1E45FC',
-    bg: '#e8ecff',
+    bg: 'var(--tint-blue)',
     features: ['Attendance','Fee Collection','SMS (50/mo)','Email Support'],
   },
   {
@@ -27,7 +27,7 @@ const PLANS = [
     unit: '/ student / term',
     max: '1,000 students',
     color: '#059669',
-    bg: '#d1fae5',
+    bg: 'var(--tint-green)',
     badge: 'Most Popular',
     features: ['Everything in Starter','Exam Results','Report Cards','Unlimited SMS','Priority Support'],
   },
@@ -38,7 +38,7 @@ const PLANS = [
     unit: 'contact us',
     max: 'Unlimited',
     color: '#7c3aed',
-    bg: '#f5f3ff',
+    bg: 'var(--tint-violet)',
     features: ['Everything in Growth','Multi-School','Custom Branding','API Access','Dedicated Manager'],
   },
 ];
@@ -103,7 +103,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
               <path d="M6 16L13 23L26 9" stroke="#0B0F2A" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
             </svg>
           </div>
-          <h1 className="text-2xl font-bold font-display mb-2" style={{ color: '#0B0F2A' }}>
+          <h1 className="text-2xl font-bold font-display mb-2" style={{ color: 'var(--text)' }}>
             School Created!
           </h1>
           <p className="text-sm text-gray-500 mb-6">
@@ -111,7 +111,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
           </p>
 
           {/* Tenant ID card */}
-          <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: '#0B0F2A' }}>
+          <div className="rounded-2xl p-5 mb-6 text-left" style={{ background: 'var(--sidebar)' }}>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
                 style={{ background: '#1E45FC' }}>
@@ -162,7 +162,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
         {/* Header */}
         <div className="text-center mb-6">
           <Logo />
-          <h1 className="mt-4 text-xl font-bold font-display" style={{ color: '#0B0F2A' }}>
+          <h1 className="mt-4 text-xl font-bold font-display" style={{ color: 'var(--text)' }}>
             Set up your school
           </h1>
           <p className="text-xs text-gray-500 mt-1">Free 7-day trial · No credit card needed</p>
@@ -180,7 +180,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
               </div>
               {i < STEPS.length - 1 && (
                 <div className="flex-1 h-0.5 rounded-full transition-all"
-                  style={{ background: i < step ? '#A3CF2E' : '#e5e7eb' }} />
+                  style={{ background: i < step ? '#A3CF2E' : 'var(--border)' }} />
               )}
             </div>
           ))}
@@ -221,10 +221,10 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
                       ${form.plan === p.id ? 'border-brand-blue bg-brand-blue-light' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
                     {p.badge && (
                       <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-xs font-bold px-1.5 py-0.5 rounded-full whitespace-nowrap"
-                        style={{ background: '#A3CF2E', color: '#0B0F2A', fontSize: '9px' }}>{p.badge}</span>
+                        style={{ background: '#A3CF2E', color: 'var(--text)', fontSize: '9px' }}>{p.badge}</span>
                     )}
                     <span className="text-xs font-bold" style={{ color: p.color }}>{p.name}</span>
-                    <span className="text-xs font-semibold mt-0.5" style={{ color: '#0B0F2A' }}>{p.price}</span>
+                    <span className="text-xs font-semibold mt-0.5" style={{ color: 'var(--text)' }}>{p.price}</span>
                     <span className="text-xs text-gray-400">{p.unit}</span>
                   </button>
                 ))}
@@ -260,7 +260,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
                 placeholder="+256 700 000 000" className={inputCls()} />
             </Field>
             <div className="flex gap-3 mt-1">
-              <button onClick={back} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e2e8f0' }}>Back</button>
+              <button onClick={back} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--border-strong)' }}>Back</button>
               <button onClick={next} className="flex-1 btn-brand-primary">Continue <ArrowRight /></button>
             </div>
           </div>
@@ -283,10 +283,10 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
                 <span className="text-2xl">{m.icon}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold" style={{ color: '#0B0F2A' }}>{m.label}</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{m.label}</span>
                     {m.badge && (
                       <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
-                        style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : '#e8ecff',
+                        style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : 'var(--tint-blue)',
                                  color: m.badge === 'Recommended' ? '#0B0F2A' : '#1E45FC', fontSize: '10px' }}>
                         {m.badge}
                       </span>
@@ -301,7 +301,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
               </button>
             ))}
             <div className="flex gap-3 mt-1">
-              <button onClick={back} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e2e8f0' }}>Back</button>
+              <button onClick={back} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--border-strong)' }}>Back</button>
               <button onClick={next} className="flex-1 btn-brand-primary">Continue <ArrowRight /></button>
             </div>
           </div>
@@ -310,7 +310,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
         {/* Step 3 — Review & Confirm */}
         {step === 3 && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-2xl border overflow-hidden" style={{ borderColor: '#e8eef8' }}>
+            <div className="rounded-2xl border overflow-hidden" style={{ borderColor: 'var(--border)' }}>
               {[
                 { label: 'School',    value: form.schoolName, icon: '🏫' },
                 { label: 'District',  value: form.district,   icon: '📍' },
@@ -319,15 +319,15 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
                 { label: 'Email',     value: form.adminEmail, icon: '📧' },
                 { label: 'MFA',       value: { otp: 'Email / SMS OTP', authapp: 'Auth App', passkey: 'Passkey' }[form.mfaMethod], icon: '🔐' },
               ].map((r, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderColor: '#f0f4ff' }}>
+                <div key={i} className="flex items-center gap-3 px-4 py-3 border-b last:border-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   <span className="text-base flex-shrink-0">{r.icon}</span>
                   <span className="text-xs text-gray-400 w-16 flex-shrink-0">{r.label}</span>
-                  <span className="text-sm font-semibold truncate" style={{ color: '#0B0F2A' }}>{r.value}</span>
+                  <span className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{r.value}</span>
                 </div>
               ))}
             </div>
 
-            <div className="flex items-start gap-2.5 p-3 rounded-xl text-xs" style={{ background: '#e8ecff', border: '1px solid #c7d2ff' }}>
+            <div className="flex items-start gap-2.5 p-3 rounded-xl text-xs" style={{ background: 'var(--tint-blue)', border: '1px solid #c7d2ff' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#1E45FC" strokeWidth="1.5" className="flex-shrink-0 mt-0.5">
                 <path d="M7 1L12.5 3.5V7C12.5 10 10 12.8 7 13.5C4 12.8 1.5 10 1.5 7V3.5L7 1Z"/>
               </svg>
@@ -338,7 +338,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
             </div>
 
             <div className="flex gap-3">
-              <button onClick={back} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: '#e2e8f0' }}>Back</button>
+              <button onClick={back} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors" style={{ borderColor: 'var(--border-strong)' }}>Back</button>
               <button onClick={submit} disabled={loading}
                 className={`flex-1 btn-brand-primary ${loading ? 'opacity-70' : ''}`}>
                 {loading ? (

@@ -83,7 +83,7 @@ function SchemaField({ field, form, set, clearErr, errors, intakeClasses, intake
         {[{ v:'day_scholar', label:'Day Scholar' }, { v:'boarding', label:'Boarding' }].map(o => (
           <button key={o.v} type="button" onClick={() => set('boarding', o.v)}
             className="flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-all"
-            style={form.boarding === o.v ? { borderColor: themeColor, background: themeColor + '10', color: themeColor } : { borderColor:'#e2e8f0', color:'#64748b' }}>
+            style={form.boarding === o.v ? { borderColor: themeColor, background: themeColor + '10', color: themeColor } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
             {form.boarding === o.v && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
             {o.label}
           </button>
@@ -252,7 +252,7 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
               <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><path d="M22 4L12 14.01l-3-3"/>
             </svg>
           </div>
-          <h2 className="text-2xl font-extrabold mb-2" style={{ color: '#0B0F2A', fontFamily: 'Fraunces, serif' }}>
+          <h2 className="text-2xl font-extrabold mb-2" style={{ color: 'var(--text)', fontFamily: 'Fraunces, serif' }}>
             Application Submitted!
           </h2>
           <p className="text-gray-500 text-sm mb-6 max-w-sm leading-relaxed">
@@ -275,14 +275,14 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
               ].map(([l, v]) => (
                 <div key={l} className="flex items-center justify-between border-b border-dashed pb-1.5" style={{ borderColor: themeColor + '25' }}>
                   <span className="text-gray-400">{l}</span>
-                  <span className={`font-semibold ${l === 'Status' ? 'text-yellow-600' : ''}`} style={{ color: l === 'Status' ? undefined : '#0B0F2A' }}>{v}</span>
+                  <span className={`font-semibold ${l === 'Status' ? 'text-yellow-600' : ''}`} style={{ color: l === 'Status' ? undefined : 'var(--text)' }}>{v}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {selectedConfig?.contact && (
-            <div className="w-full max-w-sm rounded-xl p-3 mb-5 text-xs text-center" style={{ background: '#f8faff', border: '1px solid #eef0f6' }}>
+            <div className="w-full max-w-sm rounded-xl p-3 mb-5 text-xs text-center" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
               <p className="text-gray-400 mb-1">The school will contact you at <strong>{form.parent_phone}</strong></p>
               <p className="text-gray-400">or via admissions: <strong style={{ color: themeColor }}>{selectedConfig.contact.email}</strong></p>
             </div>
@@ -291,7 +291,7 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
           <div className="flex gap-3 w-full max-w-sm">
             <button onClick={() => window.print()}
               className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 flex items-center justify-center gap-2"
-              style={{ borderColor: '#e2e8f0' }}>
+              style={{ borderColor: 'var(--border-strong)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Print
             </button>
@@ -315,8 +315,8 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
                 onClick={() => i < step && setStep(i)}
                 className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 transition-all ${i < step ? 'cursor-pointer' : 'cursor-default'}`}
                 style={{
-                  background: i < step ? themeColor : i === step ? '#0B0F2A' : '#f1f5f9',
-                  color:      i <= step ? 'white' : '#94a3b8',
+                  background: i < step ? themeColor : i === step ? 'var(--sidebar)' : 'var(--surface-3)',
+                  color:      i <= step ? 'white' : 'var(--text-dim)',
                   border:     i === step ? `2px solid ${themeColor}` : 'none',
                 }}>
                 {i < step ? (
@@ -328,14 +328,14 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
                 )}
               </button>
               {i < STEPS.length - 1 && (
-                <div className="flex-1 h-0.5 mx-1" style={{ background: i < step ? themeColor : '#e2e8f0' }} />
+                <div className="flex-1 h-0.5 mx-1" style={{ background: i < step ? themeColor : 'var(--border-strong)' }} />
               )}
             </div>
           ))}
         </div>
         <div className="flex justify-between text-[10px] font-semibold uppercase tracking-wider">
           {STEPS.map((s, i) => (
-            <span key={s.id} className="w-8 text-center" style={{ color: i === step ? themeColor : i < step ? '#0B0F2A' : '#94a3b8' }}>
+            <span key={s.id} className="w-8 text-center" style={{ color: i === step ? themeColor : i < step ? 'var(--text)' : 'var(--text-dim)' }}>
               {s.label}
             </span>
           ))}
@@ -386,7 +386,7 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
                 {[{ v:'day_scholar', label:'Day Scholar' }, { v:'boarding', label:'Boarding' }].map(o => (
                   <button key={o.v} type="button" onClick={() => set('boarding', o.v)}
                     className="flex items-center justify-center gap-2 py-3 rounded-xl border text-sm font-semibold transition-all"
-                    style={form.boarding === o.v ? { borderColor: themeColor, background: themeColor + '10', color: themeColor } : { borderColor:'#e2e8f0', color:'#64748b' }}>
+                    style={form.boarding === o.v ? { borderColor: themeColor, background: themeColor + '10', color: themeColor } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                     {form.boarding === o.v && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                     {o.label}
                   </button>
@@ -410,7 +410,7 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
                   {selectedSchool?.logo_initials}
                 </div>
                 <div>
-                  <div className="text-xs font-bold" style={{ color: '#0B0F2A' }}>{selectedSchool?.name}</div>
+                  <div className="text-xs font-bold" style={{ color: 'var(--text)' }}>{selectedSchool?.name}</div>
                   <div className="text-[10px] text-gray-400">{selectedSchool?.district} · Enrollment Application</div>
                 </div>
               </div>
@@ -529,7 +529,7 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
                       <label key={d.id} className="flex items-center gap-3 cursor-pointer group">
                         <div onClick={() => set(d.id, !form[d.id])}
                           className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
-                          style={{ background: form[d.id] ? themeColor : 'white', border: `2px solid ${form[d.id] ? themeColor : '#d1d5db'}` }}>
+                          style={{ background: form[d.id] ? themeColor : 'white', border: `2px solid ${form[d.id] ? themeColor : 'var(--border-strong)'}` }}>
                           {form[d.id] && (
                             <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>
                           )}
@@ -543,11 +543,11 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
             })()}
 
             {/* Agreement */}
-            <div className="rounded-xl p-4" style={{ background: '#f8faff', border: '1px solid #e2e8f0' }}>
+            <div className="rounded-xl p-4" style={{ background: 'var(--surface-2)', border: '1px solid var(--border-strong)' }}>
               <label className="flex items-start gap-3 cursor-pointer">
                 <div onClick={() => { set('agree', !form.agree); clearErr('agree'); }}
                   className="w-5 h-5 rounded mt-0.5 flex items-center justify-center flex-shrink-0 transition-all"
-                  style={{ background: form.agree ? themeColor : 'white', border: `2px solid ${form.agree ? themeColor : errors.agree ? '#ef4444' : '#d1d5db'}` }}>
+                  style={{ background: form.agree ? themeColor : 'white', border: `2px solid ${form.agree ? themeColor : errors.agree ? '#ef4444' : 'var(--border-strong)'}` }}>
                   {form.agree && (
                     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>
                   )}
@@ -602,7 +602,7 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
           {step > 0 && (
             <button onClick={back}
               className="flex items-center gap-2 px-5 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-              style={{ borderColor: '#e2e8f0' }}>
+              style={{ borderColor: 'var(--border-strong)' }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
               Back
             </button>
@@ -632,28 +632,28 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
 /* ── Fee table helper ─────────────────────────────────────── */
 function FeeTable({ fees, boarding, themeColor }) {
   return (
-    <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#eef0f6' }}>
+    <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
       <div className="px-4 py-2.5 text-xs font-bold uppercase tracking-wider" style={{ background: themeColor + '12', color: themeColor }}>
         Fee Structure (per term)
       </div>
       <table className="w-full">
         <thead>
-          <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
+          <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
             <th className="text-left text-[10px] font-bold text-gray-400 px-4 py-2 uppercase tracking-wider">Class Range</th>
-            <th className="text-right text-[10px] font-bold px-4 py-2 uppercase tracking-wider" style={{ color: boarding === 'boarding' ? themeColor : '#94a3b8' }}>Boarding</th>
-            <th className="text-right text-[10px] font-bold px-4 py-2 uppercase tracking-wider" style={{ color: boarding === 'day_scholar' ? themeColor : '#94a3b8' }}>Day Scholar</th>
+            <th className="text-right text-[10px] font-bold px-4 py-2 uppercase tracking-wider" style={{ color: boarding === 'boarding' ? themeColor : 'var(--text-dim)' }}>Boarding</th>
+            <th className="text-right text-[10px] font-bold px-4 py-2 uppercase tracking-wider" style={{ color: boarding === 'day_scholar' ? themeColor : 'var(--text-dim)' }}>Day Scholar</th>
           </tr>
         </thead>
-        <tbody className="divide-y" style={{ borderColor: '#f5f7fb' }}>
+        <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
           {fees.map((f, i) => (
             <tr key={i}>
               <td className="px-4 py-2.5 text-xs font-medium text-gray-600">{f.class}</td>
               <td className={`px-4 py-2.5 text-xs font-bold text-right ${boarding === 'boarding' ? '' : 'text-gray-400'}`}
-                style={{ color: boarding === 'boarding' ? '#0B0F2A' : undefined }}>
+                style={{ color: boarding === 'boarding' ? 'var(--text)' : undefined }}>
                 {f.boarding}
               </td>
               <td className={`px-4 py-2.5 text-xs font-bold text-right ${boarding === 'day_scholar' ? '' : 'text-gray-400'}`}
-                style={{ color: boarding === 'day_scholar' ? '#0B0F2A' : undefined }}>
+                style={{ color: boarding === 'day_scholar' ? 'var(--text)' : undefined }}>
                 {f.dayScholar}
               </td>
             </tr>
@@ -674,7 +674,7 @@ function SchoolInfoCard({ school, config, themeColor }) {
           {school.logo_initials}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-sm" style={{ color: '#0B0F2A' }}>{school.name}</div>
+          <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>{school.name}</div>
           <div className="text-[10px] text-gray-400">{config?.tagline ?? school.district}</div>
         </div>
         <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-green-50 text-green-700 flex-shrink-0">
@@ -698,10 +698,10 @@ function Shell({ children, school, config, themeColor, onBack }) {
   const tagline    = config?.tagline ?? 'Student Enrollment';
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #f0f4ff 0%, #fafbff 60%, #f5f3ff 100%)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--page-gradient)' }}>
       {/* Top bar */}
       <header className="flex items-center justify-between px-6 py-4 sticky top-0 z-10"
-        style={{ borderBottom: '1px solid #eef0f6', background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(10px)' }}>
+        style={{ borderBottom: '1px solid var(--border)', background: 'var(--surface-translucent)', backdropFilter: 'blur(10px)' }}>
         <div className="flex items-center gap-3 min-w-0">
           {/* School badge or SkoulHub logo */}
           {school ? (
@@ -711,7 +711,7 @@ function Shell({ children, school, config, themeColor, onBack }) {
                 {school.logo_initials}
               </div>
               <div className="min-w-0">
-                <div className="font-extrabold text-sm leading-tight truncate" style={{ color: '#0B0F2A' }}>{school.name}</div>
+                <div className="font-extrabold text-sm leading-tight truncate" style={{ color: 'var(--text)' }}>{school.name}</div>
                 <div className="text-[10px] text-gray-400 truncate">{tagline}</div>
               </div>
             </>
@@ -722,7 +722,7 @@ function Shell({ children, school, config, themeColor, onBack }) {
                   <path d="M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5"/>
                 </svg>
               </div>
-              <span className="font-extrabold text-sm" style={{ color: '#0B0F2A', fontFamily: 'Fraunces, serif' }}>
+              <span className="font-extrabold text-sm" style={{ color: 'var(--text)', fontFamily: 'Fraunces, serif' }}>
                 Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
               </span>
               <span className="text-gray-300 text-xs hidden sm:inline">·</span>
@@ -756,7 +756,7 @@ function Shell({ children, school, config, themeColor, onBack }) {
                 <span className="text-[10px] text-gray-400 font-medium truncate max-w-[200px]">{schoolName}</span>
               )}
             </div>
-            <h1 className="text-xl font-extrabold" style={{ color: '#0B0F2A', fontFamily: 'Fraunces, serif' }}>
+            <h1 className="text-xl font-extrabold" style={{ color: 'var(--text)', fontFamily: 'Fraunces, serif' }}>
               Student Enrollment Form
             </h1>
             <p className="text-xs text-gray-400 mt-0.5 mb-4">Fill in all required fields to apply for admission.</p>
@@ -779,7 +779,7 @@ function StepSection({ title, subtitle, children }) {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="text-base font-extrabold" style={{ color: '#0B0F2A' }}>{title}</h2>
+        <h2 className="text-base font-extrabold" style={{ color: 'var(--text)' }}>{title}</h2>
         <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>
       </div>
       {children}
@@ -791,7 +791,7 @@ function ReviewSection({ title, children }) {
   return (
     <div>
       <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">{title}</p>
-      <div className="rounded-xl overflow-hidden border" style={{ borderColor: '#eef0f6' }}>
+      <div className="rounded-xl overflow-hidden border" style={{ borderColor: 'var(--border)' }}>
         {children}
       </div>
     </div>
@@ -800,9 +800,9 @@ function ReviewSection({ title, children }) {
 
 function ReviewRow({ label, value }) {
   return (
-    <div className="flex items-center justify-between px-4 py-2.5 border-b last:border-0 text-xs" style={{ borderColor: '#f5f7fb' }}>
+    <div className="flex items-center justify-between px-4 py-2.5 border-b last:border-0 text-xs" style={{ borderColor: 'var(--border-subtle)' }}>
       <span className="text-gray-400 font-medium">{label}</span>
-      <span className="font-semibold text-right max-w-[60%]" style={{ color: '#0B0F2A' }}>{value}</span>
+      <span className="font-semibold text-right max-w-[60%]" style={{ color: 'var(--text)' }}>{value}</span>
     </div>
   );
 }

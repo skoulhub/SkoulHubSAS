@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import MFAFlow from './MFAFlow';
 import { queryAllTenants, queryTenant, lookupUser } from '../lib/tenantStore';
+import { isValidEmail } from '../lib/validation';
 
 const DEFAULT_ROLE = { id: 'school_admin', label: 'School Admin' };
 const ALL_SCHOOLS = queryAllTenants();
@@ -12,7 +13,7 @@ const DEMO_ACCOUNTS = [
     role: 'School Admin',
     name: 'Agnes Namukwaya',
     color: '#1E45FC',
-    bg: '#e8ecff',
+    bg: 'var(--tint-blue)',
     access: ['Full dashboard access', 'Students, Teachers, Finance', 'Reports, Settings, ID Cards'],
     icon: 'M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z',
   },
@@ -22,7 +23,7 @@ const DEMO_ACCOUNTS = [
     role: 'Head Teacher',
     name: 'Robert Ssemanda',
     color: '#0891b2',
-    bg: '#e0f2fe',
+    bg: 'var(--tint-sky)',
     access: ['Academic oversight', 'Approve expenses & reports', 'Students, Attendance, Results'],
     icon: 'M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5',
   },
@@ -32,7 +33,7 @@ const DEMO_ACCOUNTS = [
     role: 'Teacher',
     name: 'Grace Namutebi',
     color: '#059669',
-    bg: '#d1fae5',
+    bg: 'var(--tint-green)',
     access: ['My classes & timetable', 'Mark attendance & results', 'View student profiles'],
     icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z',
   },
@@ -42,7 +43,7 @@ const DEMO_ACCOUNTS = [
     role: 'Bursar',
     name: 'James Okoye',
     color: '#dc2626',
-    bg: '#fee2e2',
+    bg: 'var(--tint-red)',
     access: ['Fee collection & receipts', 'Payroll & expenses', 'Submit for approval'],
     icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6',
   },
@@ -52,7 +53,7 @@ const DEMO_ACCOUNTS = [
     role: 'Parent',
     name: 'Peter Kabuye',
     color: '#d97706',
-    bg: '#fef3c7',
+    bg: 'var(--tint-amber)',
     access: ['Child\'s attendance & results', 'Fee balance & report cards', 'Messages from school'],
     icon: 'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0z',
   },
@@ -62,7 +63,7 @@ const DEMO_ACCOUNTS = [
     role: 'SaaS Admin',
     name: 'SkoulHub Admin',
     color: '#7c3aed',
-    bg: '#f5f3ff',
+    bg: 'var(--tint-violet)',
     access: ['All schools overview', 'Billing & onboarding', 'Global platform settings'],
     icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
   },
@@ -136,7 +137,7 @@ export default function Login({ onLogin, onEnroll, onCreateSchool }) {
     return (
       <LoginShell>
         <div className="animate-slide-up">
-          <h1 className="text-2xl font-bold text-[#0B0F2A] mb-1" style={{ fontFamily: 'Fraunces, serif' }}>
+          <h1 className="text-2xl font-bold text-[color:var(--text)] mb-1" style={{ fontFamily: 'Fraunces, serif' }}>
             Sign In
           </h1>
           <p className="text-sm text-gray-400 mb-6">Welcome back! Please enter your details to continue</p>
@@ -259,6 +260,13 @@ export default function Login({ onLogin, onEnroll, onCreateSchool }) {
             <button type="submit" className="btn-brand-primary w-full mt-1 rounded-2xl py-3">
               Sign in
             </button>
+
+            <div className="text-center pt-1">
+              <button type="button" onClick={() => setStep('reset')}
+                className="text-xs font-semibold text-gray-500 hover:text-brand-blue transition-colors">
+                Forgot your password?
+              </button>
+            </div>
           </form>
 
           {/* ── Sandbox Demo Accounts ──────────────────────────── */}
@@ -363,6 +371,83 @@ export default function Login({ onLogin, onEnroll, onCreateSchool }) {
       />
     );
   }
+
+  /* Step 3 – Password reset request */
+  if (step === 'reset') {
+    return (
+      <LoginShell>
+        <ResetPassword
+          initialEmail={email}
+          onBack={() => setStep('email')}
+        />
+      </LoginShell>
+    );
+  }
+}
+
+/* ─── Password reset request ───────────────────────────────── */
+function ResetPassword({ initialEmail = '', onBack }) {
+  const [email, setEmail] = useState(initialEmail);
+  const [error, setError] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!isValidEmail(email)) { setError('Enter a valid email address.'); return; }
+    setError('');
+    setSent(true);
+  };
+
+  return (
+    <div className="animate-slide-up">
+      <button onClick={onBack} className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-brand-blue mb-6 transition-colors">
+        <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+          <path d="M9 2L4 7L9 12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+        Back to sign in
+      </button>
+
+      {sent ? (
+        <div className="text-center">
+          <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--tint-green)' }}>
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="4" width="20" height="16" rx="3"/><path d="M2 8l10 6 10-6"/>
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold" style={{ color: 'var(--text)', fontFamily: 'Fraunces, serif' }}>Check your inbox</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            If an account exists for <strong style={{ color: 'var(--text)' }}>{email}</strong>, we&apos;ve sent a password
+            reset link. It expires in 30 minutes.
+          </p>
+          <button onClick={onBack} className="btn-brand-primary w-full mt-6 rounded-2xl py-3">Back to sign in</button>
+          <p className="mt-4 text-[11px] text-gray-400">Demo mode — no email is actually sent.</p>
+        </div>
+      ) : (
+        <>
+          <div className="text-center mb-6">
+            <div className="w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center" style={{ background: 'var(--tint-blue)' }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 118 0v3"/>
+              </svg>
+            </div>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--text)', fontFamily: 'Fraunces, serif' }}>Reset your password</h1>
+            <p className="mt-1 text-sm text-gray-500">We&apos;ll email you a secure link to choose a new password.</p>
+          </div>
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5">Email</label>
+              <input type="email" value={email} autoFocus
+                onChange={e => { setEmail(e.target.value); setError(''); }}
+                placeholder="hello@school.ug"
+                className={`w-full px-3.5 py-3 rounded-2xl border text-sm bg-white outline-none transition-all focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15 ${error ? 'border-red-400' : 'border-gray-200'}`} />
+              {error && <p className="mt-1.5 text-xs text-red-500">{error}</p>}
+            </div>
+            <button type="submit" className="btn-brand-primary w-full rounded-2xl py-3">Send reset link</button>
+          </form>
+        </>
+      )}
+    </div>
+  );
 }
 
 /* ─── Shell ─────────────────────────────────────────────────── */

@@ -133,7 +133,7 @@ export const NAV_PERMISSION_MAP = {
 };
 
 /** Screens that are public to every authenticated role. */
-export const NAV_ALWAYS_ALLOWED = ['overview'];
+export const NAV_ALWAYS_ALLOWED = ['overview', 'profile'];
 
 export function navAllowed(roleId, navId) {
   if (NAV_ALWAYS_ALLOWED.includes(navId)) return true;

@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import EnrollmentForm from './pages/EnrollmentForm';
 import Onboarding from './pages/Onboarding';
 import { resolveUser, queryTenant } from './lib/tenantStore';
+import { useTheme } from './lib/userPrefs';
 
 /* Read the ?enroll= param once, lazily, so we never setState in an effect */
 function initialView() {
@@ -18,6 +19,11 @@ export default function App() {
   const [view, setView] = useState(initialView); // 'login' | 'dashboard' | 'enroll' | 'onboarding'
   const [session, setSession] = useState(null);
   const [enrollSchoolId, setEnrollSchoolId] = useState(initialEnrollSchoolId); // null = generic, 'skh-xxx' = school-specific
+  const [theme, setTheme] = useTheme(); // light | dark | system — applied to <html>
+
+  /** Patch the signed-in user (profile edits: name / email / phone) */
+  const handleUpdateUser = (patch) =>
+    setSession(s => (s ? { ...s, currentUser: { ...s.currentUser, ...patch } } : s));
 
   const handleLogin = (email, roleId) => {
     const currentUser = resolveUser(email, roleId);
@@ -66,6 +72,9 @@ export default function App() {
         currentUser={session.currentUser}
         tenant={session.tenant}
         onLogout={handleLogout}
+        theme={theme}
+        onTheme={setTheme}
+        onUpdateUser={handleUpdateUser}
       />
     );
   }

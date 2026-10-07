@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import ProfilePage from './Profile';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
 import { NAV_BY_ROLE } from '../lib/navigation';
 import {
@@ -38,7 +39,7 @@ const NAV_ICONS = {
 /* ══════════════════════════════════════════════════
    Dashboard Shell
 ═══════════════════════════════════════════════════ */
-export default function Dashboard({ currentUser, tenant, onLogout }) {
+export default function Dashboard({ currentUser, tenant, onLogout, theme, onTheme, onUpdateUser }) {
   const [activeNav, setActiveNav] = useState('overview');
   const [collapsed, setCollapsed] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -75,7 +76,7 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
         {/* ── Sidebar ─────────────────────────────── */}
         <aside
           className={`flex-shrink-0 flex flex-col transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[220px]'}`}
-          style={{ background: '#0B0F2A', marginTop: '32px' }}
+          style={{ background: 'var(--sidebar)', marginTop: '32px' }}
         >
           {/* Logo + collapse toggle */}
           <div className={`flex items-center px-4 py-4 ${collapsed ? 'justify-center gap-2' : 'gap-1.5'}`}>
@@ -148,17 +149,18 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
           {/* Bottom: user + logout */}
           <div className="px-3 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
             <div className={`flex items-center gap-2.5 px-2 py-2.5 rounded-xl mb-1 ${collapsed ? 'justify-center' : ''}`}>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+              <button onClick={() => setActiveNav('profile')} title="My profile"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-pointer transition-transform hover:scale-105"
                 style={{ background: rl.color }}>
                 {currentUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2) ?? 'U'}
-              </div>
+              </button>
               {!collapsed && (
-                <div className="flex-1 min-w-0">
+                <button onClick={() => setActiveNav('profile')} className="flex-1 min-w-0 text-left cursor-pointer">
                   <div className="text-xs font-semibold truncate text-white">{currentUser.name}</div>
                   <div className="text-[10px]" style={{ color: tenant?.name ? '#A3CF2E' : 'rgba(255,255,255,0.4)' }}>
                     {tenant?.name ?? rl.label}
                   </div>
-                </div>
+                </button>
               )}
               {!collapsed && (
                 <button
@@ -182,18 +184,18 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden" style={{ marginTop: '32px' }}>
           {/* Topbar */}
           <header className="flex-shrink-0 h-[62px] flex items-center gap-4 px-6 bg-white border-b"
-            style={{ borderColor: '#eef0f6' }}>
+            style={{ borderColor: 'var(--border)' }}>
 
             {/* Page title */}
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl font-bold truncate" style={{ color: '#0B0F2A' }}>
+              <h1 className="text-xl font-bold truncate" style={{ color: 'var(--text)' }}>
                 {allowedNav.find(n => n.id === activeNav)?.label ?? 'Dashboard'}
               </h1>
             </div>
 
             {/* Search */}
             <div className="hidden md:flex items-center gap-2 px-3.5 py-2 rounded-xl border text-sm w-60"
-              style={{ borderColor: '#e2e8f0', background: '#f8faff' }}>
+              style={{ borderColor: 'var(--border-strong)', background: 'var(--surface-2)' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.6">
                 <circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/>
               </svg>
@@ -211,8 +213,8 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
               <button
                 onClick={() => setNotifOpen(!notifOpen)}
                 className="relative w-9 h-9 rounded-full border flex items-center justify-center transition-colors"
-                style={{ borderColor: '#e2e8f0', background: '#fff' }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f1f5f9'}
+                style={{ borderColor: 'var(--border-strong)', background: 'var(--surface)' }}
+                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-3)'}
                 onMouseLeave={e => e.currentTarget.style.background = '#fff'}
               >
                 <Icon d={NAV_ICONS.notifs} size={16} stroke="#64748b" />
@@ -223,17 +225,19 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
               {notifOpen && <NotifDropdown onClose={() => setNotifOpen(false)} />}
             </div>
 
-            {/* Avatar */}
-            <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
+            {/* Avatar → profile */}
+            <button onClick={() => setActiveNav('profile')} title="My profile"
+              className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-pointer transition-transform hover:scale-105"
               style={{ background: rl.color }}>
               {currentUser.name?.split(' ').map(w => w[0]).join('').slice(0, 2) ?? 'U'}
-            </div>
+            </button>
           </header>
 
           {/* Page content */}
-          <main className="flex-1 overflow-y-auto" style={{ background: '#f0f2f8', padding: '20px 24px' }}>
+          <main className="flex-1 overflow-y-auto" style={{ background: 'var(--app-bg)', padding: '20px 24px' }}>
             <PermissionGate roleId={roleId} navId={activeNav}>
-              <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} searchQuery={searchQuery} />
+              <PageContent activeNav={activeNav} roleId={roleId} schoolId={schoolId} tenant={tenant} currentUser={currentUser} searchQuery={searchQuery}
+                theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onLogout={onLogout} />
             </PermissionGate>
           </main>
         </div>
@@ -244,11 +248,11 @@ export default function Dashboard({ currentUser, tenant, onLogout }) {
 /* ─── Unknown role (fail closed) ─────────────────────────────── */
 function UnknownRole({ roleId, onLogout }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: '#f0f2f8' }}>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-6 text-center" style={{ background: 'var(--app-bg)' }}>
       <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-2xl">🚫</div>
-      <p className="text-base font-semibold" style={{ color: '#0B0F2A' }}>Unrecognised role</p>
+      <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>Unrecognised role</p>
       <p className="text-sm text-gray-500 max-w-sm">
-        The role <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-white border" style={{ borderColor: '#e2e8f0' }}>{String(roleId)}</code> has
+        The role <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-white border" style={{ borderColor: 'var(--border-strong)' }}>{String(roleId)}</code> has
         no access configuration. Contact your platform administrator.
       </p>
       <button onClick={onLogout} className="btn-brand-primary text-sm py-2 px-4 mt-1">Back to sign-in</button>
@@ -262,7 +266,7 @@ function PermissionGate({ roleId, navId, children }) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
         <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center text-2xl">🔒</div>
-        <p className="text-base font-semibold" style={{ color: '#0B0F2A' }}>Access Denied</p>
+        <p className="text-base font-semibold" style={{ color: 'var(--text)' }}>Access Denied</p>
         <p className="text-sm text-gray-400 max-w-xs">
           Your role <strong>{ROLE_META[roleId]?.label}</strong> does not have permission to view this section.
         </p>
@@ -278,7 +282,7 @@ function DemoBanner() {
   if (!vis) return null;
   return (
     <div className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center gap-3 px-4 text-xs font-semibold"
-      style={{ background: '#A3CF2E', color: '#0B0F2A', height: '32px' }}>
+      style={{ background: '#A3CF2E', color: 'var(--text)', height: '32px' }}>
       <span className="w-1.5 h-1.5 rounded-full bg-green-700 animate-pulse" />
       Demo Mode — Real payments disabled · Data resets on refresh · Tenant isolation simulated
       <button onClick={() => setVis(false)} className="ml-3 opacity-50 hover:opacity-100">✕</button>
@@ -295,15 +299,15 @@ function NotifDropdown() {
   ];
   return (
     <div className="absolute right-0 top-11 w-72 bg-white rounded-2xl shadow-xl border z-50 overflow-hidden"
-      style={{ borderColor: '#eef0f6' }}>
+      style={{ borderColor: 'var(--border)' }}>
       <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: '#f0f0f0' }}>
-        <span className="text-sm font-semibold" style={{ color: '#0B0F2A' }}>Notifications</span>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: '#e8ecff', color: '#1E45FC' }}>3 new</span>
+        <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Notifications</span>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>3 new</span>
       </div>
       {notifs.map((n, i) => (
         <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-0"
           style={{ borderColor: '#f8f8f8' }}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: '#f8faff' }}>{n.icon}</div>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-sm flex-shrink-0" style={{ background: 'var(--surface-2)' }}>{n.icon}</div>
           <div className="flex-1 min-w-0">
             <p className="text-xs text-gray-700 leading-relaxed">{n.text}</p>
             <p className="text-xs text-gray-400 mt-0.5">{n.time}</p>
@@ -318,10 +322,11 @@ function NotifDropdown() {
 /* ══════════════════════════════════════════════════
    Page Content Router
 ═══════════════════════════════════════════════════ */
-function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQuery }) {
+function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQuery, theme, onTheme, onUpdateUser, onLogout }) {
   const props = { roleId, schoolId, tenant, currentUser };
   switch (activeNav) {
     case 'overview':   return roleId === 'saas_admin' ? <SaasOverviewPage /> : <OverviewPage {...props} />;
+    case 'profile':    return <ProfilePage {...props} theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onLogout={onLogout} />;
     case 'students':   return <StudentsPage {...props} initialSearch={searchQuery} />;
     case 'parents':    return <ParentsPage    {...props} />;
     case 'teachers':   return <TeachersPage   {...props} />;
@@ -345,7 +350,7 @@ function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQ
 /* ── Shared card wrapper ── */
 function Card({ children, className = '', style = {} }) {
   return (
-    <div className={`bg-white rounded-2xl border ${className}`} style={{ borderColor: '#eef0f6', ...style }}>
+    <div className={`bg-white rounded-2xl border ${className}`} style={{ borderColor: 'var(--border)', ...style }}>
       {children}
     </div>
   );
@@ -380,10 +385,10 @@ function ConfirmDialog({ title, body, confirmLabel = 'Confirm', danger = false, 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(11,15,42,0.5)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up" onClick={e => e.stopPropagation()}>
-        <h3 className="font-bold text-base mb-2" style={{ color: '#0B0F2A' }}>{title}</h3>
+        <h3 className="font-bold text-base mb-2" style={{ color: 'var(--text)' }}>{title}</h3>
         <p className="text-sm text-gray-500 mb-6">{body}</p>
         <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: danger ? '#dc2626' : '#1E45FC' }}>{confirmLabel}</button>
         </div>
       </div>
@@ -396,9 +401,9 @@ function InfoModal({ title, subtitle, children, onClose, footer }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <div>
-            <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>{title}</h3>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>{title}</h3>
             {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100 text-lg">✕</button>
@@ -417,7 +422,7 @@ function StatCard({ label, value, delta, deltaPositive = true, sub = 'this month
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
           <p className="text-xs font-medium text-gray-400 mb-1">{label}</p>
-          <div className="text-2xl font-extrabold mb-1" style={{ color: '#0B0F2A' }}>{value}</div>
+          <div className="text-2xl font-extrabold mb-1" style={{ color: 'var(--text)' }}>{value}</div>
           {delta ? (
             <div className="flex items-center gap-1">
               <span className={`text-xs font-semibold ${deltaPositive ? 'text-green-600' : 'text-red-500'}`}>
@@ -467,7 +472,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
     return (
       <div className="animate-fade-in space-y-5">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>My Child</h2>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>My Child</h2>
           <p className="text-xs text-gray-400 mt-0.5">{currentUser.name} · Parent Portal · {schoolId}</p>
         </div>
 
@@ -493,24 +498,24 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                     {name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                   </div>
                   <div>
-                    <div className="text-base font-extrabold" style={{ color: '#0B0F2A' }}>{name}</div>
+                    <div className="text-base font-extrabold" style={{ color: 'var(--text)' }}>{name}</div>
                     <div className="text-xs text-gray-400">{st?.class ?? '—'}</div>
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-                    style={{ background: st?.fee === 'Paid' ? '#d1fae5' : st?.fee === 'Partial' ? '#fef3c7' : '#fee2e2',
+                    style={{ background: st?.fee === 'Paid' ? 'var(--tint-green)' : st?.fee === 'Partial' ? 'var(--tint-amber)' : 'var(--tint-red)',
                              color: st?.fee === 'Paid' ? '#059669' : st?.fee === 'Partial' ? '#d97706' : '#dc2626' }}>
                     Fees: {st?.fee ?? '—'}
                   </span>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: '#e8ecff', color: '#1E45FC' }}>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
                     Avg {avg}% · {grade}
                   </span>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
-                <div className="rounded-xl p-3 text-center" style={{ background: '#f8faff' }}>
+                <div className="rounded-xl p-3 text-center" style={{ background: 'var(--surface-2)' }}>
                   <div className="text-lg font-extrabold" style={{ color: '#1E45FC' }}>{st?.class ?? '—'}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Class</div>
                 </div>
@@ -518,7 +523,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                   <div className="text-lg font-extrabold" style={{ color: '#059669' }}>{st?.status ?? '—'}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Status</div>
                 </div>
-                <div className="rounded-xl p-3 text-center" style={{ background: '#fef3c7' }}>
+                <div className="rounded-xl p-3 text-center" style={{ background: 'var(--tint-amber)' }}>
                   <div className="text-lg font-extrabold" style={{ color: '#d97706' }}>UGX {paidTotal.toLocaleString()}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Paid This Term</div>
                 </div>
@@ -529,8 +534,8 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Recent Payments</p>
                   <div className="space-y-1.5">
                     {childPay.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: '#f8faff', border: '1px solid #eef0f6' }}>
-                        <span className="font-semibold" style={{ color: '#0B0F2A' }}>UGX {p.amount}</span>
+                      <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                        <span className="font-semibold" style={{ color: 'var(--text)' }}>UGX {p.amount}</span>
                         <span className="text-gray-400">{p.method} · {p.date}</span>
                         <span className="font-bold" style={{ color: p.status === 'Confirmed' ? '#059669' : '#d97706' }}>{p.status}</span>
                       </div>
@@ -598,10 +603,10 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
   const feeBars   = [30,45,38,55,62,48,72,65,80,58,90,75];
 
   const recentActivities = [
-    { label: 'New student enrolled', time: '2 mins ago',  iconBg: '#e8ecff', iconColor: '#1E45FC', svgPath: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
-    ...(!isTeacher ? [{ label: 'Payment received', time: '15 mins ago', iconBg: '#d1fae5', iconColor: '#059669', svgPath: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' }] : []),
-    { label: 'Exam scheduled',       time: '1 hour ago',  iconBg: '#fef3c7', iconColor: '#d97706', svgPath: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
-    { label: 'Report card generated',time: '2 hours ago', iconBg: '#f5f3ff', iconColor: '#7c3aed', svgPath: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8' },
+    { label: 'New student enrolled', time: '2 mins ago',  iconBg: 'var(--tint-blue)', iconColor: '#1E45FC', svgPath: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+    ...(!isTeacher ? [{ label: 'Payment received', time: '15 mins ago', iconBg: 'var(--tint-green)', iconColor: '#059669', svgPath: 'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' }] : []),
+    { label: 'Exam scheduled',       time: '1 hour ago',  iconBg: 'var(--tint-amber)', iconColor: '#d97706', svgPath: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    { label: 'Report card generated',time: '2 hours ago', iconBg: 'var(--tint-violet)', iconColor: '#7c3aed', svgPath: 'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8zM14 2v6h6M16 13H8M16 17H8' },
   ];
 
   return (
@@ -633,11 +638,11 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
         {!isTeacher && (
           <Card className="lg:col-span-2 p-5 flex flex-col">
             <div className="mb-1">
-              <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Fees Collection</h3>
+              <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>Fees Collection</h3>
             </div>
             <div className="mb-3">
               <p className="text-xs text-gray-400">This Month</p>
-              <p className="text-2xl font-extrabold mt-0.5" style={{ color: '#0B0F2A' }}>
+              <p className="text-2xl font-extrabold mt-0.5" style={{ color: 'var(--text)' }}>
                 UGX {(feeCollected/1000000).toFixed(1)}M
               </p>
               <span className="text-xs font-semibold text-green-600">+18% from last month</span>
@@ -656,7 +661,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
         {/* Teacher: Subject Performance (replaces fee chart) */}
         {isTeacher && (
           <Card className="lg:col-span-2 p-5 flex flex-col">
-            <h3 className="font-bold text-sm mb-3" style={{ color: '#0B0F2A' }}>Subject Performance</h3>
+            <h3 className="font-bold text-sm mb-3" style={{ color: 'var(--text)' }}>Subject Performance</h3>
             <p className="text-xs text-gray-400 mb-4">{assignment?.subjects.join(', ') || 'No subjects assigned'}</p>
             <div className="space-y-3 flex-1">
               {(assignment?.classes ?? []).map((cls, i) => {
@@ -680,7 +685,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 
         {/* Attendance donut */}
         <Card className="lg:col-span-2 p-5">
-          <h3 className="font-bold text-sm mb-4" style={{ color: '#0B0F2A' }}>Attendance Overview</h3>
+          <h3 className="font-bold text-sm mb-4" style={{ color: 'var(--text)' }}>Attendance Overview</h3>
           <div className="flex items-center gap-4">
             <div className="relative flex-shrink-0" style={{ width: 120, height: 120 }}>
               <svg width="120" height="120" viewBox="0 0 120 120">
@@ -709,7 +714,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                 <div key={item.label} className="flex items-center gap-2">
                   <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
                   <span className="text-xs text-gray-500 flex-1">{item.label}</span>
-                  <span className="text-xs font-bold" style={{ color: '#0B0F2A' }}>{item.pct}</span>
+                  <span className="text-xs font-bold" style={{ color: 'var(--text)' }}>{item.pct}</span>
                 </div>
               ))}
             </div>
@@ -718,11 +723,11 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 
         {/* Recent Activities */}
         <Card className="lg:col-span-1 flex flex-col">
-          <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: '#eef0f6' }}>
-            <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>Recent Activities</h3>
+          <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
+            <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>Recent Activities</h3>
             <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View all</button>
           </div>
-          <div className="flex-1 divide-y" style={{ borderColor: '#f1f5f9' }}>
+          <div className="flex-1 divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
             {recentActivities.map((a, i) => (
               <div key={i} className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/60 transition-colors">
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: a.iconBg }}>
@@ -731,7 +736,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-semibold truncate" style={{ color: '#0B0F2A' }}>{a.label}</p>
+                  <p className="text-xs font-semibold truncate" style={{ color: 'var(--text)' }}>{a.label}</p>
                   <p className="text-[10px] text-gray-400">{a.time}</p>
                 </div>
               </div>
@@ -746,9 +751,9 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 
           {/* Today's Schedule */}
           <Card className="lg:col-span-2 flex flex-col">
-            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
+            <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
               <div>
-                <h3 className="font-bold text-sm" style={{ color: '#0B0F2A' }}>
+                <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>
                   {isTeacher ? "Today's Teaching Schedule" : "Today's Schedule"}
                 </h3>
                 <p className="text-[11px] text-gray-400 mt-0.5">
@@ -771,7 +776,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
             {/* Current / Next class banner */}
             {(currentClass || nextClass) && (
               <div className="mx-5 mt-4 rounded-xl px-4 py-3 flex items-center gap-3"
-                style={{ background: currentClass ? '#e8ecff' : '#f0fdf4', border: `1px solid ${currentClass ? '#c7d4fd' : '#bbf7d0'}` }}>
+                style={{ background: currentClass ? 'var(--tint-blue)' : '#f0fdf4', border: `1px solid ${currentClass ? '#c7d4fd' : '#bbf7d0'}` }}>
                 <div className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse"
                   style={{ background: currentClass ? '#1E45FC' : '#22c55e' }} />
                 <div className="flex-1 min-w-0">
@@ -789,20 +794,20 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
             )}
 
             {/* Schedule list */}
-            <div className="flex-1 divide-y mt-3 pb-2" style={{ borderColor: '#f5f7fb' }}>
+            <div className="flex-1 divide-y mt-3 pb-2" style={{ borderColor: 'var(--border-subtle)' }}>
               {todaySchedule.map((p, i) => {
                 const isDone     = p.status === 'done';
                 const isCurrent  = p.status === 'current';
                 const isBreak    = p.status === 'break';
                 const isFree     = p.status === 'free' || p.subject === 'Free Period';
-                const subjectColor = isCurrent ? '#1E45FC' : isDone ? '#94a3b8' : isBreak || isFree ? '#d97706' : '#0B0F2A';
+                const subjectColor = isCurrent ? '#1E45FC' : isDone ? 'var(--text-dim)' : isBreak || isFree ? '#d97706' : 'var(--text)';
                 return (
                   <div key={i}
                     className="flex items-center gap-3 px-5 py-2.5 hover:bg-gray-50/50 transition-colors"
                     style={isCurrent ? { background: '#f5f7ff' } : {}}>
                     {/* Status dot */}
                     <div className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: isDone ? '#d1d5db' : isCurrent ? '#1E45FC' : isBreak || isFree ? '#fbbf24' : '#e2e8f0', border: !isDone && !isCurrent && !isBreak && !isFree ? '2px solid #cbd5e1' : 'none' }} />
+                      style={{ background: isDone ? 'var(--border-strong)' : isCurrent ? '#1E45FC' : isBreak || isFree ? '#fbbf24' : 'var(--border-strong)', border: !isDone && !isCurrent && !isBreak && !isFree ? '2px solid #cbd5e1' : 'none' }} />
                     {/* Time */}
                     <span className="text-[10px] font-mono text-gray-400 w-24 flex-shrink-0">{p.time}</span>
                     {/* Subject */}
@@ -818,7 +823,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                     {/* Room badge */}
                     {p.room !== '—' && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0"
-                        style={{ background: isCurrent ? '#e8ecff' : '#f8faff', color: isCurrent ? '#1E45FC' : '#64748b' }}>
+                        style={{ background: isCurrent ? 'var(--tint-blue)' : 'var(--surface-2)', color: isCurrent ? '#1E45FC' : 'var(--text-muted)' }}>
                         {p.room}
                       </span>
                     )}
@@ -839,13 +844,13 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
             {/* Mini stat cards */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Periods Today',   value: periodsTeaching, icon: 'M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0', color: '#1E45FC', bg: '#e8ecff' },
+                { label: 'Periods Today',   value: periodsTeaching, icon: 'M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0', color: '#1E45FC', bg: 'var(--tint-blue)' },
                 { label: 'Free Periods',    value: freePeriods,     icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', color: '#22c55e', bg: '#f0fdf4' },
-                { label: isTeacher ? 'Classes Covered' : 'Depts Today', value: isTeacher ? (assignment?.classes.length ?? 0) : 3, icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', color: '#0891b2', bg: '#e0f2fe' },
-                { label: 'Lessons This Week', value: isTeacher ? 14 : 22, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: '#7c3aed', bg: '#f5f3ff' },
+                { label: isTeacher ? 'Classes Covered' : 'Depts Today', value: isTeacher ? (assignment?.classes.length ?? 0) : 3, icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', color: '#0891b2', bg: 'var(--tint-sky)' },
+                { label: 'Lessons This Week', value: isTeacher ? 14 : 22, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: '#7c3aed', bg: 'var(--tint-violet)' },
               ].map(s => (
                 <div key={s.label} className="rounded-xl p-3 flex items-center gap-2.5" style={{ background: s.bg, border: `1px solid ${s.color}22` }}>
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'white' }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface)' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d={s.icon}/>
                     </svg>
@@ -860,7 +865,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 
             {/* Department / subject coverage */}
             <Card className="p-4 flex-1">
-              <h4 className="text-xs font-bold mb-3" style={{ color: '#0B0F2A' }}>
+              <h4 className="text-xs font-bold mb-3" style={{ color: 'var(--text)' }}>
                 {isTeacher ? 'Weekly Load by Class' : 'Dept. Coverage Today'}
               </h4>
               <div className="space-y-2.5">
@@ -928,13 +933,13 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
   );
 
   const feeColor = { Paid: '#059669', Partial: '#d97706', Unpaid: '#dc2626' };
-  const feeBg    = { Paid: '#d1fae5', Partial: '#fef3c7', Unpaid: '#fee2e2' };
+  const feeBg    = { Paid: 'var(--tint-green)', Partial: 'var(--tint-amber)', Unpaid: 'var(--tint-red)' };
 
   return (
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>
             {isTeacher ? 'My Students' : 'Students'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -948,14 +953,14 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
 
       {/* Teacher scope notice */}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing students from your assigned classes: <strong className="ml-1">{assignment.classes.join(', ')}</strong>
         </div>
       )}
 
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor: '#e2e8f0' }}>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor: 'var(--border-strong)' }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students…" className="outline-none bg-transparent text-sm w-40" />
         </div>
@@ -964,7 +969,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
           assignment?.classes.map(cls => (
             <button key={cls} onClick={() => setFilter(filter === cls ? 'all' : cls)}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-              style={filter === cls ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+              style={filter === cls ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
               {cls}
             </button>
           ))
@@ -972,7 +977,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
           ['all', 'active', 'inactive'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-              style={filter === f ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+              style={filter === f ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
               {f === 'all' ? 'All' : f}
             </button>
           ))
@@ -982,21 +987,21 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
       <Card className="overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
+            <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
               {['Name', 'Class', 'Parent', !isTeacher && 'Fee', 'Status', 'Actions'].filter(Boolean).map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: '#f5f7fb' }}>
+          <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
             {filtered.filter(s => filter === 'all' || s.class === filter || s.status.toLowerCase() === filter).map(s => (
               <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: '#e8ecff', color: '#1E45FC' }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
                       {s.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                     </div>
-                    <span className="text-sm font-semibold" style={{ color: '#0B0F2A' }}>{s.name}</span>
+                    <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{s.name}</span>
                   </div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-500">{s.class}</td>
@@ -1032,8 +1037,8 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
           footer={<button onClick={() => setViewStudent(null)} className="w-full py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Close</button>}>
           <div className="space-y-3">
             {[['Student ID', viewStudent.id], ['Class', viewStudent.class], ['Parent / Guardian', viewStudent.parent], ['Fee Status', viewStudent.fee], ['Enrolment Status', viewStudent.status]].map(([l, v]) => (
-              <div key={l} className="flex justify-between py-2 border-b text-sm" style={{ borderColor: '#f5f7fb' }}>
-                <span className="text-gray-400">{l}</span><span className="font-semibold" style={{ color: '#0B0F2A' }}>{v}</span>
+              <div key={l} className="flex justify-between py-2 border-b text-sm" style={{ borderColor: 'var(--border-subtle)' }}>
+                <span className="text-gray-400">{l}</span><span className="font-semibold" style={{ color: 'var(--text)' }}>{v}</span>
               </div>
             ))}
           </div>
@@ -1090,8 +1095,8 @@ function AddStudentModal({ schoolId, onClose, onAdd }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Add New Student</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Add New Student</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="p-6 flex flex-col gap-4">
@@ -1121,7 +1126,7 @@ function AddStudentModal({ schoolId, onClose, onAdd }) {
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={submit} className="flex-1 btn-brand-primary">Add Student</button>
         </div>
       </div>
@@ -1135,8 +1140,8 @@ function EditStudentModal({ student, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }} onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl animate-slide-up" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Edit Student — {student.name}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Edit Student — {student.name}</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="p-6 flex flex-col gap-4">
@@ -1168,7 +1173,7 @@ function EditStudentModal({ student, onClose, onSave }) {
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={() => onSave(form)} className="flex-1 btn-brand-primary">Save Changes</button>
         </div>
       </div>
@@ -1201,7 +1206,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
   );
 
   const balColor = (b) => b > 0 ? '#dc2626' : '#059669';
-  const balBg    = (b) => b > 0 ? '#fee2e2'  : '#d1fae5';
+  const balBg    = (b) => b > 0 ? 'var(--tint-red)'  : 'var(--tint-green)';
 
   const totalParents  = parents.length;
   const outstanding   = parents.filter(p => p.balance > 0).length;
@@ -1212,7 +1217,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>
             {isTeacher ? "My Students' Parents" : 'Parents & Guardians'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -1231,7 +1236,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
 
       {/* Teacher scope notice */}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing parents of students in: <strong className="ml-1">{assignment.classes.join(', ')}</strong>
         </div>
@@ -1240,15 +1245,15 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
       {/* Stats */}
       <div className={`grid gap-4 ${isTeacher ? 'grid-cols-2' : 'grid-cols-3'}`}>
         {[
-          { label: isTeacher ? 'Parents in My Classes' : 'Total Parents', value: totalParents,  iconBg: '#e8ecff', iconColor: '#1E45FC', svgPath: 'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0zM1 21v-2a4 4 0 014-4h.5' },
-          { label: 'Active',  value: activeParents, iconBg: '#d1fae5', iconColor: '#059669', svgPath: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3' },
-          ...(!isTeacher ? [{ label: 'Outstanding Fees', value: outstanding, iconBg: '#fee2e2', iconColor: '#dc2626', svgPath: 'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' }] : []),
+          { label: isTeacher ? 'Parents in My Classes' : 'Total Parents', value: totalParents,  iconBg: 'var(--tint-blue)', iconColor: '#1E45FC', svgPath: 'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0zM1 21v-2a4 4 0 014-4h.5' },
+          { label: 'Active',  value: activeParents, iconBg: 'var(--tint-green)', iconColor: '#059669', svgPath: 'M22 11.08V12a10 10 0 11-5.93-9.14M22 4L12 14.01l-3-3' },
+          ...(!isTeacher ? [{ label: 'Outstanding Fees', value: outstanding, iconBg: 'var(--tint-red)', iconColor: '#dc2626', svgPath: 'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' }] : []),
         ].map(s => (
           <Card key={s.label} className="p-5">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs font-medium text-gray-400 mb-1">{s.label}</p>
-                <p className="text-2xl font-extrabold" style={{ color: '#0B0F2A' }}>{s.value}</p>
+                <p className="text-2xl font-extrabold" style={{ color: 'var(--text)' }}>{s.value}</p>
               </div>
               <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: s.iconBg }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.iconColor} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -1262,14 +1267,14 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor: '#e2e8f0' }}>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor: 'var(--border-strong)' }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search parents…" className="outline-none bg-transparent text-sm w-40" />
         </div>
         {['all', 'active', 'inactive'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-            style={filter === f ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+            style={filter === f ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
             {f === 'all' ? 'All' : f}
           </button>
         ))}
@@ -1280,7 +1285,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
       <Card className="overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
+            <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
               {[
                 'Parent / Guardian',
                 'Phone',
@@ -1294,7 +1299,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: '#f1f5f9' }}>
+          <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
             {filtered.length === 0 ? (
               <tr><td colSpan={isTeacher ? 4 : 7} className="px-4 py-10 text-center text-sm text-gray-400">No parents found.</td></tr>
             ) : filtered.map(p => (
@@ -1307,7 +1312,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                       {p.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                     </div>
                     <div>
-                      <div className="text-sm font-semibold" style={{ color: '#0B0F2A' }}>{p.name}</div>
+                      <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{p.name}</div>
                       {!isTeacher && <div className="text-xs text-gray-400">{p.email}</div>}
                     </div>
                   </div>
@@ -1318,7 +1323,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {p.children.map(c => (
-                      <span key={c} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: '#e8ecff', color: '#1E45FC' }}>{c}</span>
+                      <span key={c} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>{c}</span>
                     ))}
                   </div>
                 </td>
@@ -1335,7 +1340,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                 {/* Status */}
                 <td className="px-4 py-3">
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                    style={p.status === 'Active' ? { background: '#d1fae5', color: '#059669' } : { background: '#f3f4f6', color: '#6b7280' }}>
+                    style={p.status === 'Active' ? { background: 'var(--tint-green)', color: '#059669' } : { background: '#f3f4f6', color: '#6b7280' }}>
                     {p.status}
                   </span>
                 </td>
@@ -1345,27 +1350,27 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                     {can(roleId, 'parents.contact') && (
                       <button onClick={() => setContactParent(p)}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                        style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                        style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E45FC'; e.currentTarget.style.color = '#1E45FC'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
                         Contact
                       </button>
                     )}
                     {!isTeacher && (
                       <button onClick={() => setViewParent(p)}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                        style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                        style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#1E45FC'; e.currentTarget.style.color = '#1E45FC'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
                         View
                       </button>
                     )}
                     {can(roleId, 'parents.edit') && (
                       <button onClick={() => setEditParent(p)}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                        style={{ borderColor: '#e2e8f0', color: '#64748b' }}
+                        style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}
                         onMouseEnter={e => { e.currentTarget.style.borderColor = '#A3CF2E'; e.currentTarget.style.color = '#5a7a0a'; }}
-                        onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#64748b'; }}>
+                        onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-strong)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
                         Edit
                       </button>
                     )}
@@ -1385,7 +1390,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
           onClose={() => setViewParent(null)}
           footer={
             <div className="flex gap-3">
-              <button onClick={() => setViewParent(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Close</button>
+              <button onClick={() => setViewParent(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Close</button>
               {can(roleId, 'parents.contact') && (
                 <button onClick={() => { setContactParent(viewParent); setViewParent(null); }} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Contact</button>
               )}
@@ -1400,9 +1405,9 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
               ['Children',     viewParent.children?.join(', ') ?? '—'],
               ...(!isTeacher ? [['Fee Balance', viewParent.balance > 0 ? `UGX ${viewParent.balance.toLocaleString()} (Outstanding)` : 'Cleared'], ['Last Contact', viewParent.lastContact ?? '—']] : []),
             ].map(([l, v]) => (
-              <div key={l} className="flex justify-between py-2 border-b last:border-0 text-sm" style={{ borderColor: '#f5f7fb' }}>
+              <div key={l} className="flex justify-between py-2 border-b last:border-0 text-sm" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span className="text-gray-400 text-xs">{l}</span>
-                <span className="font-semibold text-xs" style={{ color: '#0B0F2A' }}>{v}</span>
+                <span className="font-semibold text-xs" style={{ color: 'var(--text)' }}>{v}</span>
               </div>
             ))}
           </div>
@@ -1461,9 +1466,9 @@ function ContactParentModal({ parent, onClose, onSent }) {
       style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
           <div>
-            <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Contact Parent</h3>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Contact Parent</h3>
             <p className="text-xs text-gray-400">{parent.name} · {parent.phone}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -1476,7 +1481,7 @@ function ContactParentModal({ parent, onClose, onSent }) {
               {[{ id:'sms', label:'SMS', icon:'💬' }, { id:'email', label:'Email', icon:'📧' }, { id:'call', label:'Call Log', icon:'📞' }].map(c => (
                 <button key={c.id} onClick={() => setChannel(c.id)}
                   className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-semibold transition-all"
-                  style={channel === c.id ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+                  style={channel === c.id ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
                   <span>{c.icon}</span>{c.label}
                 </button>
               ))}
@@ -1485,7 +1490,7 @@ function ContactParentModal({ parent, onClose, onSent }) {
           {/* Recipient */}
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Recipient</label>
-            <div className="px-3 py-2.5 rounded-xl border text-sm text-gray-600 bg-gray-50" style={{ borderColor: '#e2e8f0' }}>
+            <div className="px-3 py-2.5 rounded-xl border text-sm text-gray-600 bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>
               {channel === 'email' ? parent.email || '(no email on file)' : parent.phone}
             </div>
           </div>
@@ -1494,7 +1499,7 @@ function ContactParentModal({ parent, onClose, onSent }) {
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Message <span className="text-red-400">*</span></label>
               <textarea rows={4} value={message} onChange={e => setMessage(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none focus:border-[#1E45FC] transition-all"
-                style={{ borderColor: '#e2e8f0' }}/>
+                style={{ borderColor: 'var(--border-strong)' }}/>
               <p className="text-[10px] text-gray-400 mt-1">{message.length} characters</p>
             </div>
           )}
@@ -1503,12 +1508,12 @@ function ContactParentModal({ parent, onClose, onSent }) {
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Call Notes</label>
               <textarea rows={3} placeholder="Log the outcome of your call…"
                 className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none focus:border-[#1E45FC] transition-all"
-                style={{ borderColor: '#e2e8f0' }}/>
+                style={{ borderColor: 'var(--border-strong)' }}/>
             </div>
           )}
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleSend} disabled={sending}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity disabled:opacity-70"
             style={{ background: '#1E45FC' }}>
@@ -1566,8 +1571,8 @@ function AddParentModal({ parent = null, onClose, onAdd }) {
       style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>{isEdit ? 'Edit Parent / Guardian' : 'Add Parent / Guardian'}</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>{isEdit ? 'Edit Parent / Guardian' : 'Add Parent / Guardian'}</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
@@ -1587,7 +1592,7 @@ function AddParentModal({ parent = null, onClose, onAdd }) {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Relationship</label>
               <select value={form.relationship} onChange={e => set('relationship', e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor: '#e2e8f0' }}>
+                className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor: 'var(--border-strong)' }}>
                 {['Parent','Mother','Father','Guardian','Uncle','Aunt','Other'].map(r => <option key={r}>{r}</option>)}
               </select>
             </div>
@@ -1603,8 +1608,8 @@ function AddParentModal({ parent = null, onClose, onAdd }) {
               placeholder="e.g. Aisha Nakato, David Nakato" className={inputCls()} />
           </div>
         </div>
-        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>{isEdit ? 'Save Changes' : 'Add Parent'}</button>
         </div>
       </div>
@@ -1636,7 +1641,7 @@ function TeachersPage({ roleId, schoolId }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Teachers</h2>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>Teachers</h2>
           <p className="text-xs text-gray-400 mt-0.5">{teachers.length} staff · {schoolId}</p>
         </div>
         {can(roleId, 'teachers.create') && <button onClick={() => setAddTeacher(true)} className="btn-brand-primary text-sm py-2 px-4">+ Add Teacher</button>}
@@ -1646,11 +1651,11 @@ function TeachersPage({ roleId, schoolId }) {
         {teachers.map((t, i) => (
           <Card key={i} className="p-5 hover:shadow-md transition-all">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: '#e8ecff', color: '#1E45FC' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
                 {t.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-sm" style={{ color: '#0B0F2A' }}>{t.name}</div>
+                <div className="font-bold text-sm" style={{ color: 'var(--text)' }}>{t.name}</div>
                 <div className="text-xs text-gray-400">{t.subject}</div>
               </div>
               <span className={`text-xs font-bold px-2 py-1 rounded-full flex-shrink-0 ${t.status === 'Present' ? 'bg-green-50 text-green-700' : 'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
@@ -1664,7 +1669,7 @@ function TeachersPage({ roleId, schoolId }) {
                 <button
                   onClick={() => setScheduleModal(t)}
                   className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-[#f5f7ff] hover:border-[#1E45FC] hover:text-[#1E45FC] transition-colors"
-                  style={{ borderColor: '#e2e8f0' }}>
+                  style={{ borderColor: 'var(--border-strong)' }}>
                   Schedule
                 </button>
                 <button
@@ -1738,8 +1743,8 @@ function AddTeacherModal({ onClose, onAdd }) {
       style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Add New Teacher</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Add New Teacher</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="p-6 space-y-4">
@@ -1762,7 +1767,7 @@ function AddTeacherModal({ onClose, onAdd }) {
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Primary Class</label>
               <select value={form.class} onChange={e => set('class', e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none appearance-none" style={{ borderColor: '#e2e8f0' }}>
+                className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none appearance-none" style={{ borderColor: 'var(--border-strong)' }}>
                 <option value="">— Select —</option>
                 {ALL_CLASSES_LIST.map(c => <option key={c}>{c}</option>)}
               </select>
@@ -1780,7 +1785,7 @@ function AddTeacherModal({ onClose, onAdd }) {
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Add Teacher</button>
         </div>
       </div>
@@ -1832,9 +1837,9 @@ function TeacherScheduleModal({ teacher, onClose, onSave }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
           <div>
-            <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Teaching Schedule — {teacher.name}</h3>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Teaching Schedule — {teacher.name}</h3>
             <p className="text-xs text-gray-400 mt-0.5">{teacher.subject} · {totalPeriods} periods assigned</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -1849,7 +1854,7 @@ function TeacherScheduleModal({ teacher, onClose, onSave }) {
                 className="flex-1 py-2 rounded-xl text-xs font-bold transition-all relative"
                 style={activeDay === d
                   ? { background: '#1E45FC', color: 'white' }
-                  : { background: '#f8faff', color: '#64748b' }}>
+                  : { background: 'var(--surface-2)', color: 'var(--text-muted)' }}>
                 {d}
                 {hasPeriods && (
                   <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full" style={{ background: '#22c55e', border: '1.5px solid white' }}/>
@@ -1866,7 +1871,7 @@ function TeacherScheduleModal({ teacher, onClose, onSave }) {
             const hasSubject = !!cell.subject;
             return (
               <div key={period} className="rounded-xl border p-3 transition-all"
-                style={{ borderColor: hasSubject ? '#c7d4fd' : '#f1f5f9', background: hasSubject ? '#f5f7ff' : '#fafafa' }}>
+                style={{ borderColor: hasSubject ? '#c7d4fd' : 'var(--surface-3)', background: hasSubject ? '#f5f7ff' : '#fafafa' }}>
                 <div className="flex items-center gap-3">
                   <div className="text-[10px] font-mono text-gray-400 w-20 flex-shrink-0">{period}</div>
                   <div className="flex-1 grid grid-cols-2 gap-2">
@@ -1876,7 +1881,7 @@ function TeacherScheduleModal({ teacher, onClose, onSave }) {
                         value={cell.subject}
                         onChange={e => setCell(activeDay, period, 'subject', e.target.value)}
                         className="w-full px-2.5 py-1.5 rounded-lg border text-xs outline-none bg-white transition-all focus:border-[#1E45FC]"
-                        style={{ borderColor: '#e2e8f0' }}>
+                        style={{ borderColor: 'var(--border-strong)' }}>
                         <option value="">— Free —</option>
                         {ALL_SUBJECTS_LIST.map(s => <option key={s}>{s}</option>)}
                       </select>
@@ -1888,7 +1893,7 @@ function TeacherScheduleModal({ teacher, onClose, onSave }) {
                         onChange={e => setCell(activeDay, period, 'room', e.target.value)}
                         placeholder="e.g. LB-01"
                         className="w-full px-2.5 py-1.5 rounded-lg border text-xs outline-none transition-all focus:border-[#1E45FC]"
-                        style={{ borderColor: '#e2e8f0' }}/>
+                        style={{ borderColor: 'var(--border-strong)' }}/>
                     </div>
                   </div>
                   {hasSubject && (
@@ -1902,8 +1907,8 @@ function TeacherScheduleModal({ teacher, onClose, onSave }) {
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Save Schedule</button>
         </div>
       </div>
@@ -1948,9 +1953,9 @@ function AssignClassModal({ teacher, onClose, onSave }) {
         onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
           <div>
-            <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Assign Classes — {teacher.name}</h3>
+            <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Assign Classes — {teacher.name}</h3>
             <p className="text-xs text-gray-400 mt-0.5">{selectedClasses.length} class{selectedClasses.length !== 1 ? 'es' : ''} selected</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -1966,7 +1971,7 @@ function AssignClassModal({ teacher, onClose, onSave }) {
                   className="text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all"
                   style={selectedSubject === s
                     ? { background: '#1E45FC', color: 'white', borderColor: '#1E45FC' }
-                    : { background: 'white', color: '#64748b', borderColor: '#e2e8f0' }}>
+                    : { background: 'var(--surface)', color: 'var(--text-muted)', borderColor: 'var(--border-strong)' }}>
                   {s}
                 </button>
               ))}
@@ -1984,8 +1989,8 @@ function AssignClassModal({ teacher, onClose, onSave }) {
                     <button key={cls} onClick={() => toggle(cls)}
                       className="text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all"
                       style={active
-                        ? { background: '#e8ecff', color: '#1E45FC', borderColor: '#1E45FC' }
-                        : { background: 'white', color: '#64748b', borderColor: '#e2e8f0' }}>
+                        ? { background: 'var(--tint-blue)', color: '#1E45FC', borderColor: '#1E45FC' }
+                        : { background: 'var(--surface)', color: 'var(--text-muted)', borderColor: 'var(--border-strong)' }}>
                       {active && <span className="mr-1">✓</span>}{cls}
                     </button>
                   );
@@ -2000,7 +2005,7 @@ function AssignClassModal({ teacher, onClose, onSave }) {
             <textarea value={note} onChange={e => setNote(e.target.value)}
               rows={2} placeholder="e.g. Temporarily covering for absent teacher…"
               className="w-full px-3.5 py-2.5 rounded-xl border text-sm outline-none resize-none focus:border-[#1E45FC] transition-all"
-              style={{ borderColor: '#e2e8f0' }}/>
+              style={{ borderColor: 'var(--border-strong)' }}/>
           </div>
 
           {/* Summary chip */}
@@ -2018,8 +2023,8 @@ function AssignClassModal({ teacher, onClose, onSave }) {
         </div>
 
         {/* Footer */}
-        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: '#eef0f6' }}>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+        <div className="flex gap-3 px-6 py-4 border-t flex-shrink-0" style={{ borderColor: 'var(--border)' }}>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: '#1E45FC' }}>Save Assignment</button>
         </div>
       </div>
@@ -2056,7 +2061,7 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>
             {isParent ? "My Child's Attendance" : 'Attendance'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">Today · {new Date().toLocaleDateString('en-UG', { weekday:'long', month:'long', day:'numeric', year:'numeric' })}</p>
@@ -2065,14 +2070,14 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
       </div>
 
       {isParent && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: '#92400e', border: '1px solid #fde68a' }}>
           <span>👨‍👩‍👧</span>
           Showing attendance for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
       )}
 
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Marking attendance for your assigned classes: <strong className="ml-1">{assignment.classes.join(', ')}</strong>
         </div>
@@ -2082,7 +2087,7 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
         {classes.map(c => (
           <button key={c} onClick={() => setSel(c)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-            style={selClass === c ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+            style={selClass === c ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
             {c}
           </button>
         ))}
@@ -2093,7 +2098,7 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
           <div className="flex-1 h-2.5 rounded-full bg-gray-100 overflow-hidden">
             <div className="h-full rounded-full" style={{ width: shown.length ? `${(pCount/shown.length)*100}%` : '0%', background: 'linear-gradient(90deg, #1E45FC, #A3CF2E)' }}/>
           </div>
-          <span className="text-sm font-extrabold" style={{ color: '#0B0F2A' }}>
+          <span className="text-sm font-extrabold" style={{ color: 'var(--text)' }}>
             {pCount}/{shown.length} present {shown.length ? `(${Math.round((pCount/shown.length)*100)}%)` : ''}
           </span>
         </div>
@@ -2101,13 +2106,13 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
 
       <Card className="overflow-hidden">
         {shown.map(s => (
-          <div key={s.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor: '#f5f7fb' }}>
+          <div key={s.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: s.present ? '#e8ecff' : '#fee2e2', color: s.present ? '#1E45FC' : '#dc2626' }}>
+                style={{ background: s.present ? 'var(--tint-blue)' : 'var(--tint-red)', color: s.present ? '#1E45FC' : '#dc2626' }}>
                 {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
               </div>
-              <span className="text-sm font-semibold truncate" style={{ color: '#0B0F2A' }}>{s.name}</span>
+              <span className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{s.name}</span>
             </div>
             <span className={`w-20 text-center text-xs font-bold px-2 py-1 rounded-full ${s.present ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-600'}`}>
               {s.present ? 'Present' : 'Absent'}
@@ -2158,10 +2163,10 @@ const GRID = (() => {
 
 /* Cell colouring — derived from the label so edited cells stay consistent */
 const cellStyle = (label) => {
-  if (label === 'Break') return { bg: '#f8faff', text: '#94a3b8' };
-  if (label === 'Lunch') return { bg: '#fef3c7', text: '#d97706' };
-  if (label === 'Free')  return { bg: '#f1f5f9', text: '#94a3b8' };
-  const c = SCOL[label] || '#94a3b8';
+  if (label === 'Break') return { bg: 'var(--surface-2)', text: 'var(--text-dim)' };
+  if (label === 'Lunch') return { bg: 'var(--tint-amber)', text: '#d97706' };
+  if (label === 'Free')  return { bg: 'var(--surface-3)', text: 'var(--text-dim)' };
+  const c = SCOL[label] || 'var(--text-dim)';
   return { bg: c + '20', text: c };
 };
 
@@ -2182,7 +2187,7 @@ function TimetablePage({ roleId, currentUser }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>Timetables</h2>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>Timetables</h2>
           <p className="text-xs text-gray-400 mt-0.5">Term 2 · 2026</p>
         </div>
         {canEdit && (
@@ -2197,7 +2202,7 @@ function TimetablePage({ roleId, currentUser }) {
         {['school','teacher','prep','meals'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-            style={tab === t ? { borderColor: '#1E45FC', background: '#e8ecff', color: '#1E45FC' } : { borderColor: '#e2e8f0', color: '#64748b' }}>
+            style={tab === t ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
             {t === 'school' ? 'School' : t === 'teacher' ? 'Teacher' : t === 'prep' ? 'Prep' : 'Meals'}
           </button>
         ))}
@@ -2206,14 +2211,14 @@ function TimetablePage({ roleId, currentUser }) {
         <Card className="overflow-x-auto">
           <table className="w-full min-w-[700px]">
             <thead>
-              <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
+              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
                 <th className="text-left px-4 py-3 text-xs font-bold text-gray-400 w-32">Time</th>
                 {DAYS.map(d => <th key={d} className="text-center px-3 py-3 text-xs font-bold text-gray-400">{d}</th>)}
               </tr>
             </thead>
             <tbody>
               {PERIODS.map((p, pi) => (
-                <tr key={p} className="border-b last:border-0" style={{ borderColor: '#f5f7fb' }}>
+                <tr key={p} className="border-b last:border-0" style={{ borderColor: 'var(--border-subtle)' }}>
                   <td className="px-4 py-2.5 text-xs text-gray-400 font-medium whitespace-nowrap">{p}</td>
                   {DAYS.map(d => {
                     const cell = grid[d][pi];
@@ -2229,7 +2234,7 @@ function TimetablePage({ roleId, currentUser }) {
                             value={cell.label}
                             onChange={e => setCell(d, pi, e.target.value)}
                             className="text-xs px-1 py-1 rounded-lg border bg-white outline-none"
-                            style={{ borderColor: '#e2e8f0' }}>
+                            style={{ borderColor: 'var(--border-strong)' }}>
                             {['Free', 'Break', 'Lunch', ...SUBJ].map(s => <option key={s} value={s}>{s}</option>)}
                           </select>
                         ) : notMine ? (
@@ -2263,11 +2268,11 @@ function MealsSchedule() {
   return (
     <Card className="overflow-hidden">
       {meals.map((m, i) => (
-        <div key={i} className="flex items-center gap-4 px-5 py-4 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor: '#f5f7fb' }}>
+        <div key={i} className="flex items-center gap-4 px-5 py-4 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="w-20 text-xs font-bold flex-shrink-0" style={{ color: '#1E45FC' }}>{m.time}</div>
           <span className="text-xl">🍽️</span>
           <div className="flex-1 min-w-0">
-            <div className="text-sm font-semibold" style={{ color: '#0B0F2A' }}>{m.meal}</div>
+            <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{m.meal}</div>
             <div className="text-xs text-gray-400">{m.detail}</div>
           </div>
           <span className="text-xs font-bold px-2 py-1 rounded-full bg-green-50 text-green-700">{m.kcal}</span>
@@ -2390,7 +2395,7 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color: '#0B0F2A' }}>
+          <h2 className="text-lg font-extrabold" style={{ color: 'var(--text)' }}>
             {isParent ? "My Child's Results" : 'Academic Results'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -2403,7 +2408,7 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-            style={approved ? { background: '#d1fae5', color: '#059669' } : { background: '#fef3c7', color: '#d97706' }}>
+            style={approved ? { background: 'var(--tint-green)', color: '#059669' } : { background: 'var(--tint-amber)', color: '#d97706' }}>
             {approved ? 'Approved' : 'Pending approval'}
           </span>
           {canEdit && (
@@ -2421,13 +2426,13 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
         </div>
       </div>
       {isParent && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: '#92400e', border: '1px solid #fde68a' }}>
           <span>👨‍👩‍👧</span>
           Showing results for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
       )}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           You can only enter marks for <strong className="mx-1">{assignment.subjects.join(', ')}</strong> across your assigned classes.
         </div>
@@ -2435,7 +2440,7 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
       <Card className="overflow-x-auto">
         <table className="w-full min-w-[700px]">
           <thead>
-            <tr style={{ background: '#f8faff', borderBottom: '1px solid #eef0f6' }}>
+            <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)' }}>
               <th className="text-left px-4 py-3 text-xs font-bold text-gray-400">Student</th>
               {isTeacher && <th className="text-left px-3 py-3 text-xs font-bold text-gray-400">Class</th>}
               {activeSubjects.map(s => <th key={s} className="text-center px-3 py-3 text-xs font-bold text-gray-400">{s}</th>)}
@@ -2443,19 +2448,19 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
               <th className="text-center px-3 py-3 text-xs font-bold text-gray-400">Grade</th>
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor: '#f5f7fb' }}>
+          <tbody className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
             {marks.map(s => {
               const a = avg(s.scores);
               return (
                 <tr key={s.id} className="hover:bg-gray-50/50">
-                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: '#0B0F2A' }}>{s.name}</td>
+                  <td className="px-4 py-3 text-sm font-semibold" style={{ color: 'var(--text)' }}>{s.name}</td>
                   {isTeacher && <td className="px-3 py-3 text-xs text-gray-400">{s.class}</td>}
                   {activeSubjects.map(sub => (
                     <td key={sub} className="px-2 py-2 text-center">
                       {canEdit ? (
                         <input type="number" min="0" max="100" value={s.scores[sub]}
                           onChange={e => setMarks(prev => prev.map(st => st.id===s.id ? {...st, scores:{...st.scores,[sub]:+e.target.value}} : st))}
-                          className="w-14 text-center text-sm py-1 rounded-lg border outline-none transition-all" style={{ borderColor: '#e2e8f0' }}/>
+                          className="w-14 text-center text-sm py-1 rounded-lg border outline-none transition-all" style={{ borderColor: 'var(--border-strong)' }}/>
                       ) : (
                         <span className="text-sm">{s.scores[sub]}</span>
                       )}
@@ -2478,8 +2483,8 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
           style={{ background: 'rgba(11,15,42,0.55)', backdropFilter: 'blur(4px)' }}
           onClick={() => setImportModal(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: '#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color: '#0B0F2A' }}>Import Marks</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: 'var(--border)' }}>
+              <h3 className="font-bold text-base" style={{ color: 'var(--text)' }}>Import Marks</h3>
               <button onClick={() => setImportModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6 space-y-4">
@@ -2493,8 +2498,8 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
               <div
                 onClick={() => fileRef.current?.click()}
                 className="rounded-xl border-2 border-dashed flex flex-col items-center justify-center py-10 gap-3 cursor-pointer hover:border-[#1E45FC] hover:bg-[#f5f7ff] transition-colors"
-                style={{ borderColor: importData ? '#1E45FC' : '#e2e8f0' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={importData ? '#1E45FC' : '#94a3b8'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                style={{ borderColor: importData ? '#1E45FC' : 'var(--border-strong)' }}>
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={importData ? '#1E45FC' : 'var(--text-dim)'} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
                 {importData ? (
                   <div className="text-sm font-semibold text-[#1E45FC]">
                     {importData.rows.length} rows ready to import
@@ -2512,7 +2517,7 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
               </a>
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setImportModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: '#e2e8f0' }}>Cancel</button>
+              <button onClick={() => setImportModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor: 'var(--border-strong)' }}>Cancel</button>
               <button onClick={applyImport} disabled={!importData}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity disabled:opacity-50"
                 style={{ background: '#1E45FC' }}>Import</button>
@@ -2627,9 +2632,9 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
   ];
 
   const methodColors = { 'Mobile Money':'#1E45FC', 'Cash':'#059669', 'Cheque':'#7c3aed', 'Bank Transfer':'#0891b2', 'Online':'#d97706' };
-  const methodBg     = { 'Mobile Money':'#e8ecff', 'Cash':'#d1fae5',  'Cheque':'#f5f3ff', 'Bank Transfer':'#e0f2fe', 'Online':'#fef3c7' };
+  const methodBg     = { 'Mobile Money':'var(--tint-blue)', 'Cash':'var(--tint-green)',  'Cheque':'var(--tint-violet)', 'Bank Transfer':'var(--tint-sky)', 'Online':'var(--tint-amber)' };
   const expStatusColor = { Approved:'#059669', Pending:'#d97706', Rejected:'#dc2626' };
-  const expStatusBg    = { Approved:'#d1fae5',  Pending:'#fef3c7',  Rejected:'#fee2e2' };
+  const expStatusBg    = { Approved:'var(--tint-green)',  Pending:'var(--tint-amber)',  Rejected:'var(--tint-red)' };
 
   /* ── Parent view: their children's fee balance only (read-only) ── */
   if (isParent) {
@@ -2637,7 +2642,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
     return (
       <div className="animate-fade-in space-y-5">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Fee Balance</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Fee Balance</h2>
           <p className="text-xs text-gray-400 mt-0.5">{currentUser.name} · {tenant?.name ?? schoolId}</p>
         </div>
         {myStudents.length === 0 && (
@@ -2659,7 +2664,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                     {s.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                   </div>
                   <div>
-                    <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>{s.name}</div>
+                    <div className="text-sm font-bold" style={{ color:'var(--text)' }}>{s.name}</div>
                     <div className="text-xs text-gray-400">{s.class}</div>
                   </div>
                 </div>
@@ -2675,8 +2680,8 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                   <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Payments</p>
                   <div className="space-y-1.5">
                     {childPay.map((p, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: '#f8faff', border: '1px solid #eef0f6' }}>
-                        <span className="font-semibold" style={{ color: '#0B0F2A' }}>UGX {p.amount}</span>
+                      <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
+                        <span className="font-semibold" style={{ color: 'var(--text)' }}>UGX {p.amount}</span>
                         <span className="text-gray-400">{p.method} · {p.date}</span>
                         <span className="font-bold" style={{ color: p.status === 'Confirmed' ? '#059669' : '#d97706' }}>{p.status}</span>
                       </div>
@@ -2697,7 +2702,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       {/* ── Header ── */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Finance</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Finance</h2>
           <p className="text-xs text-gray-400 mt-0.5">School finance management · {tenant?.name ?? schoolId}</p>
         </div>
         <div className="flex gap-2">
@@ -2719,16 +2724,16 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       {/* ── Metric cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label:'Total Fees Collected', value:`UGX ${(totalFees/1000000).toFixed(2)}M`,       delta:'+18%', color:'#059669', bg:'#d1fae5', path:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
-          { label:'Pending Payments',      value:`${pending.length} payments`,                   delta:`UGX ${pending.length*225}K`, color:'#d97706', bg:'#fef3c7', path:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
-          { label:'Total Expenses',        value:`UGX ${(totalExp/1000000).toFixed(2)}M`,         delta:'This term', color:'#dc2626', bg:'#fee2e2', path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3' },
-          { label:'Payroll (Monthly)',     value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`,      delta:'7 staff', color:'#7c3aed', bg:'#f5f3ff', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+          { label:'Total Fees Collected', value:`UGX ${(totalFees/1000000).toFixed(2)}M`,       delta:'+18%', color:'#059669', bg:'var(--tint-green)', path:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
+          { label:'Pending Payments',      value:`${pending.length} payments`,                   delta:`UGX ${pending.length*225}K`, color:'#d97706', bg:'var(--tint-amber)', path:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+          { label:'Total Expenses',        value:`UGX ${(totalExp/1000000).toFixed(2)}M`,         delta:'This term', color:'#dc2626', bg:'var(--tint-red)', path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3' },
+          { label:'Payroll (Monthly)',     value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`,      delta:'7 staff', color:'#7c3aed', bg:'var(--tint-violet)', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
         ].map(m=>(
           <Card key={m.label} className="p-4">
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-xs text-gray-400 mb-1">{m.label}</p>
-                <p className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>{m.value}</p>
+                <p className="text-lg font-extrabold" style={{ color:'var(--text)' }}>{m.value}</p>
                 <p className="text-xs font-semibold mt-0.5" style={{ color:m.color }}>{m.delta}</p>
               </div>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:m.bg }}>
@@ -2740,11 +2745,11 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       </div>
 
       {/* ── Tabs ── */}
-      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background:'#f0f2f8' }}>
+      <div className="flex items-center gap-1 p-1 rounded-xl" style={{ background:'var(--app-bg)' }}>
         {TABS.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all"
-            style={tab===t.id?{ background:'#fff', color:'#1E45FC', boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }:{ color:'#64748b' }}>
+            style={tab===t.id?{ background:'var(--surface)', color:'#1E45FC', boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }:{ color:'var(--text-muted)' }}>
             {t.label}
             {t.badge ? <span className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold" style={{ background:'#dc2626' }}>{t.badge}</span> : null}
           </button>
@@ -2756,18 +2761,18 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
         <div className="space-y-4">
           {/* Filters */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'#e2e8f0' }}>
+            <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'var(--border-strong)' }}>
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
               <input value={paySearch} onChange={e=>setPaySearch(e.target.value)} placeholder="Student or Tx ID…" className="outline-none bg-transparent text-sm w-36"/>
             </div>
-            <select value={payMethod} onChange={e=>setPayMethod(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none" style={{ borderColor:'#e2e8f0', color:'#0B0F2A' }}>
+            <select value={payMethod} onChange={e=>setPayMethod(e.target.value)} className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none" style={{ borderColor:'var(--border-strong)', color:'var(--text)' }}>
               <option value="all">All Methods</option>
               {['Mobile Money','Cash','Cheque','Bank Transfer','Online'].map(m=><option key={m}>{m}</option>)}
             </select>
             {['all','Confirmed','Pending'].map(s=>(
               <button key={s} onClick={()=>setPayStatus(s)}
                 className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-                style={payStatus===s?{borderColor:'#1E45FC',background:'#e8ecff',color:'#1E45FC'}:{borderColor:'#e2e8f0',color:'#64748b'}}>
+                style={payStatus===s?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'#1E45FC'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
                 {s==='all'?'All':s}
               </button>
             ))}
@@ -2777,13 +2782,13 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
           <Card className="overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+                <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
                   {['Student','Amount','Method','Tx Reference','Term','Date','Status',''].map(h=>(
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+              <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
                 {filteredPay.length===0
                   ? <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-400">No payments found.</td></tr>
                   : filteredPay.map(p=>(
@@ -2793,12 +2798,12 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background:'#1E45FC' }}>
                           {p.student.split(' ').map(w=>w[0]).join('').slice(0,2)}
                         </div>
-                        <span className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{p.student}</span>
+                        <span className="text-sm font-semibold" style={{ color:'var(--text)' }}>{p.student}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {p.amount}</td>
                     <td className="px-4 py-3">
-                      <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:methodBg[p.method]||'#f0f0f0', color:methodColors[p.method]||'#64748b' }}>{p.method}</span>
+                      <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:methodBg[p.method]||'#f0f0f0', color:methodColors[p.method]||'var(--text-muted)' }}>{p.method}</span>
                     </td>
                     <td className="px-4 py-3 font-mono text-xs text-gray-500">{p.txRef||'—'}</td>
                     <td className="px-4 py-3 text-xs text-gray-500">{p.term||'Term 2 2026'}</td>
@@ -2811,7 +2816,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                         {canApprove && p.status==='Pending' && (
                           <button onClick={()=>approvePayment(p.id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background:'#059669' }}>Approve</button>
                         )}
-                        <button onClick={()=>setReceipt(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors" style={{ borderColor:'#e2e8f0', color:'#1E45FC' }}>Receipt</button>
+                        <button onClick={()=>setReceipt(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors" style={{ borderColor:'var(--border-strong)', color:'#1E45FC' }}>Receipt</button>
                       </div>
                     </td>
                   </tr>
@@ -2827,17 +2832,17 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
         <Card className="overflow-hidden">
           <table className="w-full">
             <thead>
-              <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+              <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
                 {['Category','Description','Amount','Date','Submitted By','Status',''].map(h=>(
                   <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+            <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
               {expenses.map(e=>(
                 <tr key={e.id} className="hover:bg-gray-50/60 transition-colors">
                   <td className="px-4 py-3">
-                    <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:'#f0f2f8', color:'#0B0F2A' }}>{e.category}</span>
+                    <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:'var(--app-bg)', color:'var(--text)' }}>{e.category}</span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{e.desc}</td>
                   <td className="px-4 py-3 text-sm font-bold" style={{ color:'#dc2626' }}>UGX {e.amount.toLocaleString()}</td>
@@ -2867,7 +2872,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
         <div className="space-y-4">
           <div className="grid grid-cols-3 gap-4">
             {[
-              { label:'Total Gross', value:`UGX ${(payroll.reduce((s,p)=>s+p.gross,0)/1000000).toFixed(2)}M`, color:'#0B0F2A' },
+              { label:'Total Gross', value:`UGX ${(payroll.reduce((s,p)=>s+p.gross,0)/1000000).toFixed(2)}M`, color:'var(--text)' },
               { label:'Total Tax Deducted', value:`UGX ${(payroll.reduce((s,p)=>s+p.tax,0)/1000).toFixed(0)}K`, color:'#dc2626' },
               { label:'Total Net Payable', value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`, color:'#059669' },
             ].map(m=>(
@@ -2880,13 +2885,13 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
           <Card className="overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+                <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
                   {['Staff Member','Role','Subject','Gross (UGX)','Tax','NSSF','Net Pay','Status',''].map(h=>(
                     <th key={h} className="text-left px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+              <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
                 {payroll.map(p=>(
                   <tr key={p.id} className="hover:bg-gray-50/60 transition-colors">
                     <td className="px-4 py-3">
@@ -2894,7 +2899,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                         <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0" style={{ background:'#7c3aed' }}>
                           {p.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
                         </div>
-                        <span className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{p.name}</span>
+                        <span className="text-sm font-semibold" style={{ color:'var(--text)' }}>{p.name}</span>
                       </div>
                     </td>
                     <td className="px-4 py-3 text-xs text-gray-500">{p.role}</td>
@@ -2907,7 +2912,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${p.status==='Paid'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{p.status}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => setPayslip(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border text-gray-500 hover:border-[#7c3aed] hover:text-[#7c3aed] transition-colors" style={{ borderColor:'#e2e8f0' }}>Payslip</button>
+                      <button onClick={() => setPayslip(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border text-gray-500 hover:border-[#7c3aed] hover:text-[#7c3aed] transition-colors" style={{ borderColor:'var(--border-strong)' }}>Payslip</button>
                     </td>
                   </tr>
                 ))}
@@ -2930,13 +2935,13 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
             return (
               <Card key={i} className="p-4 flex items-center gap-4">
                 <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                  style={{ background: isFee?'#e8ecff':'#fef3c7' }}>
+                  style={{ background: isFee?'var(--tint-blue)':'var(--tint-amber)' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={isFee?'#1E45FC':'#d97706'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                     <path d={isFee?'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6':'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3'}/>
                   </svg>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>
+                  <div className="text-sm font-bold" style={{ color:'var(--text)' }}>
                     {isFee ? `Fee Payment — ${item.student}` : `Expense — ${item.desc}`}
                   </div>
                   <div className="text-xs text-gray-400 mt-0.5">
@@ -2973,8 +2978,8 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       {showPayModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.6)' }} onClick={()=>setShowPayModal(false)}>
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Record School Fee Payment</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+              <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Record School Fee Payment</h3>
               <button onClick={()=>setShowPayModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6 space-y-4">
@@ -2982,7 +2987,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Student <span className="text-red-400">*</span></label>
                 <select value={newPay.student} onChange={e=>setNewPay(p=>({...p,student:e.target.value}))}
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
                   <option value="">— Select student —</option>
                   {students.map(s=><option key={s.id}>{s.name}</option>)}
                 </select>
@@ -2991,7 +2996,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Amount (UGX) <span className="text-red-400">*</span></label>
                 <input type="number" value={newPay.amount} onChange={e=>setNewPay(p=>({...p,amount:e.target.value}))}
-                  placeholder="450000" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+                  placeholder="450000" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'var(--border-strong)' }}/>
               </div>
               {/* Payment method — big buttons */}
               <div>
@@ -3006,8 +3011,8 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                     <button key={m} type="button" onClick={()=>setNewPay(p=>({...p,method:m}))}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all"
                       style={newPay.method===m
-                        ?{ borderColor:'#1E45FC', background:'#e8ecff', color:'#1E45FC' }
-                        :{ borderColor:'#e2e8f0', color:'#64748b' }}>
+                        ?{ borderColor:'#1E45FC', background:'var(--tint-blue)', color:'#1E45FC' }
+                        :{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                       <span>{icon}</span>{m}
                     </button>
                   ))}
@@ -3017,19 +3022,19 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Transaction Reference</label>
                 <input type="text" value={newPay.txRef} onChange={e=>setNewPay(p=>({...p,txRef:e.target.value}))}
-                  placeholder="MTN-XXXXXXXX" className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono outline-none" style={{ borderColor:'#e2e8f0' }}/>
+                  placeholder="MTN-XXXXXXXX" className="w-full px-3 py-2.5 rounded-xl border text-sm font-mono outline-none" style={{ borderColor:'var(--border-strong)' }}/>
               </div>
               {/* Term */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Term</label>
                 <select value={newPay.term} onChange={e=>setNewPay(p=>({...p,term:e.target.value}))}
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
                   {['Term 1 2026','Term 2 2026','Term 3 2025'].map(t=><option key={t}>{t}</option>)}
                 </select>
               </div>
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={()=>setShowPayModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={()=>setShowPayModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={recordPayment} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Save Payment</button>
             </div>
           </div>
@@ -3040,32 +3045,32 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       {showExpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.6)' }} onClick={()=>setShowExpModal(false)}>
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e=>e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Submit Expense</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+              <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Submit Expense</h3>
               <button onClick={()=>setShowExpModal(false)} className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Category</label>
                 <select value={newExp.category} onChange={e=>setNewExp(x=>({...x,category:e.target.value}))}
-                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                  className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
                   {expCategories.map(c=><option key={c}>{c}</option>)}
                 </select>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Description <span className="text-red-400">*</span></label>
                 <input type="text" value={newExp.desc} onChange={e=>setNewExp(x=>({...x,desc:e.target.value}))}
-                  placeholder="e.g. Electricity bill May" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+                  placeholder="e.g. Electricity bill May" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'var(--border-strong)' }}/>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Amount (UGX) <span className="text-red-400">*</span></label>
                 <input type="number" value={newExp.amount} onChange={e=>setNewExp(x=>({...x,amount:e.target.value}))}
-                  placeholder="500000" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+                  placeholder="500000" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none" style={{ borderColor:'var(--border-strong)' }}/>
               </div>
               <p className="text-[11px] text-amber-600 bg-amber-50 px-3 py-2 rounded-xl">⚠️ Submitted expenses require approval from the Head Teacher or Director before being finalised.</p>
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={()=>setShowExpModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={()=>setShowExpModal(false)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={addExpense} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#7c3aed' }}>Submit</button>
             </div>
           </div>
@@ -3076,7 +3081,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       {payslip && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.65)' }} onClick={() => setPayslip(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
-            <div className="px-6 py-5 text-center border-b" style={{ borderColor:'#eef0f6' }}>
+            <div className="px-6 py-5 text-center border-b" style={{ borderColor:'var(--border)' }}>
               <div className="text-sm font-extrabold" style={{ color:'#7c3aed' }}>PAYSLIP</div>
               <div className="text-xs text-gray-400 mt-0.5">May 2026 · {payslip.role}</div>
             </div>
@@ -3093,13 +3098,13 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               ].map(([l, v]) => (
                 <div key={l} className="flex items-center justify-between py-1.5 border-b border-dashed" style={{ borderColor:'#f0f0f0' }}>
                   <span className="text-xs text-gray-400">{l}</span>
-                  <span className={`text-xs font-bold ${l==='NET PAY'?'text-green-700':l.includes('Tax')||l==='NSSF'?'text-red-500':''}`} style={{ color: l==='NET PAY'?undefined:l.includes('Tax')||l==='NSSF'?undefined:'#0B0F2A' }}>{v}</span>
+                  <span className={`text-xs font-bold ${l==='NET PAY'?'text-green-700':l.includes('Tax')||l==='NSSF'?'text-red-500':''}`} style={{ color: l==='NET PAY'?undefined:l.includes('Tax')||l==='NSSF'?undefined:'var(--text)' }}>{v}</span>
                 </div>
               ))}
             </div>
-            <div className="mx-6 border-t border-dashed text-center text-gray-300 text-xs mb-3" style={{ borderColor:'#e2e8f0' }}>✂</div>
+            <div className="mx-6 border-t border-dashed text-center text-gray-300 text-xs mb-3" style={{ borderColor:'var(--border-strong)' }}>✂</div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setPayslip(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Close</button>
+              <button onClick={() => setPayslip(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'var(--border-strong)' }}>Close</button>
               <button onClick={() => window.print()} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background:'#7c3aed' }}>Print Payslip</button>
             </div>
           </div>
@@ -3111,7 +3116,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.65)' }} onClick={()=>setReceipt(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e=>e.stopPropagation()}>
             {/* Receipt header */}
-            <div className="px-6 py-5 text-center border-b" style={{ borderColor:'#eef0f6' }}>
+            <div className="px-6 py-5 text-center border-b" style={{ borderColor:'var(--border)' }}>
               <div className="flex items-center justify-center gap-2 mb-1">
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background:'#1E45FC' }}>
                   <img src="/skoulhub-logo.png" alt="" style={{ width:14,height:14,objectFit:'contain',filter:'brightness(0) invert(1)' }}/>
@@ -3119,7 +3124,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                 <span className="font-extrabold text-base" style={{ color:'#1E45FC' }}>Skoul<span style={{ color:'#A3CF2E' }}>Hub</span></span>
               </div>
               <div className="text-xs text-gray-400">{tenant?.name ?? 'School'}</div>
-              <div className="text-xs font-bold mt-2 px-3 py-1 rounded-full inline-block" style={{ background:'#d1fae5', color:'#059669' }}>OFFICIAL RECEIPT</div>
+              <div className="text-xs font-bold mt-2 px-3 py-1 rounded-full inline-block" style={{ background:'var(--tint-green)', color:'#059669' }}>OFFICIAL RECEIPT</div>
             </div>
             {/* Receipt body */}
             <div className="px-6 py-4 space-y-2.5">
@@ -3135,7 +3140,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               ].map(([l,v])=>(
                 <div key={l} className="flex items-center justify-between py-1.5 border-b border-dashed" style={{ borderColor:'#f0f0f0' }}>
                   <span className="text-xs text-gray-400">{l}</span>
-                  <span className={`text-xs font-bold ${l==='Status'?(receipt.status==='Confirmed'?'text-green-700':'text-yellow-700'):''}`} style={{ color: l==='Amount Paid'?'#059669': l==='Status'?undefined:'#0B0F2A' }}>{v}</span>
+                  <span className={`text-xs font-bold ${l==='Status'?(receipt.status==='Confirmed'?'text-green-700':'text-yellow-700'):''}`} style={{ color: l==='Amount Paid'?'#059669': l==='Status'?undefined:'var(--text)' }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -3143,9 +3148,9 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               Generated by SkoulHub · {new Date().toLocaleDateString()}
             </div>
             {/* Divider with scissors */}
-            <div className="mx-6 border-t border-dashed text-center text-gray-300 text-xs mb-3" style={{ borderColor:'#e2e8f0' }}>✂</div>
+            <div className="mx-6 border-t border-dashed text-center text-gray-300 text-xs mb-3" style={{ borderColor:'var(--border-strong)' }}>✂</div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={()=>setReceipt(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Close</button>
+              <button onClick={()=>setReceipt(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'var(--border-strong)' }}>Close</button>
               <button onClick={() => window.print()} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Print Receipt</button>
             </div>
           </div>
@@ -3188,7 +3193,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
   };
   const gradeOf = avg => avg>=80?'D1':avg>=75?'D2':avg>=70?'C3':avg>=65?'C4':avg>=60?'C5':avg>=55?'C6':avg>=50?'P7':avg>=45?'P8':'F9';
   const gradeColor = g => g.startsWith('D')?'#059669':g.startsWith('C')?'#1E45FC':g.startsWith('P')?'#d97706':'#dc2626';
-  const gradeBg    = g => g.startsWith('D')?'#d1fae5':g.startsWith('C')?'#e8ecff':g.startsWith('P')?'#fef3c7':'#fee2e2';
+  const gradeBg    = g => g.startsWith('D')?'var(--tint-green)':g.startsWith('C')?'var(--tint-blue)':g.startsWith('P')?'var(--tint-amber)':'var(--tint-red)';
 
   // For teacher: compute avg only over assigned subjects
   const subjectIndexes = isTeacher && assignment
@@ -3228,7 +3233,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>
             {isParent ? "My Child's Report Card" : 'Report Cards'}
           </h2>
           <p className="text-xs text-gray-400 mt-0.5">
@@ -3240,9 +3245,9 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
           {canGen && (
             <button onClick={() => { window.print(); toast('Exporting all report cards…'); }}
               className="flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl border transition-colors"
-              style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+              style={{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}
               onMouseEnter={e=>{e.currentTarget.style.borderColor='#1E45FC';e.currentTarget.style.color='#1E45FC';}}
-              onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--text-muted)';}}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
               Export All
             </button>
@@ -3260,7 +3265,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
 
       {/* Teacher scope notice */}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing performance for <strong className="mx-1">{assignment.subjects.join(', ')}</strong> in <strong className="mx-1">{assignment.classes.join(', ')}</strong>. Averages are calculated for your subjects only.
         </div>
@@ -3268,7 +3273,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
 
       {/* Parent scope notice */}
       {isParent && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: '#fef3c7', color: '#92400e', border: '1px solid #fde68a' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: '#92400e', border: '1px solid #fde68a' }}>
           <span>👨‍👩‍👧</span>
           Showing report cards for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
@@ -3277,16 +3282,16 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
       {/* Grade distribution summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label:'Distinctions (D1–D2)', count: dist.D, color:'#059669', bg:'#d1fae5', range:'80–100%' },
-          { label:'Credits (C3–C6)',       count: dist.C, color:'#1E45FC', bg:'#e8ecff', range:'55–79%' },
-          { label:'Passes (P7–P8)',        count: dist.P, color:'#d97706', bg:'#fef3c7', range:'45–54%' },
-          { label:'Failures (F9)',         count: dist.F, color:'#dc2626', bg:'#fee2e2', range:'0–44%' },
+          { label:'Distinctions (D1–D2)', count: dist.D, color:'#059669', bg:'var(--tint-green)', range:'80–100%' },
+          { label:'Credits (C3–C6)',       count: dist.C, color:'#1E45FC', bg:'var(--tint-blue)', range:'55–79%' },
+          { label:'Passes (P7–P8)',        count: dist.P, color:'#d97706', bg:'var(--tint-amber)', range:'45–54%' },
+          { label:'Failures (F9)',         count: dist.F, color:'#dc2626', bg:'var(--tint-red)', range:'0–44%' },
         ].map(d => (
           <Card key={d.label} className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-extrabold flex-shrink-0"
               style={{ background: d.bg, color: d.color }}>{d.count}</div>
             <div className="min-w-0">
-              <div className="text-xs font-bold truncate" style={{ color:'#0B0F2A' }}>{d.label}</div>
+              <div className="text-xs font-bold truncate" style={{ color:'var(--text)' }}>{d.label}</div>
               <div className="text-[10px] text-gray-400">{d.range}</div>
             </div>
           </Card>
@@ -3296,14 +3301,14 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'#e2e8f0' }}>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'var(--border-strong)' }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search student…" className="outline-none bg-transparent text-sm w-36"/>
         </div>
         {/* Term filter */}
         <select value={termF} onChange={e=>setTermF(e.target.value)}
           className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none appearance-none"
-          style={{ borderColor:'#e2e8f0', color:'#0B0F2A' }}>
+          style={{ borderColor:'var(--border-strong)', color:'var(--text)' }}>
           {terms.map(t=><option key={t}>{t}</option>)}
         </select>
         {/* Class filter */}
@@ -3311,7 +3316,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
           {classes.map(c=>(
             <button key={c} onClick={()=>setClassF(c)}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-              style={classF===c?{borderColor:'#1E45FC',background:'#e8ecff',color:'#1E45FC'}:{borderColor:'#e2e8f0',color:'#64748b'}}>
+              style={classF===c?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'#1E45FC'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
               {c==='all'?'All Classes':c}
             </button>
           ))}
@@ -3323,19 +3328,19 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
       <Card className="overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+            <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
               {['#','Student','Class','Avg Score','Grade','Position','Status',''].map(h=>(
                 <th key={h} className="text-left text-[11px] font-bold uppercase tracking-wide text-gray-400 px-4 py-3">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+          <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
             {filtered.length===0
               ? <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-gray-400">No students found.</td></tr>
               : filtered.map(s=>(
               <tr key={s.id} className="hover:bg-gray-50/60 transition-colors">
                 {/* Rank */}
-                <td className="px-4 py-3 text-xs font-bold" style={{ color: s.pos<=3?'#d97706':'#94a3b8' }}>
+                <td className="px-4 py-3 text-xs font-bold" style={{ color: s.pos<=3?'#d97706':'var(--text-dim)' }}>
                   {s.pos<=3?['🥇','🥈','🥉'][s.pos-1]:s.pos}
                 </td>
                 {/* Name */}
@@ -3346,7 +3351,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                       {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
                     </div>
                     <div>
-                      <div className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{s.name}</div>
+                      <div className="text-sm font-semibold" style={{ color:'var(--text)' }}>{s.name}</div>
                       <div className="text-[10px] text-gray-400">{s.id}</div>
                     </div>
                   </div>
@@ -3358,7 +3363,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                     <div className="w-20 h-1.5 rounded-full bg-gray-100 flex-shrink-0">
                       <div className="h-1.5 rounded-full" style={{ width:`${s.avg}%`, background: gradeColor(s.grade) }}/>
                     </div>
-                    <span className="text-xs font-bold" style={{ color:'#0B0F2A' }}>{s.avg}%</span>
+                    <span className="text-xs font-bold" style={{ color:'var(--text)' }}>{s.avg}%</span>
                   </div>
                 </td>
                 {/* Grade badge */}
@@ -3381,17 +3386,17 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                   <div className="flex items-center gap-1.5">
                     <button onClick={()=>setSelected(s)}
                       className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                      style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+                      style={{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}
                       onMouseEnter={e=>{e.currentTarget.style.borderColor='#1E45FC';e.currentTarget.style.color='#1E45FC';}}
-                      onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+                      onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--text-muted)';}}>
                       View
                     </button>
                     {(can(roleId,'reports.comment_head') || can(roleId,'reports.comment_teacher')) && (
                       <button onClick={()=>setEditing(s)}
                         className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                        style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+                        style={{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}
                         onMouseEnter={e=>{e.currentTarget.style.borderColor='#A3CF2E';e.currentTarget.style.color='#5a7a0a';}}
-                        onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+                        onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--text-muted)';}}>
                         Edit
                       </button>
                     )}
@@ -3417,9 +3422,9 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
             onClick={e=>e.stopPropagation()}>
             {/* Modal header */}
-            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor:'var(--border)' }}>
               <div>
-                <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Report Card — {selected.name}</h3>
+                <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Report Card — {selected.name}</h3>
                 <p className="text-xs text-gray-400">{selected.class} · {termF}</p>
               </div>
               <button onClick={()=>setSelected(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -3427,7 +3432,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
             {/* Summary badges */}
             <div className="grid grid-cols-3 gap-3 px-6 py-4">
               {[['Avg Score',`${selected.avg}%`],['Grade',selected.grade],['Position',`${selected.pos} / ${selected.total}`]].map(([l,v])=>(
-                <div key={l} className="text-center rounded-xl p-3" style={{ background:'#f8faff' }}>
+                <div key={l} className="text-center rounded-xl p-3" style={{ background:'var(--surface-2)' }}>
                   <div className="text-lg font-extrabold" style={{ color: gradeColor(selected.grade) }}>{v}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">{l}</div>
                 </div>
@@ -3448,7 +3453,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                       <div className="flex-1 h-2 rounded-full bg-gray-100">
                         <div className="h-2 rounded-full" style={{ width:`${m}%`, background: gradeColor(g) }}/>
                       </div>
-                      <div className="w-8 text-xs font-bold text-right" style={{ color:'#0B0F2A' }}>{m}</div>
+                      <div className="w-8 text-xs font-bold text-right" style={{ color:'var(--text)' }}>{m}</div>
                       <span className="text-[10px] font-bold px-1.5 py-0.5 rounded w-7 text-center flex-shrink-0"
                         style={{ background: gradeBg(g), color: gradeColor(g) }}>{g}</span>
                     </div>
@@ -3457,8 +3462,8 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
               </div>
             </div>
             {/* Actions */}
-            <div className="flex gap-3 px-6 py-4 border-t mt-3" style={{ borderColor:'#eef0f6' }}>
-              {canGen && <button onClick={() => { window.print(); toast(`Downloading PDF for ${selected.name}`); }} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Download PDF</button>}
+            <div className="flex gap-3 px-6 py-4 border-t mt-3" style={{ borderColor:'var(--border)' }}>
+              {canGen && <button onClick={() => { window.print(); toast(`Downloading PDF for ${selected.name}`); }} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Download PDF</button>}
               {canSend && <button onClick={() => { toast(`Report card sent to parent of ${selected.name}`); setSelected(null); }} className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Send to Parent</button>}
             </div>
           </div>
@@ -3471,9 +3476,9 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
           onClick={()=>setEditing(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg"
             onClick={e=>e.stopPropagation()}>
-            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
+            <div className="px-6 py-4 border-b flex items-center justify-between" style={{ borderColor:'var(--border)' }}>
               <div>
-                <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Edit Report — {editing.name}</h3>
+                <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Edit Report — {editing.name}</h3>
                 <p className="text-xs text-gray-400">{editing.class} · {termF}</p>
               </div>
               <button onClick={()=>setEditing(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -3484,7 +3489,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">Teacher's Comment</label>
                   <textarea rows={3} defaultValue="A hardworking student who has shown great improvement this term."
                     className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
-                    style={{ borderColor:'#e2e8f0' }}/>
+                    style={{ borderColor:'var(--border-strong)' }}/>
                 </div>
               )}
               {can(roleId,'reports.comment_head') && (
@@ -3493,23 +3498,23 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Head Teacher's Comment</label>
                     <textarea rows={3} defaultValue="A hardworking student who has shown great improvement this term."
                       className="w-full px-3 py-2 rounded-xl border text-sm outline-none resize-none"
-                      style={{ borderColor:'#e2e8f0' }}/>
+                      style={{ borderColor:'var(--border-strong)' }}/>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Conduct</label>
-                    <select className="w-full px-3 py-2 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+                    <select className="w-full px-3 py-2 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
                       {['Excellent','Very Good','Good','Satisfactory','Needs Improvement'].map(o=><option key={o}>{o}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-600 mb-1.5">Next Term Fees (UGX)</label>
-                    <input type="text" defaultValue="450,000" className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor:'#e2e8f0' }}/>
+                    <input type="text" defaultValue="450,000" className="w-full px-3 py-2 rounded-xl border text-sm outline-none" style={{ borderColor:'var(--border-strong)' }}/>
                   </div>
                 </>
               )}
             </div>
-            <div className="flex gap-3 px-6 py-4 border-t" style={{ borderColor:'#eef0f6' }}>
-              <button onClick={()=>setEditing(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+            <div className="flex gap-3 px-6 py-4 border-t" style={{ borderColor:'var(--border)' }}>
+              <button onClick={()=>setEditing(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={()=>{ toast(`Report for ${editing.name} updated`); setEditing(null); }} className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Save Changes</button>
             </div>
           </div>
@@ -3584,7 +3589,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Student ID Cards</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Student ID Cards</h2>
           <p className="text-xs text-gray-400 mt-0.5">{allStudents.length} students · {tenant?.name ?? schoolId}</p>
         </div>
         {canGen && (
@@ -3599,16 +3604,16 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label:'Total Students',   value: allStudents.length,                              bg:'#e8ecff', color:'#1E45FC', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
-          { label:'IDs Assigned',     value: allStudents.length,                              bg:'#d1fae5', color:'#059669', path:'M9 12l2 2 4-4M7 2a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H7z' },
-          { label:'Active Students',  value: allStudents.filter(s=>s.status==='Active').length, bg:'#fef3c7', color:'#d97706', path:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z' },
+          { label:'Total Students',   value: allStudents.length,                              bg:'var(--tint-blue)', color:'#1E45FC', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+          { label:'IDs Assigned',     value: allStudents.length,                              bg:'var(--tint-green)', color:'#059669', path:'M9 12l2 2 4-4M7 2a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H7z' },
+          { label:'Active Students',  value: allStudents.filter(s=>s.status==='Active').length, bg:'var(--tint-amber)', color:'#d97706', path:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z' },
         ].map(s => (
           <Card key={s.label} className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:s.bg }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d={s.path}/></svg>
             </div>
             <div>
-              <div className="text-xl font-extrabold" style={{ color:'#0B0F2A' }}>{s.value}</div>
+              <div className="text-xl font-extrabold" style={{ color:'var(--text)' }}>{s.value}</div>
               <div className="text-xs text-gray-400">{s.label}</div>
             </div>
           </Card>
@@ -3617,19 +3622,19 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'#e2e8f0' }}>
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl border bg-white text-sm" style={{ borderColor:'var(--border-strong)' }}>
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#94a3b8" strokeWidth="1.5"><circle cx="6" cy="6" r="4.5"/><path d="M10 10L13 13"/></svg>
           <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or ID…" className="outline-none bg-transparent text-sm w-40"/>
         </div>
         <select value={classF} onChange={e=>setClassF(e.target.value)}
           className="px-3 py-2 rounded-xl border text-xs font-semibold bg-white outline-none"
-          style={{ borderColor:'#e2e8f0', color:'#0B0F2A' }}>
+          style={{ borderColor:'var(--border-strong)', color:'var(--text)' }}>
           {classes.map(c=><option key={c} value={c}>{c==='all'?'All Classes':c}</option>)}
         </select>
         {['all','active','inactive'].map(f=>(
           <button key={f} onClick={()=>setStatusF(f)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-            style={statusF===f?{borderColor:'#1E45FC',background:'#e8ecff',color:'#1E45FC'}:{borderColor:'#e2e8f0',color:'#64748b'}}>
+            style={statusF===f?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'#1E45FC'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
             {f==='all'?'All':f}
           </button>
         ))}
@@ -3640,13 +3645,13 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
       <Card className="overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+            <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
               {['Student','Class','Student ID Number','QR Code','Status',''].map(h=>(
                 <th key={h} className="text-left text-[11px] font-bold uppercase tracking-wide text-gray-400 px-4 py-3">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor:'#f1f5f9' }}>
+          <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
             {filtered.length === 0
               ? <tr><td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">No students found.</td></tr>
               : filtered.map(s => {
@@ -3661,7 +3666,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
                             {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
                           </div>
                           <div>
-                            <div className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{s.name}</div>
+                            <div className="text-sm font-semibold" style={{ color:'var(--text)' }}>{s.name}</div>
                             <div className="text-[10px] text-gray-400">{s.parent}</div>
                           </div>
                         </div>
@@ -3677,7 +3682,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
                               className="p-1 rounded-lg text-gray-400 hover:text-brand-blue transition-colors"
                               title="Edit ID"
                               onMouseEnter={e=>e.currentTarget.style.color='#1E45FC'}
-                              onMouseLeave={e=>e.currentTarget.style.color='#94a3b8'}>
+                              onMouseLeave={e=>e.currentTarget.style.color='var(--text-dim)'}>
                               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                             </button>
                           )}
@@ -3685,14 +3690,14 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
                       </td>
                       {/* QR */}
                       <td className="px-4 py-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden border" style={{ borderColor:'#eef0f6' }}>
+                        <div className="w-10 h-10 rounded-lg overflow-hidden border" style={{ borderColor:'var(--border)' }}>
                           <QRCode value={sid} size={40}/>
                         </div>
                       </td>
                       {/* Status */}
                       <td className="px-4 py-3">
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                          style={s.status==='Active'?{background:'#d1fae5',color:'#059669'}:{background:'#f3f4f6',color:'#6b7280'}}>
+                          style={s.status==='Active'?{background:'var(--tint-green)',color:'#059669'}:{background:'#f3f4f6',color:'#6b7280'}}>
                           {s.status}
                         </span>
                       </td>
@@ -3701,9 +3706,9 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
                         <div className="flex items-center gap-1.5">
                           <button onClick={()=>setPreview({ ...s, sid })}
                             className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors"
-                            style={{ borderColor:'#e2e8f0', color:'#64748b' }}
+                            style={{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}
                             onMouseEnter={e=>{e.currentTarget.style.borderColor='#1E45FC';e.currentTarget.style.color='#1E45FC';}}
-                            onMouseLeave={e=>{e.currentTarget.style.borderColor='#e2e8f0';e.currentTarget.style.color='#64748b';}}>
+                            onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-strong)';e.currentTarget.style.color='var(--text-muted)';}}>
                             Preview
                           </button>
                           {canGen && (
@@ -3728,7 +3733,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.55)' }}
           onClick={()=>setAssigning(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={e=>e.stopPropagation()}>
-            <h3 className="font-bold text-base mb-1" style={{ color:'#0B0F2A' }}>Assign Student ID</h3>
+            <h3 className="font-bold text-base mb-1" style={{ color:'var(--text)' }}>Assign Student ID</h3>
             <p className="text-xs text-gray-400 mb-5">Enter a unique ID number for this student. It will be embedded in their QR code.</p>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Student ID Number</label>
             <input
@@ -3740,15 +3745,15 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
             />
             <p className="text-[10px] text-gray-400 mb-5">Format suggestion: SKH-XXX-YYYYNNN</p>
             {/* Live QR preview */}
-            <div className="flex items-center gap-3 p-3 rounded-xl mb-5" style={{ background:'#f8faff' }}>
+            <div className="flex items-center gap-3 p-3 rounded-xl mb-5" style={{ background:'var(--surface-2)' }}>
               <QRCode value={assigning.value || '—'} size={52}/>
               <div>
-                <div className="text-xs font-bold" style={{ color:'#0B0F2A' }}>QR Preview</div>
+                <div className="text-xs font-bold" style={{ color:'var(--text)' }}>QR Preview</div>
                 <div className="font-mono text-[10px] text-gray-500 mt-0.5 break-all">{assigning.value || '—'}</div>
               </div>
             </div>
             <div className="flex gap-3">
-              <button onClick={()=>setAssigning(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={()=>setAssigning(null)} className="flex-1 py-2 rounded-xl border text-xs font-semibold text-gray-600" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={saveId} className="flex-1 py-2 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Save ID</button>
             </div>
           </div>
@@ -3803,7 +3808,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
             </div>
             {/* Actions */}
             <div className="flex gap-3 w-full" style={{ maxWidth:300 }}>
-              <button onClick={()=>setPreview(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold bg-white" style={{ borderColor:'#e2e8f0', color:'#64748b' }}>Close</button>
+              <button onClick={()=>setPreview(null)} className="flex-1 py-2.5 rounded-xl border text-xs font-semibold bg-white" style={{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>Close</button>
               {canGen && <button onClick={() => { window.print(); toast(`Downloading ID card for ${preview.name}`); }} className="flex-1 py-2.5 rounded-xl text-xs font-bold text-white" style={{ background:'#1E45FC' }}>Download PDF</button>}
             </div>
           </div>
@@ -3843,7 +3848,7 @@ function NotificationsPage({ roleId, currentUser }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Notifications</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Notifications</h2>
           <p className="text-xs text-gray-400 mt-0.5">{visible.filter(n=>!n.read).length} unread</p>
         </div>
         {can(roleId,'notifs.send') && <button onClick={() => setSendModal(true)} className="btn-brand-primary text-sm py-2 px-4">Send Notification</button>}
@@ -3857,12 +3862,12 @@ function NotificationsPage({ roleId, currentUser }) {
         )}
         {visible.map((n) => (
           <div key={n.id} className={`flex items-start gap-4 p-4 rounded-2xl border transition-all cursor-pointer ${n.read?'bg-white opacity-70':'bg-white shadow-sm'}`}
-            style={{ borderColor: n.read?'#eef0f6':tCol[n.type]+'30' }}
+            style={{ borderColor: n.read?'var(--border)':tCol[n.type]+'30' }}
             onClick={() => markRead(n.id)}>
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0" style={{ background:tCol[n.type]+'15' }}>{n.icon}</div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-0.5">
-                <span className="font-bold text-sm" style={{ color:'#0B0F2A' }}>{n.title}</span>
+                <span className="font-bold text-sm" style={{ color:'var(--text)' }}>{n.title}</span>
                 {!n.read && <span className="w-2 h-2 rounded-full" style={{ background:tCol[n.type] }}/>}
               </div>
               <p className="text-xs text-gray-500 leading-relaxed">{n.body}</p>
@@ -3910,8 +3915,8 @@ function SendNotificationModal({ onClose, onSent }) {
       style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Send Notification</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Send Notification</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="p-6 space-y-4">
@@ -3919,7 +3924,7 @@ function SendNotificationModal({ onClose, onSent }) {
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-2">Audience</label>
             <select value={audience} onChange={e => setAudience(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+              className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
               {['All Parents','All Teachers','All Students','S.1 East Parents','S.3 East Parents','All Staff'].map(a => <option key={a}>{a}</option>)}
             </select>
           </div>
@@ -3930,7 +3935,7 @@ function SendNotificationModal({ onClose, onSent }) {
               {[{ id:'sms',   label:'SMS',   icon:'💬' }, { id:'email', label:'Email', icon:'📧' }, { id:'push',  label:'Push',  icon:'🔔' }].map(c => (
                 <button key={c.id} onClick={() => setChannel(c.id)}
                   className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-semibold transition-all"
-                  style={channel === c.id ? { borderColor:'#1E45FC', background:'#e8ecff', color:'#1E45FC' } : { borderColor:'#e2e8f0', color:'#64748b' }}>
+                  style={channel === c.id ? { borderColor:'#1E45FC', background:'var(--tint-blue)', color:'#1E45FC' } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                   <span>{c.icon}</span>{c.label}
                 </button>
               ))}
@@ -3942,12 +3947,12 @@ function SendNotificationModal({ onClose, onSent }) {
             <textarea rows={4} value={message} onChange={e => setMessage(e.target.value)}
               placeholder="Type your message here…"
               className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none resize-none focus:border-[#1E45FC] transition-all"
-              style={{ borderColor: message ? '#e2e8f0' : '#e2e8f0' }}/>
+              style={{ borderColor: message ? 'var(--border-strong)' : 'var(--border-strong)' }}/>
             <p className="text-[10px] text-gray-400 mt-1">{message.length} characters</p>
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleSend} disabled={sending || !message.trim()}
             className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-opacity disabled:opacity-60"
             style={{ background:'#1E45FC' }}>
@@ -3991,16 +3996,16 @@ function SettingsPage({ roleId, schoolId, tenant }) {
   return (
     <div className="animate-fade-in space-y-4">
       <div>
-        <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>School Settings</h2>
+        <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>School Settings</h2>
         <p className="text-xs text-gray-400 mt-0.5">Configuration for your tenant</p>
       </div>
-      <Card className="divide-y max-w-2xl" style={{ borderColor:'#eef0f6' }}>
+      <Card className="divide-y max-w-2xl" style={{ borderColor:'var(--border)' }}>
         {rows.map(([label, value, icon, locked]) => (
           <div key={label} className="flex items-center gap-4 px-5 py-4">
             <span className="text-xl flex-shrink-0">{icon}</span>
             <div className="flex-1 min-w-0">
               <div className="text-xs text-gray-400">{label}</div>
-              <div className="text-sm font-semibold truncate" style={{ color:'#0B0F2A', fontFamily: locked ? 'monospace' : undefined }}>{value}</div>
+              <div className="text-sm font-semibold truncate" style={{ color:'var(--text)', fontFamily: locked ? 'monospace' : undefined }}>{value}</div>
             </div>
             {!locked && canEditSettings && <button onClick={() => openEdit(label, value)} className="text-xs font-semibold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Edit</button>}
             {!locked && !canEditSettings && <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
@@ -4014,19 +4019,19 @@ function SettingsPage({ roleId, schoolId, tenant }) {
           style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
           onClick={() => setEditField(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Edit — {editField}</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+              <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Edit — {editField}</h3>
               <button onClick={() => setEditField(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6">
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">{editField}</label>
               <input type="text" value={editVal} onChange={e => setEditVal(e.target.value)}
                 className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] focus:ring-2 focus:ring-[#1E45FC]/20 transition-all"
-                style={{ borderColor:'#e2e8f0' }}
+                style={{ borderColor:'var(--border-strong)' }}
                 onKeyDown={e => e.key === 'Enter' && saveEdit()} autoFocus />
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setEditField(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={() => setEditField(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={saveEdit} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Save</button>
             </div>
           </div>
@@ -4125,13 +4130,13 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Enrollment Form Builder</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Enrollment Form Builder</h2>
           <p className="text-xs text-gray-400 mt-0.5">Customise the fields shown on your school's online enrollment form</p>
         </div>
         <div className="flex gap-2">
           <button onClick={handleReset} disabled={!canManage}
             className="px-3.5 py-2 rounded-xl border text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
-            style={{ borderColor:'#e2e8f0' }}>
+            style={{ borderColor:'var(--border-strong)' }}>
             Reset to Default
           </button>
           <button onClick={handleSave} disabled={!canManage}
@@ -4152,14 +4157,14 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-xs font-bold mb-1" style={{ color:'#0B0F2A' }}>Enrollment Link</div>
+            <div className="text-xs font-bold mb-1" style={{ color:'var(--text)' }}>Enrollment Link</div>
             <div className="flex items-center gap-2">
-              <code className="flex-1 text-[11px] px-3 py-2 rounded-lg truncate" style={{ background:'#f8faff', color: themeColor, border:'1px solid #eef0f6' }}>
+              <code className="flex-1 text-[11px] px-3 py-2 rounded-lg truncate" style={{ background:'var(--surface-2)', color: themeColor, border:'1px solid var(--border)' }}>
                 {enrollLink}
               </code>
               <button onClick={copyLink}
                 className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all"
-                style={{ background: copied ? '#d1fae5' : themeColor + '15', color: copied ? '#059669' : themeColor, border:`1px solid ${copied ? '#a7f3d0' : themeColor + '30'}` }}>
+                style={{ background: copied ? 'var(--tint-green)' : themeColor + '15', color: copied ? '#059669' : themeColor, border:`1px solid ${copied ? '#a7f3d0' : themeColor + '30'}` }}>
                 {copied ? '✓ Copied!' : 'Copy'}
               </button>
             </div>
@@ -4175,10 +4180,10 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
             className="px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all"
             style={activeTab === sec
               ? { background: SECTION_META[sec].color, color:'white' }
-              : { background:'#f1f5f9', color:'#64748b' }}>
+              : { background:'var(--surface-3)', color:'var(--text-muted)' }}>
             {SECTION_META[sec].label}
             <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[9px]"
-              style={{ background: activeTab === sec ? 'rgba(255,255,255,0.25)' : '#e2e8f0', color: activeTab === sec ? 'white' : '#94a3b8' }}>
+              style={{ background: activeTab === sec ? 'rgba(255,255,255,0.25)' : 'var(--border-strong)', color: activeTab === sec ? 'white' : 'var(--text-dim)' }}>
               {sectionFields(activeTab === sec ? activeTab : sec).filter(f=>f.enabled).length}/{sectionFields(activeTab === sec ? activeTab : sec).length}
             </span>
           </button>
@@ -4187,7 +4192,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
 
       {/* Field list */}
       <Card className="overflow-hidden">
-        <div className="px-5 py-3 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6', background: SECTION_META[activeTab].color + '08' }}>
+        <div className="px-5 py-3 border-b flex items-center justify-between" style={{ borderColor:'var(--border)', background: SECTION_META[activeTab].color + '08' }}>
           <div>
             <span className="text-sm font-bold" style={{ color: SECTION_META[activeTab].color }}>{SECTION_META[activeTab].label}</span>
             <span className="text-xs text-gray-400 ml-2">{sectionFields(activeTab).filter(f=>f.enabled).length} of {sectionFields(activeTab).length} fields enabled</span>
@@ -4204,7 +4209,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
           <div className="py-12 text-center text-sm text-gray-400">No fields in this section yet.</div>
         )}
 
-        <div className="divide-y" style={{ borderColor:'#f5f7fb' }}>
+        <div className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
           {sectionFields(activeTab).map((field) => {
             const absIdx = schema.findIndex(f => f.id === field.id);
             return (
@@ -4224,7 +4229,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
                 {/* Toggle on/off */}
                 <button onClick={() => !field.locked && toggle(field.id)}
                   className="w-9 h-5 rounded-full flex-shrink-0 transition-all relative"
-                  style={{ background: field.enabled ? SECTION_META[activeTab].color : '#e2e8f0', cursor: field.locked ? 'default' : 'pointer' }}
+                  style={{ background: field.enabled ? SECTION_META[activeTab].color : 'var(--border-strong)', cursor: field.locked ? 'default' : 'pointer' }}
                   title={field.locked ? 'This field cannot be disabled' : (field.enabled ? 'Disable field' : 'Enable field')}>
                   <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all"
                     style={{ left: field.enabled ? 'calc(100% - 18px)' : '2px' }} />
@@ -4233,7 +4238,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
                 {/* Field info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold truncate" style={{ color:'#0B0F2A' }}>{field.label}</span>
+                    <span className="text-sm font-semibold truncate" style={{ color:'var(--text)' }}>{field.label}</span>
                     {field.locked && <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-400 font-bold flex-shrink-0">CORE</span>}
                     {field.required && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0" style={{ background: SECTION_META[activeTab].color + '15', color: SECTION_META[activeTab].color }}>REQUIRED</span>}
                   </div>
@@ -4248,7 +4253,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
                   {!field.locked && (
                     <button onClick={() => toggleRequired(field.id)}
                       className="px-2 py-1 rounded-lg text-[10px] font-semibold transition-all"
-                      style={{ background: field.required ? SECTION_META[activeTab].color + '15' : '#f1f5f9', color: field.required ? SECTION_META[activeTab].color : '#94a3b8' }}
+                      style={{ background: field.required ? SECTION_META[activeTab].color + '15' : 'var(--surface-3)', color: field.required ? SECTION_META[activeTab].color : 'var(--text-dim)' }}
                       title="Toggle required">
                       {field.required ? 'Required' : 'Optional'}
                     </button>
@@ -4278,8 +4283,8 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
           style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
           onClick={() => setEditField(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Edit Field Label</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+              <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Edit Field Label</h3>
               <button onClick={() => setEditField(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6 space-y-4">
@@ -4289,13 +4294,13 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
                   value={editField.label}
                   onChange={e => setEditField(f => ({ ...f, label: e.target.value }))}
                   className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] focus:ring-2 focus:ring-[#1E45FC]/20 transition-all"
-                  style={{ borderColor:'#e2e8f0' }}
+                  style={{ borderColor:'var(--border-strong)' }}
                   onKeyDown={e => e.key === 'Enter' && saveLabel(editField.id, editField.label)} />
                 <p className="text-[10px] text-gray-400 mt-1">Field ID: <code className="font-mono">{editField.id}</code> · Type: {editField.type}</p>
               </div>
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setEditField(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={() => setEditField(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={() => saveLabel(editField.id, editField.label)} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: themeColor }}>Save</button>
             </div>
           </div>
@@ -4340,8 +4345,8 @@ function AddCustomFieldModal({ section, sectionMeta, onClose, onAdd }) {
       style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Add Custom Field</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Add Custom Field</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="p-6 space-y-4">
@@ -4365,14 +4370,14 @@ function AddCustomFieldModal({ section, sectionMeta, onClose, onAdd }) {
           <label className="flex items-center gap-3 cursor-pointer">
             <div onClick={() => setRequired(r => !r)}
               className="w-5 h-5 rounded flex items-center justify-center flex-shrink-0 transition-all"
-              style={{ background: required ? sectionMeta.color : 'white', border: `2px solid ${required ? sectionMeta.color : '#d1d5db'}` }}>
+              style={{ background: required ? sectionMeta.color : 'white', border: `2px solid ${required ? sectionMeta.color : 'var(--border-strong)'}` }}>
               {required && <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><path d="M2 6l3 3 5-5"/></svg>}
             </div>
             <span className="text-sm text-gray-600">Mark as required</span>
           </label>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: sectionMeta.color }}>Add Field</button>
         </div>
       </div>
@@ -4395,18 +4400,18 @@ function SaasOverviewPage() {
     <div className="animate-fade-in space-y-5">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Platform Overview</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Platform Overview</h2>
           <p className="text-sm text-gray-400 mt-0.5">Global · All tenants · May 2026</p>
         </div>
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background:'#f5f3ff', color:'#7c3aed' }}>SaaS Admin</span>
+        <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background:'var(--tint-violet)', color:'#7c3aed' }}>SaaS Admin</span>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label:'Active Schools',  value:active, delta:'', iconBg:'#e8ecff', iconColor:'#1E45FC', svgPath:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
-          { label:'Total Students',  value:totalStudents.toLocaleString(), delta:'', iconBg:'#d1fae5', iconColor:'#059669', svgPath:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
-          { label:'Platform MRR',    value:`UGX ${(totalMRR/1000000).toFixed(1)}M`, delta:'+12%', sub:'vs last month', iconBg:'#fef3c7', iconColor:'#d97706', svgPath:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
-          { label:'Billing Rate',    value:`UGX ${BILLING_RATE.toLocaleString()}`, delta:'', iconBg:'#f5f3ff', iconColor:'#7c3aed', svgPath:'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
+          { label:'Active Schools',  value:active, delta:'', iconBg:'var(--tint-blue)', iconColor:'#1E45FC', svgPath:'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z' },
+          { label:'Total Students',  value:totalStudents.toLocaleString(), delta:'', iconBg:'var(--tint-green)', iconColor:'#059669', svgPath:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75' },
+          { label:'Platform MRR',    value:`UGX ${(totalMRR/1000000).toFixed(1)}M`, delta:'+12%', sub:'vs last month', iconBg:'var(--tint-amber)', iconColor:'#d97706', svgPath:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
+          { label:'Billing Rate',    value:`UGX ${BILLING_RATE.toLocaleString()}`, delta:'', iconBg:'var(--tint-violet)', iconColor:'#7c3aed', svgPath:'M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z' },
         ].map((s,i) => (
           <StatCard key={i} {...s} />
         ))}
@@ -4414,18 +4419,18 @@ function SaasOverviewPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3.5 border-b" style={{ borderColor:'#eef0f6' }}>
-            <h3 className="font-bold text-sm" style={{ color:'#0B0F2A' }}>Top Tenants by Students</h3>
+          <div className="flex items-center justify-between px-5 py-3.5 border-b" style={{ borderColor:'var(--border)' }}>
+            <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>Top Tenants by Students</h3>
           </div>
           {[...tenants].sort((a,b)=>b.student_count-a.student_count).slice(0,4).map((t,i) => (
-            <div key={i} className="flex items-center gap-4 px-5 py-3 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor:'#f5f7fb' }}>
+            <div key={i} className="flex items-center gap-4 px-5 py-3 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor:'var(--border-subtle)' }}>
               <div className="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white flex-shrink-0" style={{ background:'#1E45FC' }}>{t.logo_initials}</div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold truncate" style={{ color:'#0B0F2A' }}>{t.name}</div>
+                <div className="text-sm font-semibold truncate" style={{ color:'var(--text)' }}>{t.name}</div>
                 <div className="text-xs text-gray-400 font-mono">{t.school_id}</div>
               </div>
               <div className="text-right flex-shrink-0">
-                <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>{t.student_count.toLocaleString()}</div>
+                <div className="text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</div>
                 <div className="text-xs text-gray-400">students</div>
               </div>
               <div className="text-right flex-shrink-0 hidden md:block">
@@ -4438,13 +4443,13 @@ function SaasOverviewPage() {
 
         <Card className="p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-sm" style={{ color:'#0B0F2A' }}>New School Signups</h3>
+            <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>New School Signups</h3>
             <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded-lg">↑ 8 this week</span>
           </div>
           <div className="flex items-end gap-1.5 h-28">
             {bars.map((h,i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                <div className="w-full rounded-t-lg" style={{ height:`${h}%`, background: i===5?'#A3CF2E':'#e8ecff', minHeight: 6 }}/>
+                <div className="w-full rounded-t-lg" style={{ height:`${h}%`, background: i===5?'#A3CF2E':'var(--tint-blue)', minHeight: 6 }}/>
                 <span className="text-[10px] text-gray-400">{days[i]}</span>
               </div>
             ))}
@@ -4467,7 +4472,7 @@ function SaasSchoolsPage({ roleId }) {
   const { toasts, show: toast } = useToast();
 
   const planCol = { Starter:'#1E45FC', Growth:'#059669', Enterprise:'#7c3aed' };
-  const planBg  = { Starter:'#e8ecff', Growth:'#d1fae5', Enterprise:'#f5f3ff' };
+  const planBg  = { Starter:'var(--tint-blue)', Growth:'var(--tint-green)', Enterprise:'var(--tint-violet)' };
 
   const doSuspend = (t) => {
     setSchools(ss => ss.map(s => s.school_id === t.school_id ? { ...s, status: s.status === 'active' ? 'suspended' : 'active' } : s));
@@ -4479,7 +4484,7 @@ function SaasSchoolsPage({ roleId }) {
     <div className="animate-fade-in space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>All Schools (Tenants)</h2>
+          <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>All Schools (Tenants)</h2>
           <p className="text-xs text-gray-400 mt-0.5">{schools.length} registered · tenant isolation enforced</p>
         </div>
         {canManage && (
@@ -4489,23 +4494,23 @@ function SaasSchoolsPage({ roleId }) {
       <Card className="overflow-hidden">
         <table className="w-full">
           <thead>
-            <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+            <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
               {['School / Tenant ID','District','Students','Plan','Status','Monthly Billing','Actions'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor:'#f5f7fb' }}>
+          <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
             {schools.map((t,i) => (
               <tr key={i} className="hover:bg-gray-50/50">
                 <td className="px-4 py-3">
-                  <div className="font-bold text-sm" style={{ color:'#0B0F2A' }}>{t.name}</div>
+                  <div className="font-bold text-sm" style={{ color:'var(--text)' }}>{t.name}</div>
                   <div className="text-xs font-mono text-gray-400">{t.school_id}</div>
                 </td>
                 <td className="px-4 py-3 text-sm text-gray-500">{t.district}</td>
-                <td className="px-4 py-3 text-sm font-bold" style={{ color:'#0B0F2A' }}>{t.student_count.toLocaleString()}</td>
+                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planBg[t.plan]??'#e8ecff', color:planCol[t.plan]??'#1E45FC' }}>{t.plan}</span>
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planBg[t.plan]??'var(--tint-blue)', color:planCol[t.plan]??'#1E45FC' }}>{t.plan}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status==='active'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
@@ -4598,8 +4603,8 @@ function OnboardSchoolModal({ onClose, onAdd }) {
       style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-          <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Onboard New School</h3>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+          <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Onboard New School</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
         </div>
         <div className="p-6 space-y-4">
@@ -4616,7 +4621,7 @@ function OnboardSchoolModal({ onClose, onAdd }) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Plan</label>
-              <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+              <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
                 {['Starter','Growth','Enterprise'].map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
@@ -4627,7 +4632,7 @@ function OnboardSchoolModal({ onClose, onAdd }) {
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
           <button onClick={handleAdd} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Onboard School</button>
         </div>
       </div>
@@ -4645,9 +4650,9 @@ function ManageSchoolModal({ tenant, onClose, onSave }) {
       style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
       onClick={onClose}>
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
           <div>
-            <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Manage School</h3>
+            <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Manage School</h3>
             <p className="text-xs text-gray-400 font-mono">{tenant.school_id}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -4655,32 +4660,32 @@ function ManageSchoolModal({ tenant, onClose, onSave }) {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">School Name</label>
-            <input value={form.name} onChange={e => set('name', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'#e2e8f0' }} />
+            <input value={form.name} onChange={e => set('name', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'var(--border-strong)' }} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">District</label>
-              <input value={form.district} onChange={e => set('district', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'#e2e8f0' }} />
+              <input value={form.district} onChange={e => set('district', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'var(--border-strong)' }} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">Plan</label>
-              <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'#e2e8f0' }}>
+              <select value={form.plan} onChange={e => set('plan', e.target.value)} className="w-full px-3 py-2.5 rounded-xl border text-sm bg-white outline-none" style={{ borderColor:'var(--border-strong)' }}>
                 {['Starter','Growth','Enterprise'].map(p => <option key={p}>{p}</option>)}
               </select>
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">Admin Email</label>
-            <input type="email" value={form.admin_email} onChange={e => set('admin_email', e.target.value)} placeholder="admin@school.ac.ug" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'#e2e8f0' }} />
+            <input type="email" value={form.admin_email} onChange={e => set('admin_email', e.target.value)} placeholder="admin@school.ac.ug" className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:border-[#1E45FC] transition-all" style={{ borderColor:'var(--border-strong)' }} />
           </div>
-          <div className="rounded-xl p-3 text-xs" style={{ background:'#f8faff', border:'1px solid #e8ecff' }}>
+          <div className="rounded-xl p-3 text-xs" style={{ background:'var(--surface-2)', border:'1px solid #e8ecff' }}>
             <span className="text-gray-400">Students: </span><strong>{tenant.student_count.toLocaleString()}</strong>
             <span className="mx-2 text-gray-300">·</span>
             <span className="text-gray-400">Billing: </span><strong className="text-green-700">UGX {calcBilling(tenant.school_id).toLocaleString()}/term</strong>
           </div>
         </div>
         <div className="flex gap-3 px-6 pb-6">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
           <button onClick={() => onSave({ ...tenant, ...form })} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Save Changes</button>
         </div>
       </div>
@@ -4707,50 +4712,50 @@ function SaasBillingPage({ roleId }) {
   return (
     <div className="animate-fade-in space-y-4">
       <div>
-        <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Billing</h2>
+        <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Billing</h2>
         <p className="text-xs text-gray-400 mt-0.5">UGX {BILLING_RATE.toLocaleString()} × students per term</p>
       </div>
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label:'Platform MRR',   value:`UGX ${(totalMRR/1000000).toFixed(2)}M`, delta:'+12% MoM',      color:'#1E45FC', bg:'#e8ecff' },
-          { label:'Active Schools', value:tenants.filter(t=>t.status==='active').length, delta:'paying tenants', color:'#059669', bg:'#d1fae5' },
-          { label:'Total Students', value:tenants.reduce((a,t)=>a+t.student_count,0).toLocaleString(), delta:'billed this term', color:'#7c3aed', bg:'#f5f3ff' },
+          { label:'Platform MRR',   value:`UGX ${(totalMRR/1000000).toFixed(2)}M`, delta:'+12% MoM',      color:'#1E45FC', bg:'var(--tint-blue)' },
+          { label:'Active Schools', value:tenants.filter(t=>t.status==='active').length, delta:'paying tenants', color:'#059669', bg:'var(--tint-green)' },
+          { label:'Total Students', value:tenants.reduce((a,t)=>a+t.student_count,0).toLocaleString(), delta:'billed this term', color:'#7c3aed', bg:'var(--tint-violet)' },
         ].map((s,i) => (
           <Card key={i} className="p-5">
             <div className="text-xs text-gray-400 mb-1">{s.label}</div>
-            <div className="text-2xl font-extrabold mb-0.5" style={{ color:'#0B0F2A' }}>{s.value}</div>
+            <div className="text-2xl font-extrabold mb-0.5" style={{ color:'var(--text)' }}>{s.value}</div>
             <div className="text-xs font-bold" style={{ color:s.color }}>{s.delta}</div>
           </Card>
         ))}
       </div>
       <Card className="overflow-hidden">
-        <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'#eef0f6' }}>
-          <h3 className="font-bold text-sm" style={{ color:'#0B0F2A' }}>Per-Tenant Billing</h3>
+        <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'var(--border)' }}>
+          <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>Per-Tenant Billing</h3>
           {canExport && (
             <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'#1E45FC' }}>Export Invoices →</button>
           )}
         </div>
         <table className="w-full">
           <thead>
-            <tr style={{ background:'#f8faff', borderBottom:'1px solid #eef0f6' }}>
+            <tr style={{ background:'var(--surface-2)', borderBottom:'1px solid var(--border)' }}>
               {['School','Tenant ID','Plan','Students','Rate','Term Billing'].map(h => (
                 <th key={h} className="text-left px-4 py-3 text-xs font-bold text-gray-400 uppercase tracking-wider">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y" style={{ borderColor:'#f5f7fb' }}>
+          <tbody className="divide-y" style={{ borderColor:'var(--border-subtle)' }}>
             {tenants.map((t,i) => (
               <tr key={i} className="hover:bg-gray-50/50">
-                <td className="px-4 py-3 text-sm font-bold" style={{ color:'#0B0F2A' }}>{t.name}</td>
+                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.name}</td>
                 <td className="px-4 py-3 text-xs font-mono text-gray-400">{t.school_id}</td>
                 <td className="px-4 py-3 text-sm text-gray-500">{t.plan}</td>
-                <td className="px-4 py-3 text-sm font-bold" style={{ color:'#0B0F2A' }}>{t.student_count.toLocaleString()}</td>
+                <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</td>
                 <td className="px-4 py-3 text-sm text-gray-400">UGX {BILLING_RATE.toLocaleString()}</td>
                 <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {calcBilling(t.school_id).toLocaleString()}</td>
               </tr>
             ))}
-            <tr style={{ background:'#f8faff', borderTop:'2px solid #eef0f6' }}>
-              <td colSpan={5} className="px-4 py-3 text-sm font-bold text-right" style={{ color:'#0B0F2A' }}>Total MRR</td>
+            <tr style={{ background:'var(--surface-2)', borderTop:'2px solid #eef0f6' }}>
+              <td colSpan={5} className="px-4 py-3 text-sm font-bold text-right" style={{ color:'var(--text)' }}>Total MRR</td>
               <td className="px-4 py-3 text-sm font-bold text-green-700">UGX {totalMRR.toLocaleString()}</td>
             </tr>
           </tbody>
@@ -4776,7 +4781,7 @@ function SaasOnboardingPage({ roleId }) {
   return (
     <div className="animate-fade-in space-y-4">
       <div>
-        <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Onboarding</h2>
+        <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Onboarding</h2>
         <p className="text-xs text-gray-400 mt-0.5">Manage new school provisioning</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -4788,19 +4793,19 @@ function SaasOnboardingPage({ roleId }) {
           <Card key={i} className="p-5 flex items-center gap-4">
             <div className="text-3xl">{s.icon}</div>
             <div>
-              <div className="text-2xl font-extrabold" style={{ color:'#0B0F2A' }}>{s.value}</div>
+              <div className="text-2xl font-extrabold" style={{ color:'var(--text)' }}>{s.value}</div>
               <div className="text-xs text-gray-400">{s.label}</div>
             </div>
           </Card>
         ))}
       </div>
-      <h3 className="font-bold text-sm" style={{ color:'#0B0F2A' }}>Recently Provisioned</h3>
+      <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>Recently Provisioned</h3>
       <div className="flex flex-col gap-3">
         {recent.map((t,i) => (
           <Card key={i} className="p-4 flex items-center gap-4">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0" style={{ background:'#1E45FC' }}>{t.logo_initials}</div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>{t.name}</div>
+              <div className="text-sm font-bold" style={{ color:'var(--text)' }}>{t.name}</div>
               <div className="flex items-center gap-3 mt-0.5">
                 <span className="text-xs font-mono text-gray-400">{t.school_id}</span>
                 <span className="text-xs text-gray-400">·</span>
@@ -4821,9 +4826,9 @@ function SaasOnboardingPage({ roleId }) {
           style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
           onClick={() => setConfigModal(null)}>
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
               <div>
-                <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Configure — {configModal.name}</h3>
+                <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Configure — {configModal.name}</h3>
                 <p className="text-xs font-mono text-gray-400">{configModal.school_id}</p>
               </div>
               <button onClick={() => setConfigModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
@@ -4846,7 +4851,7 @@ function SaasOnboardingPage({ roleId }) {
               ))}
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setConfigModal(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={() => setConfigModal(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={() => { toast(`Configuration saved for ${configModal.name}`); setConfigModal(null); }}
                 className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background:'#1E45FC' }}>Save Config</button>
             </div>
@@ -4873,25 +4878,25 @@ function SaasFeaturesPage({ roleId }) {
   const [updateModal, setUpdateModal] = useState(null);
   const { toasts, show: toast } = useToast();
 
-  const sc = { 'In Progress':'#059669', Planned:'#1E45FC', Reviewing:'#d97706', Backlog:'#94a3b8' };
-  const sb = { 'In Progress':'#d1fae5', Planned:'#e8ecff', Reviewing:'#fef3c7', Backlog:'#f1f5f9' };
+  const sc = { 'In Progress':'#059669', Planned:'#1E45FC', Reviewing:'#d97706', Backlog:'var(--text-dim)' };
+  const sb = { 'In Progress':'var(--tint-green)', Planned:'var(--tint-blue)', Reviewing:'var(--tint-amber)', Backlog:'var(--surface-3)' };
   const statuses = ['Backlog','Reviewing','Planned','In Progress','Shipped'];
 
   return (
     <div className="animate-fade-in space-y-4">
       <div>
-        <h2 className="text-lg font-extrabold" style={{ color:'#0B0F2A' }}>Feature Requests</h2>
+        <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Feature Requests</h2>
         <p className="text-xs text-gray-400 mt-0.5">Aggregated from all tenants</p>
       </div>
       <div className="flex flex-col gap-3">
         {features.map((f) => (
           <Card key={f.id} className="p-4 flex items-center gap-4 hover:shadow-sm transition-all">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background:'#f8faff', color:'#1E45FC' }}>{f.votes}</div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background:'var(--surface-2)', color:'#1E45FC' }}>{f.votes}</div>
             <div className="flex-1 min-w-0">
-              <div className="text-sm font-bold" style={{ color:'#0B0F2A' }}>{f.title}</div>
+              <div className="text-sm font-bold" style={{ color:'var(--text)' }}>{f.title}</div>
               <div className="text-xs text-gray-400">{f.school}</div>
             </div>
-            <span className="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0" style={{ background:sb[f.status]??'#f1f5f9', color:sc[f.status]??'#94a3b8' }}>{f.status}</span>
+            <span className="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0" style={{ background:sb[f.status]??'var(--surface-3)', color:sc[f.status]??'var(--text-dim)' }}>{f.status}</span>
             {canManage
               ? <button onClick={() => setUpdateModal({ ...f })} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Update</button>
               : <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
@@ -4905,12 +4910,12 @@ function SaasFeaturesPage({ roleId }) {
           style={{ background:'rgba(11,15,42,0.55)', backdropFilter:'blur(4px)' }}
           onClick={() => setUpdateModal(null)}>
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'#eef0f6' }}>
-              <h3 className="font-bold text-base" style={{ color:'#0B0F2A' }}>Update Feature Status</h3>
+            <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor:'var(--border)' }}>
+              <h3 className="font-bold text-base" style={{ color:'var(--text)' }}>Update Feature Status</h3>
               <button onClick={() => setUpdateModal(null)} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:bg-gray-100">✕</button>
             </div>
             <div className="p-6 space-y-4">
-              <div className="text-sm font-semibold" style={{ color:'#0B0F2A' }}>{updateModal.title}</div>
+              <div className="text-sm font-semibold" style={{ color:'var(--text)' }}>{updateModal.title}</div>
               <div className="text-xs text-gray-400">{updateModal.school} · {updateModal.votes} votes</div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-2">New Status</label>
@@ -4918,7 +4923,7 @@ function SaasFeaturesPage({ roleId }) {
                   {statuses.map(s => (
                     <button key={s} onClick={() => setUpdateModal(m => ({ ...m, status: s }))}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all text-left"
-                      style={updateModal.status === s ? { borderColor: sc[s]??'#1E45FC', background: sb[s]??'#e8ecff', color: sc[s]??'#1E45FC' } : { borderColor:'#e2e8f0', color:'#64748b' }}>
+                      style={updateModal.status === s ? { borderColor: sc[s]??'#1E45FC', background: sb[s]??'var(--tint-blue)', color: sc[s]??'#1E45FC' } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                       {updateModal.status === s && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                       {s}
                     </button>
@@ -4927,7 +4932,7 @@ function SaasFeaturesPage({ roleId }) {
               </div>
             </div>
             <div className="flex gap-3 px-6 pb-6">
-              <button onClick={() => setUpdateModal(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'#e2e8f0' }}>Cancel</button>
+              <button onClick={() => setUpdateModal(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold text-gray-600 hover:bg-gray-50" style={{ borderColor:'var(--border-strong)' }}>Cancel</button>
               <button onClick={() => {
                 setFeatures(fs => fs.map(f => f.id === updateModal.id ? { ...f, status: updateModal.status } : f));
                 toast(`"${updateModal.title}" marked as ${updateModal.status}`);

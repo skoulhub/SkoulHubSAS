@@ -35,9 +35,9 @@ accidentally show a teacher or parent the whole school.
 
 `src/lib/rbac.invariants.test.js` locks the pieces together: every role has metadata and
 navigation, every nav entry offered to a role is permitted for it, no permission is left
-unenforced, and the read-only guarantees hold — **a parent holds zero write permissions**,
-and a teacher may only mark attendance, enter marks, comment on report cards and contact
-parents.
+unenforced, every role can reach **My Profile**, and the read-only guarantees hold — **a parent
+holds zero write permissions**, and a teacher may only mark attendance, enter marks, comment on
+report cards and contact parents.
 
 > These checks are UI-level only — see [Security model](#-security-model-target).
 
@@ -53,7 +53,29 @@ parents.
 - **Finance** — fee payments (+ receipts), expenses, payroll (+ payslips), approvals queue
 - **ID Cards** — editable ID numbers with generated QR codes and card preview
 - **Notifications** — feed + broadcast composer (SMS/Email/Push)
-- **Settings** — tenant profile
+- **Settings** — tenant (school) profile
+- **My Profile** — personal info, **change email / phone** (6-digit verification), **password change**
+  with a strength meter, **two-factor authentication** (OTP / authenticator app / passkey + recovery
+  codes), active sessions, and **preferences**: appearance, notifications and locale
+
+### User profile & preferences
+Every role gets a **My Profile** screen (sidebar → *My Profile*, or click the avatar).
+- **Profile** — name, email change, phone change; each change is confirmed with a 6-digit code
+  (demo: any 6 digits). Account details (user ID, role, tenant) are read-only.
+- **Security** — password change with live requirement checklist, "email me a reset link",
+  MFA method picker, recovery-code regeneration and a session list.
+- **Preferences** — light / dark / **system** theme, email/SMS/push toggles, digest frequency,
+  language, time zone and date format.
+- **Forgot password?** on the sign-in screen starts a reset-link request.
+
+Preferences persist per user in `localStorage` (`src/lib/userPrefs.js`); profile fields are patched
+into the mock user registry (`updateUserProfile`) so a changed email can sign in.
+
+### Appearance (dark mode)
+The theme toggle re-themes the entire app without a reload. `src/lib/userPrefs.js` sets `.dark` on
+`<html>`; components read semantic CSS variables (`--surface`, `--text`, `--border`, `--tint-*`, …)
+declared in `src/index.css`, and a handful of bridges cover Tailwind utilities. `System` follows the
+OS preference and reacts to OS changes live.
 - **Enrollment** — public multi-step application form (generic or per-school via `?enroll=skh-xxx`)
   with a **Form Builder** to customise fields, fees and the shareable enrollment link
 
@@ -103,15 +125,18 @@ npm test           # Vitest unit tests (lib layer)
 src/
 ├── App.jsx               # view router: login / dashboard / enrollment / onboarding
 ├── pages/
-│   ├── Login.jsx         # school + email sign-in, demo accounts
+│   ├── Login.jsx         # school + email sign-in, demo accounts, forgot password
 │   ├── MFAFlow.jsx       # OTP / authenticator / passkey (simulated)
 │   ├── Onboarding.jsx    # self-service tenant provisioning
 │   ├── EnrollmentForm.jsx# public admission application form
+│   ├── Profile.jsx       # user profile, security (password/MFA), preferences, sessions
 │   └── Dashboard.jsx     # the role-based dashboard (all modules)
 └── lib/
     ├── tenantStore.js    # mock multi-tenant data layer + role-scoped queries
     ├── permissions.js    # role × permission matrix + nav gating
-    └── navigation.js     # per-role sidebar config (invariant-tested)
+    ├── navigation.js     # per-role sidebar config (invariant-tested)
+    ├── userPrefs.js      # theme, MFA / notification / locale preferences
+    └── validation.js     # email, phone, password-strength validators
 ```
 
 ## 🔒 Security model (target)

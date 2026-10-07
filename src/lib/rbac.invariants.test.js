@@ -58,6 +58,13 @@ describe('RBAC invariants — navigation vs permissions', () => {
     expect(stale).toEqual([]);
   });
 
+  it('every role can reach the personal profile screen', () => {
+    for (const role of Object.keys(NAV_BY_ROLE)) {
+      expect(NAV_BY_ROLE[role].some(i => i.id === 'profile'), `${role} has no profile entry`).toBe(true);
+      expect(navAllowed(role, 'profile'), `${role} cannot open the profile screen`).toBe(true);
+    }
+  });
+
   it('every nav-map value is a real permission', () => {
     const bogus = Object.values(NAV_PERMISSION_MAP).filter(p => !PERMISSIONS[p]);
     expect(bogus).toEqual([]);

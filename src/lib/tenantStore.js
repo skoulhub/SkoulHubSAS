@@ -179,13 +179,34 @@ export function getTeacherAssignment(user_id) {
 
 // ── Mock users (maps email → user record) ────────────────────
 const USERS = {
-  'admin@smck.ug':    { user_id: 'u-001', school_id: 'skh-001', role: 'school_admin', name: 'Agnes Namukwaya' },
-  'head@smck.ug':     { user_id: 'u-002', school_id: 'skh-001', role: 'head_teacher', name: 'Robert Ssemanda' },
-  'teacher@smck.ug':  { user_id: 'u-003', school_id: 'skh-001', role: 'teacher',      name: 'Grace Namutebi' },
-  'parent@smck.ug':   { user_id: 'u-004', school_id: 'skh-001', role: 'parent',       name: 'Peter Kabuye', children: ['Aisha Nakato', 'Grace Akello'] },
-  'bursar@smck.ug':   { user_id: 'u-005', school_id: 'skh-001', role: 'bursar',       name: 'James Okoye' },
-  'saas@skoulhub.com':{ user_id: 'u-000', school_id: null,      role: 'saas_admin',   name: 'SkoulHub Admin' },
+  'admin@smck.ug':    { user_id: 'u-001', school_id: 'skh-001', role: 'school_admin', name: 'Agnes Namukwaya', email: 'admin@smck.ug',    phone: '+256 700 111 001' },
+  'head@smck.ug':     { user_id: 'u-002', school_id: 'skh-001', role: 'head_teacher', name: 'Robert Ssemanda', email: 'head@smck.ug',     phone: '+256 700 111 002' },
+  'teacher@smck.ug':  { user_id: 'u-003', school_id: 'skh-001', role: 'teacher',      name: 'Grace Namutebi',  email: 'teacher@smck.ug',  phone: '+256 700 111 003' },
+  'parent@smck.ug':   { user_id: 'u-004', school_id: 'skh-001', role: 'parent',       name: 'Peter Kabuye',    email: 'parent@smck.ug',   phone: '+256 700 111 004', children: ['Aisha Nakato', 'Grace Akello'] },
+  'bursar@smck.ug':   { user_id: 'u-005', school_id: 'skh-001', role: 'bursar',       name: 'James Okoye',     email: 'bursar@smck.ug',   phone: '+256 700 111 005' },
+  'saas@skoulhub.com':{ user_id: 'u-000', school_id: null,      role: 'saas_admin',   name: 'SkoulHub Admin',  email: 'saas@skoulhub.com', phone: '+256 700 111 000' },
 };
+
+/**
+ * Update a user's profile (name / email / phone …).
+ * Re-keys the registry when the email changes so the new address can sign in.
+ * In production this is a PATCH /me call with the same re-keying in the DB.
+ */
+export function updateUserProfile(currentEmail, patch) {
+  const key = String(currentEmail ?? '').toLowerCase();
+  const user = USERS[key];
+  if (!user) return null;
+
+  Object.assign(user, patch);
+
+  if (patch?.email && patch.email.toLowerCase() !== key) {
+    const nextKey = patch.email.toLowerCase();
+    delete USERS[key];
+    user.email = patch.email;
+    USERS[nextKey] = user;
+  }
+  return user;
+}
 
 /**
  * Children visible to a parent user (empty for non-parent roles).
@@ -355,6 +376,8 @@ export function resolveUser(email, roleId) {
     school_id: fallbackSchool,
     role:      roleId,
     name:      email.split('@')[0],
+    email,
+    phone:     '',
   };
 }
 

@@ -3,7 +3,7 @@ import {
   queryStudents, queryTeachers, queryParents, queryPayments,
   queryTenant, queryAllTenants, provisionTenant, lookupUser, resolveUser,
   calcBilling, BILLING_RATE, getFormSchema, DEFAULT_FORM_SCHEMA, parentChildren,
-  scopedStudents, scopedParents,
+  scopedStudents, scopedParents, updateUserProfile,
 } from './tenantStore';
 
 describe('tenantStore — tenant isolation', () => {
@@ -62,8 +62,7 @@ describe('tenantStore — provisioning', () => {
   });
 });
 
-describe('tenantStore — auth helpers', () => {
-  it('lookupUser matches case-insensitively and returns null for unknown emails', () => {
+describe('tenantStore — auth helpers', () => {  it('lookupUser matches case-insensitively and returns null for unknown emails', () => {
     expect(lookupUser('ADMIN@SMCK.UG').role).toBe('school_admin');
     expect(lookupUser('ghost@nowhere.ug')).toBeNull();
   });
@@ -135,5 +134,31 @@ describe('tenantStore — form schema', () => {
     for (const lockedId of ['entry_class', 'first_name', 'parent_name']) {
       expect(schema.some(f => f.id === lockedId && f.locked)).toBe(true);
     }
+  });
+});
+
+describe('tenantStore — profile updates', () => {
+  it('updates name and phone in place', () => {
+    provisionTenant({
+      schoolName: 'Profile Test School', district: 'Kampala',
+      adminEmail: 'profile.test@x.ug', adminName: 'Profile Tester',
+    });
+    const updated = updateUserProfile('profile.test@x.ug', { name: 'Renamed Tester', phone: '+256 700 999 888' });
+    expect(updated.name).toBe('Renamed Tester');
+    expect(lookupUser('profile.test@x.ug')).toMatchObject({ name: 'Renamed Tester', phone: '+256 700 999 888' });
+  });
+
+  it('re-keys the registry when the email changes so the new address can sign in', () => {
+    const before = lookupUser('profile.test@x.ug');
+    updateUserProfile('profile.test@x.ug', { email: 'new.profile@x.ug' });
+
+    expect(lookupUser('profile.test@x.ug')).toBeNull();                  // old address retired
+    const after = lookupUser('new.profile@x.ug');
+    expect(after.email).toBe('new.profile@x.ug');
+    expect(after.user_id).toBe(before.user_id);                          // same account, new key
+  });
+
+  it('returns null for an unknown user', () => {
+    expect(updateUserProfile('ghost@nowhere.ug', { name: 'x' })).toBeNull();
   });
 });
