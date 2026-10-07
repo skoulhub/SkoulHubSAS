@@ -76,6 +76,12 @@ The theme toggle re-themes the entire app without a reload. `src/lib/userPrefs.j
 `<html>`; components read semantic CSS variables (`--surface`, `--text`, `--border`, `--tint-*`, …)
 declared in `src/index.css`, and a handful of bridges cover Tailwind utilities. `System` follows the
 OS preference and reacts to OS changes live.
+
+The dark palette is a **soft slate rather than near-black** — the page sits at `#1b202a` with cards a
+step lighter at `#282e3d` so elevation reads. Accent *text* colours (`--accent`, `--ok`, `--warn`,
+`--danger`, `--violet`, `--info`) are lightened in dark mode, while solid fills keep the saturated
+brand value for white text. Every text/surface pairing clears **WCAG AA** (primary 11.6:1, muted
+6.9:1, secondary 4.5:1, accents 4.9–8.4:1).
 - **Enrollment** — public multi-step application form (generic or per-school via `?enroll=skh-xxx`)
   with a **Form Builder** to customise fields, fees and the shareable enrollment link
 

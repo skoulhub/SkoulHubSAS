@@ -69,7 +69,7 @@ export default function MFAFlow({ role, email, onBack, onSuccess }) {
               {role?.label && (
                 <>
                   <span className="text-brand-blue/40">·</span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: 'var(--accent)' }}>
                     {role.label}
                   </span>
                 </>
@@ -96,7 +96,7 @@ export default function MFAFlow({ role, email, onBack, onSuccess }) {
                     <span className="font-semibold text-sm text-brand-navy">{m.label}</span>
                     {m.badge && (
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full"
-                        style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : 'var(--tint-blue)', color: m.badge === 'Recommended' ? '#1a2a00' : '#1E45FC' }}>
+                        style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : 'var(--tint-blue)', color: m.badge === 'Recommended' ? '#1a2a00' : 'var(--accent)' }}>
                         {m.badge}
                       </span>
                     )}

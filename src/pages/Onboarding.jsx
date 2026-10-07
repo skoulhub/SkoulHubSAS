@@ -16,7 +16,7 @@ const PLANS = [
     price: 'UGX 10,000',
     unit: '/ student / term',
     max: '300 students',
-    color: '#1E45FC',
+    color: 'var(--accent)',
     bg: 'var(--tint-blue)',
     features: ['Attendance','Fee Collection','SMS (50/mo)','Email Support'],
   },
@@ -26,7 +26,7 @@ const PLANS = [
     price: 'UGX 8,500',
     unit: '/ student / term',
     max: '1,000 students',
-    color: '#059669',
+    color: 'var(--ok)',
     bg: 'var(--tint-green)',
     badge: 'Most Popular',
     features: ['Everything in Starter','Exam Results','Report Cards','Unlimited SMS','Priority Support'],
@@ -37,7 +37,7 @@ const PLANS = [
     price: 'Custom',
     unit: 'contact us',
     max: 'Unlimited',
-    color: '#7c3aed',
+    color: 'var(--violet)',
     bg: 'var(--tint-violet)',
     features: ['Everything in Growth','Multi-School','Custom Branding','API Access','Dedicated Manager'],
   },
@@ -287,7 +287,7 @@ export default function Onboarding({ onComplete, onBackToLogin }) {
                     {m.badge && (
                       <span className="text-xs font-bold px-1.5 py-0.5 rounded-full"
                         style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : 'var(--tint-blue)',
-                                 color: m.badge === 'Recommended' ? '#0B0F2A' : '#1E45FC', fontSize: '10px' }}>
+                                 color: m.badge === 'Recommended' ? '#0B0F2A' : 'var(--accent)', fontSize: '10px' }}>
                         {m.badge}
                       </span>
                     )}

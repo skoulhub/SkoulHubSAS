@@ -171,7 +171,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
     setTimeout(() => setToast(t => (t && t.id === id ? null : t)), 3200);
   };
 
-  const rl = ROLE_META[currentUser?.role] ?? { label: currentUser?.role, color: '#1E45FC', bg: '#e8ecff' };
+  const rl = ROLE_META[currentUser?.role] ?? { label: currentUser?.role, color: 'var(--accent)', bg: '#e8ecff' };
   const email = currentUser?.email ?? '';
   const phone = currentUser?.phone ?? '';
 
@@ -285,7 +285,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
               <h2 className="text-lg font-extrabold truncate" style={{ color: 'var(--text)' }}>{currentUser?.name}</h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: rl.bg, color: rl.color }}>{rl.label}</span>
               {prefs.mfa.enabled && (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-green)', color: '#059669' }}>2FA on</span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-green)', color: 'var(--ok)' }}>2FA on</span>
               )}
             </div>
             <p className="text-xs mt-0.5 truncate" style={{ color: 'var(--text-dim)' }}>
@@ -447,7 +447,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
                       ['noSpace', 'No spaces'],
                     ].map(([key, label]) => (
                       <li key={key} className="flex items-center gap-1.5 text-[11px]"
-                        style={{ color: checks[key] ? '#059669' : 'var(--text-dim)' }}>
+                        style={{ color: checks[key] ? 'var(--ok)' : 'var(--text-dim)' }}>
                         <span>{checks[key] ? '✓' : '○'}</span>{label}
                       </li>
                     ))}
@@ -486,13 +486,13 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
                         <span className="text-sm font-bold" style={{ color: 'var(--text)' }}>{m.label}</span>
                         {m.badge && (
                           <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full"
-                            style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : 'var(--tint-blue)', color: m.badge === 'Recommended' ? '#1a2a00' : '#1E45FC' }}>
+                            style={{ background: m.badge === 'Recommended' ? '#A3CF2E' : 'var(--tint-blue)', color: m.badge === 'Recommended' ? '#1a2a00' : 'var(--accent)' }}>
                             {m.badge}
                           </span>
                         )}
                       </div>
                       <p className="text-[11px] mt-1" style={{ color: 'var(--text-dim)' }}>{m.desc}</p>
-                      {active && <p className="text-[10px] font-bold mt-2" style={{ color: '#1E45FC' }}>✓ Active</p>}
+                      {active && <p className="text-[10px] font-bold mt-2" style={{ color: 'var(--accent)' }}>✓ Active</p>}
                     </button>
                   );
                 })}
@@ -573,7 +573,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
                       <div className="text-xl mb-1.5">{opt.icon}</div>
                       <div className="text-sm font-bold" style={{ color: 'var(--text)' }}>{opt.label}</div>
                       <div className="text-[11px] mt-0.5" style={{ color: 'var(--text-dim)' }}>{opt.desc}</div>
-                      {active && <div className="text-[10px] font-bold mt-2" style={{ color: '#1E45FC' }}>✓ Selected</div>}
+                      {active && <div className="text-[10px] font-bold mt-2" style={{ color: 'var(--accent)' }}>✓ Selected</div>}
                     </button>
                   );
                 })}
@@ -645,7 +645,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
                 <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface-2)' }}>💻</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>
-                    {s.device} {s.current && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1" style={{ background: 'var(--tint-green)', color: '#059669' }}>This device</span>}
+                    {s.device} {s.current && <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1" style={{ background: 'var(--tint-green)', color: 'var(--ok)' }}>This device</span>}
                   </div>
                   <div className="text-[11px]" style={{ color: 'var(--text-dim)' }}>{s.location} · {s.last}</div>
                 </div>

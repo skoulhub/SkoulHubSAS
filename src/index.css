@@ -9,6 +9,11 @@
    Light is the default; `.dark` on <html> (set by lib/userPrefs.js)
    flips the semantic tokens. Components reference these variables
    so a single toggle re-themes the whole app.
+
+   Dark is a soft slate rather than a near-black navy: the page sits
+   at ~#1b202a with cards one step lighter (#282e3d) so elevation
+   reads, and accents are lightened so every text/background pair
+   clears WCAG AA on its surface.
    ───────────────────────────────────────────────────────────── */
 :root {
   --app-bg:          #f0f2f8;
@@ -25,6 +30,15 @@
   --surface-translucent: rgba(255, 255, 255, 0.9);
   --page-gradient:   linear-gradient(135deg, #f0f4ff 0%, #fafbff 60%, #f5f3ff 100%);
 
+  /* accent text colours (solid fills keep the saturated brand value) */
+  --accent:          #1E45FC;
+  --ok:              #059669;
+  --warn:            #d97706;
+  --danger:          #dc2626;
+  --violet:          #7c3aed;
+  --info:            #0891b2;
+  --pink:            #db2777;
+
   --tint-blue:       #e8ecff;
   --tint-green:      #d1fae5;
   --tint-amber:      #fef3c7;
@@ -35,27 +49,36 @@
 }
 
 html.dark {
-  --app-bg:          #0b1020;
-  --surface:         #151b2e;
-  --surface-2:       #1b2237;
-  --surface-3:       #232c45;
-  --border:          #262f4a;
-  --border-strong:   #313b5c;
-  --border-subtle:   #1f2740;
-  --text:            #e9edf9;
-  --text-muted:      #a6b1cd;
-  --text-dim:        #7381a3;
-  --sidebar:         #070a16;
-  --surface-translucent: rgba(21, 27, 46, 0.88);
-  --page-gradient:   linear-gradient(135deg, #0b1020 0%, #10162b 60%, #140f2c 100%);
+  --app-bg:          #1b202a;
+  --surface:         #282e3d;
+  --surface-2:       #2f3646;
+  --surface-3:       #394154;
+  --border:          #3f4759;
+  --border-strong:   #525d73;
+  --border-subtle:   #333b4b;
+  --text:            #eaedf4;
+  --text-muted:      #b0b9c9;
+  --text-dim:        #8b95a8;
+  --sidebar:         #141821;
+  --surface-translucent: rgba(40, 46, 61, 0.9);
+  --page-gradient:   linear-gradient(135deg, #1b202a 0%, #212736 60%, #241f31 100%);
 
-  --tint-blue:       rgba(30, 69, 252, 0.22);
-  --tint-green:      rgba(5, 150, 105, 0.22);
-  --tint-amber:      rgba(217, 119, 6, 0.22);
-  --tint-red:        rgba(220, 38, 38, 0.22);
-  --tint-violet:     rgba(124, 58, 237, 0.22);
-  --tint-sky:        rgba(8, 145, 178, 0.22);
-  --tint-pink:       rgba(219, 39, 119, 0.22);
+  /* lightened so accent text stays legible on the slate surfaces */
+  --accent:          #8aa4ff;
+  --ok:              #4ade80;
+  --warn:            #fbbf24;
+  --danger:          #f87171;
+  --violet:          #b9a3ff;
+  --info:            #4dd0e1;
+  --pink:            #f472b6;
+
+  --tint-blue:       rgba(30, 69, 252, 0.20);
+  --tint-green:      rgba(5, 150, 105, 0.20);
+  --tint-amber:      rgba(217, 119, 6, 0.20);
+  --tint-red:        rgba(220, 38, 38, 0.20);
+  --tint-violet:     rgba(124, 58, 237, 0.20);
+  --tint-sky:        rgba(8, 145, 178, 0.20);
+  --tint-pink:       rgba(219, 39, 119, 0.20);
 }
 
 * {

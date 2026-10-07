@@ -302,7 +302,7 @@ function NotifDropdown() {
       style={{ borderColor: 'var(--border)' }}>
       <div className="px-4 py-3 border-b flex items-center justify-between" style={{ borderColor: '#f0f0f0' }}>
         <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>Notifications</span>
-        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>3 new</span>
+        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: 'var(--accent)' }}>3 new</span>
       </div>
       {notifs.map((n, i) => (
         <div key={i} className="flex items-start gap-3 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b last:border-0"
@@ -505,10 +505,10 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                 <div className="flex gap-2 flex-wrap">
                   <span className="text-xs font-bold px-2.5 py-1 rounded-full"
                     style={{ background: st?.fee === 'Paid' ? 'var(--tint-green)' : st?.fee === 'Partial' ? 'var(--tint-amber)' : 'var(--tint-red)',
-                             color: st?.fee === 'Paid' ? '#059669' : st?.fee === 'Partial' ? '#d97706' : '#dc2626' }}>
+                             color: st?.fee === 'Paid' ? 'var(--ok)' : st?.fee === 'Partial' ? '#d97706' : '#dc2626' }}>
                     Fees: {st?.fee ?? '—'}
                   </span>
-                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
+                  <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: 'var(--tint-blue)', color: 'var(--accent)' }}>
                     Avg {avg}% · {grade}
                   </span>
                 </div>
@@ -516,15 +516,15 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
                 <div className="rounded-xl p-3 text-center" style={{ background: 'var(--surface-2)' }}>
-                  <div className="text-lg font-extrabold" style={{ color: '#1E45FC' }}>{st?.class ?? '—'}</div>
+                  <div className="text-lg font-extrabold" style={{ color: 'var(--accent)' }}>{st?.class ?? '—'}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Class</div>
                 </div>
                 <div className="rounded-xl p-3 text-center" style={{ background: '#f0fdf4' }}>
-                  <div className="text-lg font-extrabold" style={{ color: '#059669' }}>{st?.status ?? '—'}</div>
+                  <div className="text-lg font-extrabold" style={{ color: 'var(--ok)' }}>{st?.status ?? '—'}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Status</div>
                 </div>
                 <div className="rounded-xl p-3 text-center" style={{ background: 'var(--tint-amber)' }}>
-                  <div className="text-lg font-extrabold" style={{ color: '#d97706' }}>UGX {paidTotal.toLocaleString()}</div>
+                  <div className="text-lg font-extrabold" style={{ color: 'var(--warn)' }}>UGX {paidTotal.toLocaleString()}</div>
                   <div className="text-[10px] text-gray-400 mt-0.5">Paid This Term</div>
                 </div>
               </div>
@@ -537,7 +537,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                       <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                         <span className="font-semibold" style={{ color: 'var(--text)' }}>UGX {p.amount}</span>
                         <span className="text-gray-400">{p.method} · {p.date}</span>
-                        <span className="font-bold" style={{ color: p.status === 'Confirmed' ? '#059669' : '#d97706' }}>{p.status}</span>
+                        <span className="font-bold" style={{ color: p.status === 'Confirmed' ? 'var(--ok)' : '#d97706' }}>{p.status}</span>
                       </div>
                     ))}
                   </div>
@@ -578,11 +578,11 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
 
   // School-wide timetable coverage for head teacher
   const HEAD_COVERAGE = [
-    { dept: 'Sciences',     covered: 8, total: 8, color: '#1E45FC' },
-    { dept: 'Languages',    covered: 6, total: 7, color: '#059669' },
-    { dept: 'Mathematics',  covered: 5, total: 5, color: '#0891b2' },
-    { dept: 'Humanities',   covered: 4, total: 6, color: '#d97706' },
-    { dept: 'Technical',    covered: 3, total: 4, color: '#7c3aed' },
+    { dept: 'Sciences',     covered: 8, total: 8, color: 'var(--accent)' },
+    { dept: 'Languages',    covered: 6, total: 7, color: 'var(--ok)' },
+    { dept: 'Mathematics',  covered: 5, total: 5, color: 'var(--info)' },
+    { dept: 'Humanities',   covered: 4, total: 6, color: 'var(--warn)' },
+    { dept: 'Technical',    covered: 3, total: 4, color: 'var(--violet)' },
   ];
 
   // Quick links to other modules are handled by the sidebar — no separate widget
@@ -671,7 +671,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                   <div key={cls}>
                     <div className="flex justify-between text-xs mb-1">
                       <span className="font-medium text-gray-700">{cls}</span>
-                      <span className="font-bold" style={{ color: '#1E45FC' }}>{score}%</span>
+                      <span className="font-bold" style={{ color: 'var(--accent)' }}>{score}%</span>
                     </div>
                     <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
                       <div className="h-full rounded-full" style={{ width: `${score}%`, background: '#1E45FC' }} />
@@ -707,7 +707,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
             </div>
             <div className="space-y-2.5 flex-1">
               {[
-                { label: 'Present', pct: '85%', color: '#1E45FC' },
+                { label: 'Present', pct: '85%', color: 'var(--accent)' },
                 { label: 'Absent',  pct: '10%', color: '#f97316' },
                 { label: 'Late',    pct: '5%',  color: '#22c55e' },
               ].map((item) => (
@@ -725,7 +725,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
         <Card className="lg:col-span-1 flex flex-col">
           <div className="flex items-center justify-between px-4 py-3.5 border-b" style={{ borderColor: 'var(--border)' }}>
             <h3 className="font-bold text-sm" style={{ color: 'var(--text)' }}>Recent Activities</h3>
-            <button className="text-xs font-semibold" style={{ color: '#1E45FC' }}>View all</button>
+            <button className="text-xs font-semibold" style={{ color: 'var(--accent)' }}>View all</button>
           </div>
           <div className="flex-1 divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
             {recentActivities.map((a, i) => (
@@ -762,7 +762,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
               </div>
               <div className="flex items-center gap-3">
                 <div className="text-center">
-                  <div className="text-base font-extrabold" style={{ color: '#1E45FC' }}>{periodsTeaching}</div>
+                  <div className="text-base font-extrabold" style={{ color: 'var(--accent)' }}>{periodsTeaching}</div>
                   <div className="text-[9px] text-gray-400 uppercase tracking-wide">Periods</div>
                 </div>
                 <div className="w-px h-8 bg-gray-100" />
@@ -780,7 +780,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                 <div className="w-2 h-2 rounded-full flex-shrink-0 animate-pulse"
                   style={{ background: currentClass ? '#1E45FC' : '#22c55e' }} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold truncate" style={{ color: currentClass ? '#1E45FC' : '#15803d' }}>
+                  <p className="text-xs font-bold truncate" style={{ color: currentClass ? 'var(--accent)' : '#15803d' }}>
                     {currentClass ? 'Now in progress' : 'Up next'}
                   </p>
                   <p className="text-[11px] text-gray-600 truncate">
@@ -823,7 +823,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                     {/* Room badge */}
                     {p.room !== '—' && (
                       <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md flex-shrink-0"
-                        style={{ background: isCurrent ? 'var(--tint-blue)' : 'var(--surface-2)', color: isCurrent ? '#1E45FC' : 'var(--text-muted)' }}>
+                        style={{ background: isCurrent ? 'var(--tint-blue)' : 'var(--surface-2)', color: isCurrent ? 'var(--accent)' : 'var(--text-muted)' }}>
                         {p.room}
                       </span>
                     )}
@@ -844,10 +844,10 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
             {/* Mini stat cards */}
             <div className="grid grid-cols-2 gap-3">
               {[
-                { label: 'Periods Today',   value: periodsTeaching, icon: 'M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0', color: '#1E45FC', bg: 'var(--tint-blue)' },
+                { label: 'Periods Today',   value: periodsTeaching, icon: 'M12 8v4l3 3M21 12a9 9 0 11-18 0 9 9 0 0118 0', color: 'var(--accent)', bg: 'var(--tint-blue)' },
                 { label: 'Free Periods',    value: freePeriods,     icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z', color: '#22c55e', bg: '#f0fdf4' },
-                { label: isTeacher ? 'Classes Covered' : 'Depts Today', value: isTeacher ? (assignment?.classes.length ?? 0) : 3, icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', color: '#0891b2', bg: 'var(--tint-sky)' },
-                { label: 'Lessons This Week', value: isTeacher ? 14 : 22, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: '#7c3aed', bg: 'var(--tint-violet)' },
+                { label: isTeacher ? 'Classes Covered' : 'Depts Today', value: isTeacher ? (assignment?.classes.length ?? 0) : 3, icon: 'M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z', color: 'var(--info)', bg: 'var(--tint-sky)' },
+                { label: 'Lessons This Week', value: isTeacher ? 14 : 22, icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z', color: 'var(--violet)', bg: 'var(--tint-violet)' },
               ].map(s => (
                 <div key={s.label} className="rounded-xl p-3 flex items-center gap-2.5" style={{ background: s.bg, border: `1px solid ${s.color}22` }}>
                   <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: 'var(--surface)' }}>
@@ -874,7 +874,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
                       dept: cls,
                       covered: [5, 4, 6][i % 3],
                       total: 6,
-                      color: ['#1E45FC','#0891b2','#7c3aed'][i % 3],
+                      color: ['var(--accent)','#0891b2','#7c3aed'][i % 3],
                     }))
                   : HEAD_COVERAGE
                 ).map(item => (
@@ -953,7 +953,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
 
       {/* Teacher scope notice */}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: 'var(--info)', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing students from your assigned classes: <strong className="ml-1">{assignment.classes.join(', ')}</strong>
         </div>
@@ -969,7 +969,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
           assignment?.classes.map(cls => (
             <button key={cls} onClick={() => setFilter(filter === cls ? 'all' : cls)}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-              style={filter === cls ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
+              style={filter === cls ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: 'var(--accent)' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
               {cls}
             </button>
           ))
@@ -977,7 +977,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
           ['all', 'active', 'inactive'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-              style={filter === f ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
+              style={filter === f ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: 'var(--accent)' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
               {f === 'all' ? 'All' : f}
             </button>
           ))
@@ -998,7 +998,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
               <tr key={s.id} className="hover:bg-gray-50/50 transition-colors">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0" style={{ background: 'var(--tint-blue)', color: 'var(--accent)' }}>
                       {s.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                     </div>
                     <span className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{s.name}</span>
@@ -1016,7 +1016,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex gap-2">
-                    <button onClick={() => setViewStudent(s)} className="text-xs font-semibold hover:underline" style={{ color: '#1E45FC' }}>View</button>
+                    <button onClick={() => setViewStudent(s)} className="text-xs font-semibold hover:underline" style={{ color: 'var(--accent)' }}>View</button>
                     {can(roleId, 'students.edit') && <button onClick={() => setEditStudent(s)} className="text-xs text-gray-400 hover:text-gray-600">Edit</button>}
                     {can(roleId, 'students.delete') && <button onClick={() => setDeleteStudent(s)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Delete</button>}
                   </div>
@@ -1236,7 +1236,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
 
       {/* Teacher scope notice */}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: 'var(--info)', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing parents of students in: <strong className="ml-1">{assignment.classes.join(', ')}</strong>
         </div>
@@ -1274,7 +1274,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
         {['all', 'active', 'inactive'].map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-            style={filter === f ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
+            style={filter === f ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: 'var(--accent)' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
             {f === 'all' ? 'All' : f}
           </button>
         ))}
@@ -1323,7 +1323,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {p.children.map(c => (
-                      <span key={c} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>{c}</span>
+                      <span key={c} className="text-[11px] font-semibold px-2 py-0.5 rounded-full" style={{ background: 'var(--tint-blue)', color: 'var(--accent)' }}>{c}</span>
                     ))}
                   </div>
                 </td>
@@ -1340,7 +1340,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
                 {/* Status */}
                 <td className="px-4 py-3">
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                    style={p.status === 'Active' ? { background: 'var(--tint-green)', color: '#059669' } : { background: '#f3f4f6', color: '#6b7280' }}>
+                    style={p.status === 'Active' ? { background: 'var(--tint-green)', color: 'var(--ok)' } : { background: '#f3f4f6', color: 'var(--text-muted)' }}>
                     {p.status}
                   </span>
                 </td>
@@ -1481,7 +1481,7 @@ function ContactParentModal({ parent, onClose, onSent }) {
               {[{ id:'sms', label:'SMS', icon:'💬' }, { id:'email', label:'Email', icon:'📧' }, { id:'call', label:'Call Log', icon:'📞' }].map(c => (
                 <button key={c.id} onClick={() => setChannel(c.id)}
                   className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-semibold transition-all"
-                  style={channel === c.id ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
+                  style={channel === c.id ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: 'var(--accent)' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
                   <span>{c.icon}</span>{c.label}
                 </button>
               ))}
@@ -1651,7 +1651,7 @@ function TeachersPage({ roleId, schoolId }) {
         {teachers.map((t, i) => (
           <Card key={i} className="p-5 hover:shadow-md transition-all">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: 'var(--tint-blue)', color: '#1E45FC' }}>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0" style={{ background: 'var(--tint-blue)', color: 'var(--accent)' }}>
                 {t.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
               </div>
               <div className="flex-1 min-w-0">
@@ -1989,7 +1989,7 @@ function AssignClassModal({ teacher, onClose, onSave }) {
                     <button key={cls} onClick={() => toggle(cls)}
                       className="text-xs font-semibold px-3 py-1.5 rounded-xl border transition-all"
                       style={active
-                        ? { background: 'var(--tint-blue)', color: '#1E45FC', borderColor: '#1E45FC' }
+                        ? { background: 'var(--tint-blue)', color: 'var(--accent)', borderColor: '#1E45FC' }
                         : { background: 'var(--surface)', color: 'var(--text-muted)', borderColor: 'var(--border-strong)' }}>
                       {active && <span className="mr-1">✓</span>}{cls}
                     </button>
@@ -2014,7 +2014,7 @@ function AssignClassModal({ teacher, onClose, onSave }) {
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1E45FC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0">
                 <path d="M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5"/>
               </svg>
-              <div className="text-xs" style={{ color: '#1E45FC' }}>
+              <div className="text-xs" style={{ color: 'var(--accent)' }}>
                 <strong>{teacher.name}</strong> will teach <strong>{selectedSubject || '—'}</strong> in:{' '}
                 <span className="font-medium">{selectedClasses.join(', ')}</span>
               </div>
@@ -2070,14 +2070,14 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
       </div>
 
       {isParent && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: '#92400e', border: '1px solid #fde68a' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: 'var(--warn)', border: '1px solid #fde68a' }}>
           <span>👨‍👩‍👧</span>
           Showing attendance for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
       )}
 
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: 'var(--info)', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Marking attendance for your assigned classes: <strong className="ml-1">{assignment.classes.join(', ')}</strong>
         </div>
@@ -2087,7 +2087,7 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
         {classes.map(c => (
           <button key={c} onClick={() => setSel(c)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-            style={selClass === c ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
+            style={selClass === c ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: 'var(--accent)' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
             {c}
           </button>
         ))}
@@ -2109,7 +2109,7 @@ function AttendancePage({ roleId, schoolId, currentUser }) {
           <div key={s.id} className="flex items-center gap-3 px-4 py-3 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor: 'var(--border-subtle)' }}>
             <div className="flex items-center gap-2.5 flex-1 min-w-0">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={{ background: s.present ? 'var(--tint-blue)' : 'var(--tint-red)', color: s.present ? '#1E45FC' : '#dc2626' }}>
+                style={{ background: s.present ? 'var(--tint-blue)' : 'var(--tint-red)', color: s.present ? 'var(--accent)' : '#dc2626' }}>
                 {s.name.split(' ').map(w=>w[0]).join('').slice(0,2)}
               </div>
               <span className="text-sm font-semibold truncate" style={{ color: 'var(--text)' }}>{s.name}</span>
@@ -2202,7 +2202,7 @@ function TimetablePage({ roleId, currentUser }) {
         {['school','teacher','prep','meals'].map(t => (
           <button key={t} onClick={() => setTab(t)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-            style={tab === t ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: '#1E45FC' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
+            style={tab === t ? { borderColor: '#1E45FC', background: 'var(--tint-blue)', color: 'var(--accent)' } : { borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>
             {t === 'school' ? 'School' : t === 'teacher' ? 'Teacher' : t === 'prep' ? 'Prep' : 'Meals'}
           </button>
         ))}
@@ -2269,7 +2269,7 @@ function MealsSchedule() {
     <Card className="overflow-hidden">
       {meals.map((m, i) => (
         <div key={i} className="flex items-center gap-4 px-5 py-4 border-b last:border-0 hover:bg-gray-50/50" style={{ borderColor: 'var(--border-subtle)' }}>
-          <div className="w-20 text-xs font-bold flex-shrink-0" style={{ color: '#1E45FC' }}>{m.time}</div>
+          <div className="w-20 text-xs font-bold flex-shrink-0" style={{ color: 'var(--accent)' }}>{m.time}</div>
           <span className="text-xl">🍽️</span>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-semibold" style={{ color: 'var(--text)' }}>{m.meal}</div>
@@ -2408,7 +2408,7 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold px-2.5 py-1 rounded-full"
-            style={approved ? { background: 'var(--tint-green)', color: '#059669' } : { background: 'var(--tint-amber)', color: '#d97706' }}>
+            style={approved ? { background: 'var(--tint-green)', color: 'var(--ok)' } : { background: 'var(--tint-amber)', color: 'var(--warn)' }}>
             {approved ? 'Approved' : 'Pending approval'}
           </span>
           {canEdit && (
@@ -2426,13 +2426,13 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
         </div>
       </div>
       {isParent && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: '#92400e', border: '1px solid #fde68a' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: 'var(--warn)', border: '1px solid #fde68a' }}>
           <span>👨‍👩‍👧</span>
           Showing results for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
       )}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: 'var(--info)', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           You can only enter marks for <strong className="mx-1">{assignment.subjects.join(', ')}</strong> across your assigned classes.
         </div>
@@ -2670,7 +2670,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                 </div>
                 <div className="text-right">
                   <div className="text-xs text-gray-400">Outstanding Balance</div>
-                  <div className="text-xl font-extrabold" style={{ color: balance > 0 ? '#dc2626' : '#059669' }}>
+                  <div className="text-xl font-extrabold" style={{ color: balance > 0 ? 'var(--danger)' : '#059669' }}>
                     UGX {balance.toLocaleString()}
                   </div>
                 </div>
@@ -2683,7 +2683,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                       <div key={i} className="flex items-center justify-between text-xs px-3 py-2 rounded-lg" style={{ background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                         <span className="font-semibold" style={{ color: 'var(--text)' }}>UGX {p.amount}</span>
                         <span className="text-gray-400">{p.method} · {p.date}</span>
-                        <span className="font-bold" style={{ color: p.status === 'Confirmed' ? '#059669' : '#d97706' }}>{p.status}</span>
+                        <span className="font-bold" style={{ color: p.status === 'Confirmed' ? 'var(--ok)' : '#d97706' }}>{p.status}</span>
                       </div>
                     ))}
                   </div>
@@ -2724,10 +2724,10 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
       {/* ── Metric cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label:'Total Fees Collected', value:`UGX ${(totalFees/1000000).toFixed(2)}M`,       delta:'+18%', color:'#059669', bg:'var(--tint-green)', path:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
-          { label:'Pending Payments',      value:`${pending.length} payments`,                   delta:`UGX ${pending.length*225}K`, color:'#d97706', bg:'var(--tint-amber)', path:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
-          { label:'Total Expenses',        value:`UGX ${(totalExp/1000000).toFixed(2)}M`,         delta:'This term', color:'#dc2626', bg:'var(--tint-red)', path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3' },
-          { label:'Payroll (Monthly)',     value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`,      delta:'7 staff', color:'#7c3aed', bg:'var(--tint-violet)', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+          { label:'Total Fees Collected', value:`UGX ${(totalFees/1000000).toFixed(2)}M`,       delta:'+18%', color:'var(--ok)', bg:'var(--tint-green)', path:'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6' },
+          { label:'Pending Payments',      value:`${pending.length} payments`,                   delta:`UGX ${pending.length*225}K`, color:'var(--warn)', bg:'var(--tint-amber)', path:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+          { label:'Total Expenses',        value:`UGX ${(totalExp/1000000).toFixed(2)}M`,         delta:'This term', color:'var(--danger)', bg:'var(--tint-red)', path:'M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3' },
+          { label:'Payroll (Monthly)',     value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`,      delta:'7 staff', color:'var(--violet)', bg:'var(--tint-violet)', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
         ].map(m=>(
           <Card key={m.label} className="p-4">
             <div className="flex items-start justify-between">
@@ -2749,7 +2749,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
         {TABS.map(t=>(
           <button key={t.id} onClick={()=>setTab(t.id)}
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all"
-            style={tab===t.id?{ background:'var(--surface)', color:'#1E45FC', boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }:{ color:'var(--text-muted)' }}>
+            style={tab===t.id?{ background:'var(--surface)', color:'var(--accent)', boxShadow:'0 1px 4px rgba(0,0,0,0.08)' }:{ color:'var(--text-muted)' }}>
             {t.label}
             {t.badge ? <span className="w-4 h-4 rounded-full text-white flex items-center justify-center text-[9px] font-bold" style={{ background:'#dc2626' }}>{t.badge}</span> : null}
           </button>
@@ -2772,7 +2772,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
             {['all','Confirmed','Pending'].map(s=>(
               <button key={s} onClick={()=>setPayStatus(s)}
                 className="text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors"
-                style={payStatus===s?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'#1E45FC'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
+                style={payStatus===s?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'var(--accent)'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
                 {s==='all'?'All':s}
               </button>
             ))}
@@ -2816,7 +2816,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                         {canApprove && p.status==='Pending' && (
                           <button onClick={()=>approvePayment(p.id)} className="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white" style={{ background:'#059669' }}>Approve</button>
                         )}
-                        <button onClick={()=>setReceipt(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors" style={{ borderColor:'var(--border-strong)', color:'#1E45FC' }}>Receipt</button>
+                        <button onClick={()=>setReceipt(p)} className="text-[11px] font-semibold px-2.5 py-1 rounded-lg border transition-colors" style={{ borderColor:'var(--border-strong)', color:'var(--accent)' }}>Receipt</button>
                       </div>
                     </td>
                   </tr>
@@ -2845,7 +2845,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                     <span className="text-[11px] font-bold px-2 py-1 rounded-lg" style={{ background:'var(--app-bg)', color:'var(--text)' }}>{e.category}</span>
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-700">{e.desc}</td>
-                  <td className="px-4 py-3 text-sm font-bold" style={{ color:'#dc2626' }}>UGX {e.amount.toLocaleString()}</td>
+                  <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--danger)' }}>UGX {e.amount.toLocaleString()}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">{e.date}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">{e.submittedBy}</td>
                   <td className="px-4 py-3">
@@ -2873,8 +2873,8 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
           <div className="grid grid-cols-3 gap-4">
             {[
               { label:'Total Gross', value:`UGX ${(payroll.reduce((s,p)=>s+p.gross,0)/1000000).toFixed(2)}M`, color:'var(--text)' },
-              { label:'Total Tax Deducted', value:`UGX ${(payroll.reduce((s,p)=>s+p.tax,0)/1000).toFixed(0)}K`, color:'#dc2626' },
-              { label:'Total Net Payable', value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`, color:'#059669' },
+              { label:'Total Tax Deducted', value:`UGX ${(payroll.reduce((s,p)=>s+p.tax,0)/1000).toFixed(0)}K`, color:'var(--danger)' },
+              { label:'Total Net Payable', value:`UGX ${(totalPayroll/1000000).toFixed(2)}M`, color:'var(--ok)' },
             ].map(m=>(
               <Card key={m.label} className="p-4 text-center">
                 <div className="text-xs text-gray-400 mb-1">{m.label}</div>
@@ -2949,7 +2949,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                       ? `UGX ${item.amount} · ${item.method} · ${item.date}`
                       : `UGX ${item.amount?.toLocaleString()} · ${item.category} · ${item.date}`}
                   </div>
-                  <div className="text-[10px] mt-0.5 font-semibold" style={{ color:'#d97706' }}>
+                  <div className="text-[10px] mt-0.5 font-semibold" style={{ color:'var(--warn)' }}>
                     🔐 Awaiting head teacher approval
                   </div>
                 </div>
@@ -3011,7 +3011,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                     <button key={m} type="button" onClick={()=>setNewPay(p=>({...p,method:m}))}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all"
                       style={newPay.method===m
-                        ?{ borderColor:'#1E45FC', background:'var(--tint-blue)', color:'#1E45FC' }
+                        ?{ borderColor:'#1E45FC', background:'var(--tint-blue)', color:'var(--accent)' }
                         :{ borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                       <span>{icon}</span>{m}
                     </button>
@@ -3082,7 +3082,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background:'rgba(11,15,42,0.65)' }} onClick={() => setPayslip(null)}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <div className="px-6 py-5 text-center border-b" style={{ borderColor:'var(--border)' }}>
-              <div className="text-sm font-extrabold" style={{ color:'#7c3aed' }}>PAYSLIP</div>
+              <div className="text-sm font-extrabold" style={{ color:'var(--violet)' }}>PAYSLIP</div>
               <div className="text-xs text-gray-400 mt-0.5">May 2026 · {payslip.role}</div>
             </div>
             <div className="px-6 py-4 space-y-2.5">
@@ -3121,10 +3121,10 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
                 <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background:'#1E45FC' }}>
                   <img src="/skoulhub-logo.png" alt="" style={{ width:14,height:14,objectFit:'contain',filter:'brightness(0) invert(1)' }}/>
                 </div>
-                <span className="font-extrabold text-base" style={{ color:'#1E45FC' }}>Skoul<span style={{ color:'#A3CF2E' }}>Hub</span></span>
+                <span className="font-extrabold text-base" style={{ color:'var(--accent)' }}>Skoul<span style={{ color:'#A3CF2E' }}>Hub</span></span>
               </div>
               <div className="text-xs text-gray-400">{tenant?.name ?? 'School'}</div>
-              <div className="text-xs font-bold mt-2 px-3 py-1 rounded-full inline-block" style={{ background:'var(--tint-green)', color:'#059669' }}>OFFICIAL RECEIPT</div>
+              <div className="text-xs font-bold mt-2 px-3 py-1 rounded-full inline-block" style={{ background:'var(--tint-green)', color:'var(--ok)' }}>OFFICIAL RECEIPT</div>
             </div>
             {/* Receipt body */}
             <div className="px-6 py-4 space-y-2.5">
@@ -3140,7 +3140,7 @@ function FinancePage({ roleId, schoolId, tenant, currentUser }) {
               ].map(([l,v])=>(
                 <div key={l} className="flex items-center justify-between py-1.5 border-b border-dashed" style={{ borderColor:'#f0f0f0' }}>
                   <span className="text-xs text-gray-400">{l}</span>
-                  <span className={`text-xs font-bold ${l==='Status'?(receipt.status==='Confirmed'?'text-green-700':'text-yellow-700'):''}`} style={{ color: l==='Amount Paid'?'#059669': l==='Status'?undefined:'var(--text)' }}>{v}</span>
+                  <span className={`text-xs font-bold ${l==='Status'?(receipt.status==='Confirmed'?'text-green-700':'text-yellow-700'):''}`} style={{ color: l==='Amount Paid'?'var(--ok)': l==='Status'?undefined:'var(--text)' }}>{v}</span>
                 </div>
               ))}
             </div>
@@ -3265,7 +3265,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
 
       {/* Teacher scope notice */}
       {isTeacher && assignment && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: '#0369a1', border: '1px solid #bae6fd' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-sky)', color: 'var(--info)', border: '1px solid #bae6fd' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
           Showing performance for <strong className="mx-1">{assignment.subjects.join(', ')}</strong> in <strong className="mx-1">{assignment.classes.join(', ')}</strong>. Averages are calculated for your subjects only.
         </div>
@@ -3273,7 +3273,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
 
       {/* Parent scope notice */}
       {isParent && (
-        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: '#92400e', border: '1px solid #fde68a' }}>
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium" style={{ background: 'var(--tint-amber)', color: 'var(--warn)', border: '1px solid #fde68a' }}>
           <span>👨‍👩‍👧</span>
           Showing report cards for your children only: <strong className="ml-1">{children.join(', ')}</strong>
         </div>
@@ -3282,10 +3282,10 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
       {/* Grade distribution summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label:'Distinctions (D1–D2)', count: dist.D, color:'#059669', bg:'var(--tint-green)', range:'80–100%' },
-          { label:'Credits (C3–C6)',       count: dist.C, color:'#1E45FC', bg:'var(--tint-blue)', range:'55–79%' },
-          { label:'Passes (P7–P8)',        count: dist.P, color:'#d97706', bg:'var(--tint-amber)', range:'45–54%' },
-          { label:'Failures (F9)',         count: dist.F, color:'#dc2626', bg:'var(--tint-red)', range:'0–44%' },
+          { label:'Distinctions (D1–D2)', count: dist.D, color:'var(--ok)', bg:'var(--tint-green)', range:'80–100%' },
+          { label:'Credits (C3–C6)',       count: dist.C, color:'var(--accent)', bg:'var(--tint-blue)', range:'55–79%' },
+          { label:'Passes (P7–P8)',        count: dist.P, color:'var(--warn)', bg:'var(--tint-amber)', range:'45–54%' },
+          { label:'Failures (F9)',         count: dist.F, color:'var(--danger)', bg:'var(--tint-red)', range:'0–44%' },
         ].map(d => (
           <Card key={d.label} className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg font-extrabold flex-shrink-0"
@@ -3316,7 +3316,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
           {classes.map(c=>(
             <button key={c} onClick={()=>setClassF(c)}
               className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-              style={classF===c?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'#1E45FC'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
+              style={classF===c?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'var(--accent)'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
               {c==='all'?'All Classes':c}
             </button>
           ))}
@@ -3340,7 +3340,7 @@ function ReportCardsPage({ roleId, schoolId, currentUser }) {
               : filtered.map(s=>(
               <tr key={s.id} className="hover:bg-gray-50/60 transition-colors">
                 {/* Rank */}
-                <td className="px-4 py-3 text-xs font-bold" style={{ color: s.pos<=3?'#d97706':'var(--text-dim)' }}>
+                <td className="px-4 py-3 text-xs font-bold" style={{ color: s.pos<=3?'var(--warn)':'var(--text-dim)' }}>
                   {s.pos<=3?['🥇','🥈','🥉'][s.pos-1]:s.pos}
                 </td>
                 {/* Name */}
@@ -3604,9 +3604,9 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label:'Total Students',   value: allStudents.length,                              bg:'var(--tint-blue)', color:'#1E45FC', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
-          { label:'IDs Assigned',     value: allStudents.length,                              bg:'var(--tint-green)', color:'#059669', path:'M9 12l2 2 4-4M7 2a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H7z' },
-          { label:'Active Students',  value: allStudents.filter(s=>s.status==='Active').length, bg:'var(--tint-amber)', color:'#d97706', path:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z' },
+          { label:'Total Students',   value: allStudents.length,                              bg:'var(--tint-blue)', color:'var(--accent)', path:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z' },
+          { label:'IDs Assigned',     value: allStudents.length,                              bg:'var(--tint-green)', color:'var(--ok)', path:'M9 12l2 2 4-4M7 2a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2H7z' },
+          { label:'Active Students',  value: allStudents.filter(s=>s.status==='Active').length, bg:'var(--tint-amber)', color:'var(--warn)', path:'M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z' },
         ].map(s => (
           <Card key={s.label} className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background:s.bg }}>
@@ -3634,7 +3634,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
         {['all','active','inactive'].map(f=>(
           <button key={f} onClick={()=>setStatusF(f)}
             className="text-xs font-semibold px-3 py-1.5 rounded-lg border capitalize transition-colors"
-            style={statusF===f?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'#1E45FC'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
+            style={statusF===f?{borderColor:'#1E45FC',background:'var(--tint-blue)',color:'var(--accent)'}:{borderColor:'var(--border-strong)',color:'var(--text-muted)'}}>
             {f==='all'?'All':f}
           </button>
         ))}
@@ -3676,7 +3676,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
                       {/* ID number */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg" style={{ background:'#f0f4ff', color:'#1E45FC' }}>{sid}</span>
+                          <span className="font-mono text-xs font-bold px-2.5 py-1 rounded-lg" style={{ background:'#f0f4ff', color:'var(--accent)' }}>{sid}</span>
                           {canGen && (
                             <button onClick={()=>setAssigning({ studentId: s.id, value: sid })}
                               className="p-1 rounded-lg text-gray-400 hover:text-brand-blue transition-colors"
@@ -3697,7 +3697,7 @@ function IDCardsPage({ roleId, schoolId, tenant }) {
                       {/* Status */}
                       <td className="px-4 py-3">
                         <span className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                          style={s.status==='Active'?{background:'var(--tint-green)',color:'#059669'}:{background:'#f3f4f6',color:'#6b7280'}}>
+                          style={s.status==='Active'?{background:'var(--tint-green)',color:'var(--ok)'}:{background:'#f3f4f6',color:'var(--text-muted)'}}>
                           {s.status}
                         </span>
                       </td>
@@ -3935,7 +3935,7 @@ function SendNotificationModal({ onClose, onSent }) {
               {[{ id:'sms',   label:'SMS',   icon:'💬' }, { id:'email', label:'Email', icon:'📧' }, { id:'push',  label:'Push',  icon:'🔔' }].map(c => (
                 <button key={c.id} onClick={() => setChannel(c.id)}
                   className="flex items-center justify-center gap-1.5 py-2.5 rounded-xl border text-xs font-semibold transition-all"
-                  style={channel === c.id ? { borderColor:'#1E45FC', background:'var(--tint-blue)', color:'#1E45FC' } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
+                  style={channel === c.id ? { borderColor:'#1E45FC', background:'var(--tint-blue)', color:'var(--accent)' } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                   <span>{c.icon}</span>{c.label}
                 </button>
               ))}
@@ -4007,7 +4007,7 @@ function SettingsPage({ roleId, schoolId, tenant }) {
               <div className="text-xs text-gray-400">{label}</div>
               <div className="text-sm font-semibold truncate" style={{ color:'var(--text)', fontFamily: locked ? 'monospace' : undefined }}>{value}</div>
             </div>
-            {!locked && canEditSettings && <button onClick={() => openEdit(label, value)} className="text-xs font-semibold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Edit</button>}
+            {!locked && canEditSettings && <button onClick={() => openEdit(label, value)} className="text-xs font-semibold hover:underline flex-shrink-0" style={{ color:'var(--accent)' }}>Edit</button>}
             {!locked && !canEditSettings && <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
             {locked && <span className="text-xs text-gray-300 flex-shrink-0">Auto-generated</span>}
           </div>
@@ -4046,11 +4046,11 @@ function SettingsPage({ roleId, schoolId, tenant }) {
    ENROLLMENT FORM BUILDER
 ═══════════════════════════════════════════════════ */
 const SECTION_META = {
-  application: { label: 'Application',          color: '#1E45FC' },
-  student:     { label: 'Student Information',   color: '#059669' },
-  parent:      { label: 'Parent / Guardian',     color: '#d97706' },
-  academic:    { label: 'Academic History',      color: '#7c3aed' },
-  documents:   { label: 'Documents Checklist',   color: '#0891b2' },
+  application: { label: 'Application',          color: 'var(--accent)' },
+  student:     { label: 'Student Information',   color: 'var(--ok)' },
+  parent:      { label: 'Parent / Guardian',     color: 'var(--warn)' },
+  academic:    { label: 'Academic History',      color: 'var(--violet)' },
+  documents:   { label: 'Documents Checklist',   color: 'var(--info)' },
 };
 
 function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
@@ -4164,7 +4164,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
               </code>
               <button onClick={copyLink}
                 className="flex-shrink-0 px-3 py-2 rounded-lg text-xs font-bold transition-all"
-                style={{ background: copied ? 'var(--tint-green)' : themeColor + '15', color: copied ? '#059669' : themeColor, border:`1px solid ${copied ? '#a7f3d0' : themeColor + '30'}` }}>
+                style={{ background: copied ? 'var(--tint-green)' : themeColor + '15', color: copied ? 'var(--ok)' : themeColor, border:`1px solid ${copied ? '#a7f3d0' : themeColor + '30'}` }}>
                 {copied ? '✓ Copied!' : 'Copy'}
               </button>
             </div>
@@ -4403,7 +4403,7 @@ function SaasOverviewPage() {
           <h2 className="text-lg font-extrabold" style={{ color:'var(--text)' }}>Platform Overview</h2>
           <p className="text-sm text-gray-400 mt-0.5">Global · All tenants · May 2026</p>
         </div>
-        <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background:'var(--tint-violet)', color:'#7c3aed' }}>SaaS Admin</span>
+        <span className="text-xs font-bold px-3 py-1.5 rounded-full" style={{ background:'var(--tint-violet)', color:'var(--violet)' }}>SaaS Admin</span>
       </div>
 
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -4510,7 +4510,7 @@ function SaasSchoolsPage({ roleId }) {
                 <td className="px-4 py-3 text-sm text-gray-500">{t.district}</td>
                 <td className="px-4 py-3 text-sm font-bold" style={{ color:'var(--text)' }}>{t.student_count.toLocaleString()}</td>
                 <td className="px-4 py-3">
-                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planBg[t.plan]??'var(--tint-blue)', color:planCol[t.plan]??'#1E45FC' }}>{t.plan}</span>
+                  <span className="text-xs font-bold px-2 py-1 rounded-full" style={{ background:planBg[t.plan]??'var(--tint-blue)', color:planCol[t.plan]??'var(--accent)' }}>{t.plan}</span>
                 </td>
                 <td className="px-4 py-3">
                   <span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status==='active'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
@@ -4520,7 +4520,7 @@ function SaasSchoolsPage({ roleId }) {
                   <div className="flex gap-2">
                     {canManage ? (
                       <>
-                        <button onClick={() => setManage(t)} className="text-xs font-bold hover:underline" style={{ color:'#1E45FC' }}>Manage →</button>
+                        <button onClick={() => setManage(t)} className="text-xs font-bold hover:underline" style={{ color:'var(--accent)' }}>Manage →</button>
                         <button onClick={() => setSuspend(t)} className="text-xs text-gray-400 hover:text-red-500 transition-colors">{t.status === 'active' ? 'Suspend' : 'Reactivate'}</button>
                       </>
                     ) : <span className="text-xs text-gray-300">View only</span>}
@@ -4717,9 +4717,9 @@ function SaasBillingPage({ roleId }) {
       </div>
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label:'Platform MRR',   value:`UGX ${(totalMRR/1000000).toFixed(2)}M`, delta:'+12% MoM',      color:'#1E45FC', bg:'var(--tint-blue)' },
-          { label:'Active Schools', value:tenants.filter(t=>t.status==='active').length, delta:'paying tenants', color:'#059669', bg:'var(--tint-green)' },
-          { label:'Total Students', value:tenants.reduce((a,t)=>a+t.student_count,0).toLocaleString(), delta:'billed this term', color:'#7c3aed', bg:'var(--tint-violet)' },
+          { label:'Platform MRR',   value:`UGX ${(totalMRR/1000000).toFixed(2)}M`, delta:'+12% MoM',      color:'var(--accent)', bg:'var(--tint-blue)' },
+          { label:'Active Schools', value:tenants.filter(t=>t.status==='active').length, delta:'paying tenants', color:'var(--ok)', bg:'var(--tint-green)' },
+          { label:'Total Students', value:tenants.reduce((a,t)=>a+t.student_count,0).toLocaleString(), delta:'billed this term', color:'var(--violet)', bg:'var(--tint-violet)' },
         ].map((s,i) => (
           <Card key={i} className="p-5">
             <div className="text-xs text-gray-400 mb-1">{s.label}</div>
@@ -4732,7 +4732,7 @@ function SaasBillingPage({ roleId }) {
         <div className="px-5 py-3.5 border-b flex items-center justify-between" style={{ borderColor:'var(--border)' }}>
           <h3 className="font-bold text-sm" style={{ color:'var(--text)' }}>Per-Tenant Billing</h3>
           {canExport && (
-            <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'#1E45FC' }}>Export Invoices →</button>
+            <button onClick={exportInvoices} className="text-xs font-semibold hover:underline" style={{ color:'var(--accent)' }}>Export Invoices →</button>
           )}
         </div>
         <table className="w-full">
@@ -4786,9 +4786,9 @@ function SaasOnboardingPage({ roleId }) {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {[
-          { icon:'🚀', label:'Schools This Month', value:thisMonth, color:'#1E45FC' },
-          { icon:'⏳', label:'Pending Setup',       value:pending, color:'#d97706' },
-          { icon:'✅', label:'Fully Onboarded',     value:onboarded, color:'#059669' },
+          { icon:'🚀', label:'Schools This Month', value:thisMonth, color:'var(--accent)' },
+          { icon:'⏳', label:'Pending Setup',       value:pending, color:'var(--warn)' },
+          { icon:'✅', label:'Fully Onboarded',     value:onboarded, color:'var(--ok)' },
         ].map((s,i) => (
           <Card key={i} className="p-5 flex items-center gap-4">
             <div className="text-3xl">{s.icon}</div>
@@ -4814,7 +4814,7 @@ function SaasOnboardingPage({ roleId }) {
             </div>
             <span className={`text-xs font-bold px-2 py-1 rounded-full ${t.status==='active'?'bg-green-50 text-green-700':'bg-yellow-50 text-yellow-700'}`}>{t.status}</span>
             {canManage
-              ? <button onClick={() => setConfigModal(t)} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Configure →</button>
+              ? <button onClick={() => setConfigModal(t)} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'var(--accent)' }}>Configure →</button>
               : <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
           </Card>
         ))}
@@ -4891,14 +4891,14 @@ function SaasFeaturesPage({ roleId }) {
       <div className="flex flex-col gap-3">
         {features.map((f) => (
           <Card key={f.id} className="p-4 flex items-center gap-4 hover:shadow-sm transition-all">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background:'var(--surface-2)', color:'#1E45FC' }}>{f.votes}</div>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background:'var(--surface-2)', color:'var(--accent)' }}>{f.votes}</div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold" style={{ color:'var(--text)' }}>{f.title}</div>
               <div className="text-xs text-gray-400">{f.school}</div>
             </div>
             <span className="text-xs font-bold px-2 py-1 rounded-full flex-shrink-0" style={{ background:sb[f.status]??'var(--surface-3)', color:sc[f.status]??'var(--text-dim)' }}>{f.status}</span>
             {canManage
-              ? <button onClick={() => setUpdateModal({ ...f })} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'#1E45FC' }}>Update</button>
+              ? <button onClick={() => setUpdateModal({ ...f })} className="text-xs font-bold hover:underline flex-shrink-0" style={{ color:'var(--accent)' }}>Update</button>
               : <span className="text-xs text-gray-300 flex-shrink-0">View only</span>}
           </Card>
         ))}
@@ -4923,7 +4923,7 @@ function SaasFeaturesPage({ roleId }) {
                   {statuses.map(s => (
                     <button key={s} onClick={() => setUpdateModal(m => ({ ...m, status: s }))}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl border text-sm font-semibold transition-all text-left"
-                      style={updateModal.status === s ? { borderColor: sc[s]??'#1E45FC', background: sb[s]??'var(--tint-blue)', color: sc[s]??'#1E45FC' } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
+                      style={updateModal.status === s ? { borderColor: sc[s]??'#1E45FC', background: sb[s]??'var(--tint-blue)', color: sc[s]??'var(--accent)' } : { borderColor:'var(--border-strong)', color:'var(--text-muted)' }}>
                       {updateModal.status === s && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                       {s}
                     </button>

@@ -12,7 +12,7 @@ const DEMO_ACCOUNTS = [
     school: 'skh-001',
     role: 'School Admin',
     name: 'Agnes Namukwaya',
-    color: '#1E45FC',
+    color: 'var(--accent)',
     bg: 'var(--tint-blue)',
     access: ['Full dashboard access', 'Students, Teachers, Finance', 'Reports, Settings, ID Cards'],
     icon: 'M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z',
@@ -22,7 +22,7 @@ const DEMO_ACCOUNTS = [
     school: 'skh-001',
     role: 'Head Teacher',
     name: 'Robert Ssemanda',
-    color: '#0891b2',
+    color: 'var(--info)',
     bg: 'var(--tint-sky)',
     access: ['Academic oversight', 'Approve expenses & reports', 'Students, Attendance, Results'],
     icon: 'M22 10v6M2 10l10-5 10 5-10 5zM6 12v5c3 3 9 3 12 0v-5',
@@ -32,7 +32,7 @@ const DEMO_ACCOUNTS = [
     school: 'skh-001',
     role: 'Teacher',
     name: 'Grace Namutebi',
-    color: '#059669',
+    color: 'var(--ok)',
     bg: 'var(--tint-green)',
     access: ['My classes & timetable', 'Mark attendance & results', 'View student profiles'],
     icon: 'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 7a4 4 0 100 8 4 4 0 000-8z',
@@ -42,7 +42,7 @@ const DEMO_ACCOUNTS = [
     school: 'skh-001',
     role: 'Bursar',
     name: 'James Okoye',
-    color: '#dc2626',
+    color: 'var(--danger)',
     bg: 'var(--tint-red)',
     access: ['Fee collection & receipts', 'Payroll & expenses', 'Submit for approval'],
     icon: 'M12 1v22M17 5H9.5a3.5 3.5 0 100 7h5a3.5 3.5 0 110 7H6',
@@ -52,7 +52,7 @@ const DEMO_ACCOUNTS = [
     school: 'skh-001',
     role: 'Parent',
     name: 'Peter Kabuye',
-    color: '#d97706',
+    color: 'var(--warn)',
     bg: 'var(--tint-amber)',
     access: ['Child\'s attendance & results', 'Fee balance & report cards', 'Messages from school'],
     icon: 'M20 21v-2a4 4 0 00-4-4h-4M14 11a4 4 0 10-8 0 4 4 0 008 0z',
@@ -62,7 +62,7 @@ const DEMO_ACCOUNTS = [
     school: null,
     role: 'SaaS Admin',
     name: 'SkoulHub Admin',
-    color: '#7c3aed',
+    color: 'var(--violet)',
     bg: 'var(--tint-violet)',
     access: ['All schools overview', 'Billing & onboarding', 'Global platform settings'],
     icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5',
@@ -464,7 +464,7 @@ export function LoginShell({ children }) {
       >
         {/* Logo */}
         <div className="mb-8">
-          <span className="font-bold text-3xl leading-none" style={{ color: '#1E45FC' }}>
+          <span className="font-bold text-3xl leading-none" style={{ color: 'var(--accent)' }}>
             Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
           </span>
           <div className="flex items-center gap-2 mt-1">
@@ -487,7 +487,7 @@ export function Logo() {
     <div className="flex items-center gap-3">
       <img src="/skoulhub-logo.png" alt="SkoulHub" className="w-12 h-12 object-contain" />
       <div className="flex flex-col gap-1">
-        <span className="font-bold text-2xl leading-none" style={{ color: '#1E45FC' }}>
+        <span className="font-bold text-2xl leading-none" style={{ color: 'var(--accent)' }}>
           Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
         </span>
         <div className="flex items-center gap-2">
