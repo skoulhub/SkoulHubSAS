@@ -76,7 +76,7 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
         {/* ── Sidebar ─────────────────────────────── */}
         <aside
           className={`flex-shrink-0 flex flex-col transition-all duration-300 ${collapsed ? 'w-[68px]' : 'w-[220px]'}`}
-          style={{ background: 'var(--sidebar)', marginTop: '32px' }}
+          style={{ background: 'var(--menu-bg)', borderRight: '1px solid var(--menu-border)', marginTop: '32px' }}
         >
           {/* Logo + collapse toggle */}
           <div className={`flex items-center px-4 py-4 ${collapsed ? 'justify-center gap-2' : 'gap-1.5'}`}>
@@ -85,8 +85,9 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
                 <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#1E45FC' }}>
                   <img src="/skoulhub-logo.png" alt="SkoulHub" style={{ width: 20, height: 20, objectFit: 'contain', filter: 'brightness(0) invert(1)' }} />
                 </div>
-                <span className="font-extrabold text-base tracking-tight leading-none text-white">
-                  Skoul<span style={{ color: '#A3CF2E' }}>Hub</span>
+                <span className="font-extrabold text-base tracking-tight leading-none"
+                  style={{ color: 'var(--menu-text)' }}>
+                  Skoul<span style={{ color: 'var(--menu-accent)' }}>Hub</span>
                 </span>
               </div>
             )}
@@ -99,9 +100,9 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
               onClick={() => setCollapsed(c => !c)}
               title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
-              style={{ color: 'rgba(255,255,255,0.4)' }}
-              onMouseEnter={e => { e.currentTarget.style.color = '#fff'; e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; }}
-              onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.4)'; e.currentTarget.style.background = 'transparent'; }}
+              style={{ color: 'var(--menu-text-muted)' }}
+              onMouseEnter={e => { e.currentTarget.style.color = 'var(--menu-text)'; e.currentTarget.style.background = 'var(--menu-hover)'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = 'var(--menu-text-muted)'; e.currentTarget.style.background = 'transparent'; }}
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                 {collapsed
@@ -116,7 +117,7 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
             {sectionGroups.map((group, gi) => (
               <div key={gi} className="mb-1">
                 {!collapsed && group.label && (
-                  <div className="px-3 pb-1 pt-3 text-[10px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                  <div className="px-3 pb-1 pt-3 text-[10px] font-bold tracking-widest uppercase" style={{ color: 'var(--menu-section)' }}>
                     {group.label}
                   </div>
                 )}
@@ -130,10 +131,10 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
                       className={`w-full flex items-center gap-3 mb-0.5 rounded-xl transition-all text-sm font-medium ${collapsed ? 'justify-center px-2 py-2.5' : 'px-3 py-2.5'}`}
                       style={active
                         ? { background: '#1E45FC', color: '#fff' }
-                        : { color: 'rgba(255,255,255,0.55)', background: 'transparent' }
+                        : { color: 'var(--menu-text)', background: 'transparent' }
                       }
-                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.08)'; e.currentTarget.style.color = '#fff'; } }}
-                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'rgba(255,255,255,0.55)'; } }}
+                      onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'var(--menu-hover)'; e.currentTarget.style.color = 'var(--menu-text)'; } }}
+                      onMouseLeave={e => { if (!active) { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--menu-text)'; } }}
                     >
                       <span className="flex-shrink-0">
                         <Icon d={NAV_ICONS[item.id] || NAV_ICONS.overview} size={17} strokeWidth={active ? 2.2 : 1.7} />
@@ -147,7 +148,7 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
           </nav>
 
           {/* Bottom: user + logout */}
-          <div className="px-3 pb-4 pt-2" style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+          <div className="px-3 pb-4 pt-2" style={{ borderTop: '1px solid var(--menu-border)' }}>
             <div className={`flex items-center gap-2.5 px-2 py-2.5 rounded-xl mb-1 ${collapsed ? 'justify-center' : ''}`}>
               <button onClick={() => setActiveNav('profile')} title="My profile"
                 className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0 cursor-pointer transition-transform hover:scale-105"
@@ -156,8 +157,8 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
               </button>
               {!collapsed && (
                 <button onClick={() => setActiveNav('profile')} className="flex-1 min-w-0 text-left cursor-pointer">
-                  <div className="text-xs font-semibold truncate text-white">{currentUser.name}</div>
-                  <div className="text-[10px]" style={{ color: tenant?.name ? '#A3CF2E' : 'rgba(255,255,255,0.4)' }}>
+                  <div className="text-xs font-semibold truncate" style={{ color: 'var(--menu-text)' }}>{currentUser.name}</div>
+                  <div className="text-[10px]" style={{ color: tenant?.name ? 'var(--menu-accent)' : 'var(--menu-text-muted)' }}>
                     {tenant?.name ?? rl.label}
                   </div>
                 </button>
@@ -167,9 +168,9 @@ export default function Dashboard({ currentUser, tenant, onLogout, theme, onThem
                   onClick={onLogout}
                   title="Sign out"
                   className="p-1 rounded-lg flex-shrink-0 transition-colors"
-                  style={{ color: 'rgba(255,255,255,0.35)' }}
+                  style={{ color: 'var(--menu-text-muted)' }}
                   onMouseEnter={e => { e.currentTarget.style.color = '#f87171'; }}
-                  onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.color = 'var(--menu-text-muted)'; }}
                 >
                   <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
                     <path d="M6 14H3a1 1 0 01-1-1V3a1 1 0 011-1h3M11 11l3-3-3-3M14 8H6"/>

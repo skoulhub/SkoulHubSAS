@@ -46,6 +46,18 @@
   --tint-violet:     #f5f3ff;
   --tint-sky:        #e0f2fe;
   --tint-pink:       #fce7f3;
+
+  /* Sidebar / menu — white on light, dark slate with white text on dark.
+     (--sidebar above is the dark brand surface used by ID/tenant cards and
+     intentionally stays dark in both themes.) */
+  --menu-bg:         #ffffff;
+  --menu-text:       #0B0F2A;
+  --menu-text-muted: #64748b;
+  --menu-section:    #7c8698;
+  --menu-hover:      #f1f5f9;
+  --menu-border:     #e8ecf3;
+  --menu-accent:     #4d7c0f;
+  --menu-scroll:     rgba(11, 15, 42, 0.18);
 }
 
 html.dark {
@@ -79,6 +91,16 @@ html.dark {
   --tint-violet:     rgba(124, 58, 237, 0.20);
   --tint-sky:        rgba(8, 145, 178, 0.20);
   --tint-pink:       rgba(219, 39, 119, 0.20);
+
+  /* Menu text is pure white on the dark dashboard */
+  --menu-bg:         #141821;
+  --menu-text:       #ffffff;
+  --menu-text-muted: rgba(255, 255, 255, 0.82);
+  --menu-section:    rgba(255, 255, 255, 0.5);
+  --menu-hover:      rgba(255, 255, 255, 0.10);
+  --menu-border:     rgba(255, 255, 255, 0.10);
+  --menu-accent:     #A3CF2E;
+  --menu-scroll:     rgba(255, 255, 255, 0.14);
 }
 
 * {
@@ -182,8 +204,8 @@ html.dark input::placeholder, html.dark textarea::placeholder { color: var(--tex
 }
 .btn-brand-secondary:hover { background: #e8ecff; }
 
-/* ─── Sidebar scrollbar ─── */
+/* ─── Sidebar scrollbar (follows the menu theme) ─── */
 aside::-webkit-scrollbar       { width: 4px; }
 aside::-webkit-scrollbar-track { background: transparent; }
-aside::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-aside::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+aside::-webkit-scrollbar-thumb { background: var(--menu-scroll); border-radius: 2px; }
+aside::-webkit-scrollbar-thumb:hover { background: var(--menu-section); }
