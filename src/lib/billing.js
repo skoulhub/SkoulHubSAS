@@ -101,6 +101,22 @@ export function listInvoices(school_id = null, now = Date.now()) {
     .sort((a, b) => b.issued_at - a.issued_at);
 }
 
+/**
+ * Load invoices from the database. Rows arrive already scoped by RLS; this is
+ * a display cache only — settling happens server-side via mark_invoice_paid().
+ * The database's vocabulary is mapped onto the one the UI already uses.
+ */
+export function __setInvoices(rows) {
+  if (!Array.isArray(rows)) return;
+  const LOCAL = { pending: 'due', overdue: 'due', paid: 'paid', void: 'void' };
+  INVOICES.splice(0, INVOICES.length, ...rows.map(r => ({
+    id: r.id, school_id: r.school_id, plan: r.plan, students: r.students,
+    rate: r.rate, amount: r.amount, issued_at: r.issued_at, due_at: r.due_at,
+    paid_at: r.paid_at, method: r.method, reference: r.reference,
+    status: LOCAL[r.status] ?? 'due',
+  })));
+}
+
 export function getInvoice(id) {
   return INVOICES.find(inv => inv.id === id) ?? null;
 }
@@ -149,7 +165,7 @@ export function markInvoicePaid(invoiceId, { method = 'Mobile Money', reference 
  * Derive a tenant's subscription state from its timestamps.
  * Pure — it never mutates; `refreshSubscriptions()` applies the result.
  */
-export function evaluateTenant(school_id, now = Date.now()) {
+export function _computeTenantState(school_id, now = Date.now()) {
   const tenant = queryTenant(school_id);
   if (!tenant) return null;
 
@@ -246,12 +262,40 @@ export function evaluateTenant(school_id, now = Date.now()) {
  * nightly billing job would raise. Idempotent — safe to call on every read.
  * Returns a summary of what changed.
  */
+/**
+ * The database owns the lifecycle now: a scheduled function runs
+ * evaluate_subscriptions() hourly and row level security already refuses data
+ * to a tenant that has lapsed. This wrapper keeps the browser from contradicting
+ * it in either direction — a wrong client clock must not lock out a paying
+ * school, nor let a suspended one in.
+ */
+export function evaluateTenant(school_id, now = Date.now()) {
+  const computed = _computeTenantState(school_id, now);
+  if (!computed) return null;
+
+  const dbStatus = queryTenant(school_id)?.status;
+  const IN_GOOD_STANDING = ['active', 'trial', 'grace'];
+
+  if (IN_GOOD_STANDING.includes(dbStatus)) {
+    // server says they are fine — display it, whatever the local clock thinks
+    return { ...computed, locked: false, reason: '', status: dbStatus };
+  }
+  if (dbStatus && !IN_GOOD_STANDING.includes(dbStatus)) {
+    const display = dbStatus === 'expired' ? SUB_STATUS.SUSPENDED : dbStatus;
+    return {
+      ...computed, locked: true, status: display,
+      reason: queryTenant(school_id)?.suspend_reason || computed.reason,
+    };
+  }
+  return computed;
+}
+
 export function refreshSubscriptions(now = Date.now()) {
   const created = [];
   const suspended = [];
 
   for (const tenant of queryAllTenants()) {
-    const state = evaluateTenant(tenant.school_id, now);
+    const state = _computeTenantState(tenant.school_id, now);
     if (!state) continue;
 
     // auto-revocation
@@ -284,7 +328,7 @@ export function refreshSubscriptions(now = Date.now()) {
 /* ── read models ──────────────────────────────────────────── */
 
 export function tenantBilling(school_id, now = Date.now()) {
-  const subscription = evaluateTenant(school_id, now);
+  const subscription = _computeTenantState(school_id, now);
   const invoices = listInvoices(school_id, now);
   const open = invoices.find(i => i.status === 'due') ?? null;
   return { subscription, invoices, openInvoice: open };
@@ -296,7 +340,7 @@ export function billingSummary(now = Date.now()) {
   const due = invoices.filter(i => i.status === 'due');
   const overdue = invoices.filter(i => i.display_status === 'overdue');
   const tenants = queryAllTenants();
-  const states = tenants.map(t => evaluateTenant(t.school_id, now)).filter(Boolean);
+  const states = tenants.map(t => _computeTenantState(t.school_id, now)).filter(Boolean);
 
   return {
     collected: paid.reduce((s, i) => s + i.amount, 0),

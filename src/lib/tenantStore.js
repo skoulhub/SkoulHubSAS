@@ -349,6 +349,8 @@ export function queryTenant(school_id) {
   return TENANTS[school_id] ?? null;
 }
 
+import { __setInvoices } from './billing';
+
 /**
  * Replace the in-memory fixtures with rows loaded from the database.
  *
@@ -371,6 +373,8 @@ export function __hydrateStore(data) {
   swapArr(TEACHERS_DB, data.teachers);
   swapArr(PARENTS_DB, data.parents);
   swapArr(PAYMENTS_DB, data.payments);
+  // invoices live in billing.js; it owns their display cache
+  if (data.invoices) __setInvoices(data.invoices);
 }
 
 /** True once real data has been loaded (used to gate the UI). */

@@ -5,10 +5,12 @@ import App from './App.jsx'
 import { refreshSubscriptions } from './lib/billing'
 import { setAuditSink } from './lib/audit'
 import { writeAudit } from './lib/db'
+import { isSupabaseConfigured } from './lib/supabase'
 
-/* Reconcile subscriptions/invoices before the first paint — the role a nightly
-   billing job plays in production. */
-refreshSubscriptions()
+/* Offline demo only. Against the real backend a scheduled database function
+   reconciles subscriptions hourly, and a second client-side opinion could only
+   contradict it. */
+if (!isSupabaseConfigured) refreshSubscriptions()
 
 /* Every recordAudit() call also persists to the append-only audit_log, so the
    trail survives a reload and the school cannot edit it. */

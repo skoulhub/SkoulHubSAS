@@ -1,10 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   TRIAL_DAYS, GRACE_DAYS, TERM_DAYS, DAY_MS,
-  SUB_STATUS, evaluateTenant, refreshSubscriptions, tenantBilling,
+  SUB_STATUS, _computeTenantState, refreshSubscriptions, tenantBilling,
   createInvoice, listInvoices, openInvoice, markInvoicePaid, invoiceStatus,
   billingSummary, assignPlan, startTrial, extendTrial, suspendTenant, reactivateTenant,
   statusSentence, _resetInvoices,
+    evaluateTenant,
 } from './billing';
 import { provisionTenant, TENANTS, queryTenant } from './tenantStore';
 import { calcPlanCost } from './plans';
@@ -24,7 +25,7 @@ beforeEach(() => _resetInvoices());
 
 /* Captured at import time, before any test mutates the seeded tenants. */
 const SEEDED_STATUSES = ['skh-001', 'skh-002', 'skh-003', 'skh-004', 'skh-005']
-  .map(id => evaluateTenant(id, Date.now()).status);
+  .map(id => _computeTenantState(id, Date.now()).status);
 
 describe('billing — policy', () => {
   it('runs a 30-day trial with a 7-day grace period over 90-day terms', () => {
@@ -37,7 +38,7 @@ describe('billing — policy', () => {
 describe('billing — trial lifecycle', () => {
   it('a newly provisioned school starts a full 30-day trial', () => {
     const school = makeSchool('Trial Start School');
-    const state = evaluateTenant(school.school_id, school.created_ms);   // evaluated at provisioning time
+    const state = _computeTenantState(school.school_id, school.created_ms);   // evaluated at provisioning time
     expect(state.status).toBe(SUB_STATUS.TRIAL);
     expect(state.trialDaysLeft).toBe(TRIAL_DAYS);
     expect(state.locked).toBe(false);
@@ -48,14 +49,14 @@ describe('billing — trial lifecycle', () => {
     const now = Date.now();
     const school = makeSchool('Mid Trial School');
     startTrial(school.school_id, 5, now);
-    expect(evaluateTenant(school.school_id, now + 4 * DAY_MS).status).toBe(SUB_STATUS.TRIAL);
+    expect(_computeTenantState(school.school_id, now + 4 * DAY_MS).status).toBe(SUB_STATUS.TRIAL);
   });
 
   it('moves to past_due (grace) when the trial ends, still unlocked', () => {
     const now = Date.now();
     const school = makeSchool('Grace School');
     startTrial(school.school_id, 1, now);
-    const state = evaluateTenant(school.school_id, now + 2 * DAY_MS);
+    const state = _computeTenantState(school.school_id, now + 2 * DAY_MS);
     expect(state.status).toBe(SUB_STATUS.PAST_DUE);
     expect(state.locked).toBe(false);
     expect(state.graceDaysLeft).toBe(GRACE_DAYS - 1);
@@ -67,7 +68,7 @@ describe('billing — trial lifecycle', () => {
     const now = Date.now();
     const school = makeSchool('Revoked School');
     startTrial(school.school_id, 1, now);
-    const state = evaluateTenant(school.school_id, now + (1 + GRACE_DAYS + 1) * DAY_MS);
+    const state = _computeTenantState(school.school_id, now + (1 + GRACE_DAYS + 1) * DAY_MS);
     expect(state.status).toBe(SUB_STATUS.SUSPENDED);
     expect(state.locked).toBe(true);
     expect(state.reason).toMatch(/revoked/i);
@@ -126,9 +127,9 @@ describe('billing — payments', () => {
     markInvoicePaid(openInvoice(school.school_id).id, { now: now + 2 * DAY_MS });
 
     const periodEnd = queryTenant(school.school_id).current_period_end;
-    expect(evaluateTenant(school.school_id, periodEnd - DAY_MS).status).toBe(SUB_STATUS.ACTIVE);
-    expect(evaluateTenant(school.school_id, periodEnd + DAY_MS).status).toBe(SUB_STATUS.PAST_DUE);
-    expect(evaluateTenant(school.school_id, periodEnd + (GRACE_DAYS + 1) * DAY_MS).status).toBe(SUB_STATUS.SUSPENDED);
+    expect(_computeTenantState(school.school_id, periodEnd - DAY_MS).status).toBe(SUB_STATUS.ACTIVE);
+    expect(_computeTenantState(school.school_id, periodEnd + DAY_MS).status).toBe(SUB_STATUS.PAST_DUE);
+    expect(_computeTenantState(school.school_id, periodEnd + (GRACE_DAYS + 1) * DAY_MS).status).toBe(SUB_STATUS.SUSPENDED);
   });
 
   it('an unpaid invoice past its due date reads as overdue', () => {
@@ -189,16 +190,16 @@ describe('billing — SaaS admin controls', () => {
   it('suspends and reactivates a school', () => {
     const now = Date.now();
     const school = makeSchool('Manual School');
-    expect(evaluateTenant(school.school_id, now).locked).toBe(false);
+    expect(_computeTenantState(school.school_id, now).locked).toBe(false);
 
     suspendTenant(school.school_id, 'Non-payment (manual)');
-    const suspended = evaluateTenant(school.school_id, now);
+    const suspended = _computeTenantState(school.school_id, now);
     expect(suspended.status).toBe(SUB_STATUS.SUSPENDED);
     expect(suspended.locked).toBe(true);
     expect(suspended.reason).toBe('Non-payment (manual)');
 
     reactivateTenant(school.school_id, now);
-    expect(evaluateTenant(school.school_id, now).locked).toBe(false);
+    expect(_computeTenantState(school.school_id, now).locked).toBe(false);
   });
 
   it('extends a trial, and restarts it from now if it already lapsed', () => {
@@ -207,10 +208,10 @@ describe('billing — SaaS admin controls', () => {
     startTrial(school.school_id, 10, now);
 
     extendTrial(school.school_id, 5, now);
-    expect(evaluateTenant(school.school_id, now).trialDaysLeft).toBe(15);
+    expect(_computeTenantState(school.school_id, now).trialDaysLeft).toBe(15);
 
     extendTrial(school.school_id, 30, now + 20 * DAY_MS);   // lapsed → from now
-    const state = evaluateTenant(school.school_id, now + 20 * DAY_MS);
+    const state = _computeTenantState(school.school_id, now + 20 * DAY_MS);
     expect(state.status).toBe(SUB_STATUS.TRIAL);
     expect(state.trialDaysLeft).toBe(30);
   });
@@ -255,5 +256,41 @@ describe('billing — reporting', () => {
     expect(SEEDED_STATUSES).toContain(SUB_STATUS.PAST_DUE);
     expect(SEEDED_STATUSES).toContain(SUB_STATUS.SUSPENDED);
     expect(TENANTS['skh-001'].student_count).toBeGreaterThan(0);
+  });
+});
+
+describe('evaluateTenant — the database is authoritative for access', () => {
+  it('does not lock out a school the server says is active, even if the clock disagrees', () => {
+    // force the fixture's own timestamps past their deadline
+    const t = queryTenant('skh-001');
+    const saved = { end: t.current_period_end, status: t.status };
+    t.current_period_end = Date.now() - 30 * DAY_MS;
+    t.status = 'active';
+    const state = evaluateTenant('skh-001');
+    expect(state.locked).toBe(false);            // the browser must not contradict the server
+    expect(state.status).toBe('active');
+    Object.assign(t, { current_period_end: saved.end, status: saved.status });
+  });
+
+  it('locks a tenant the server has suspended, whatever the timestamps say', () => {
+    const t = queryTenant('skh-002');
+    const saved = { end: t.current_period_end, status: t.status };
+    t.current_period_end = Date.now() + 60 * DAY_MS;   // clock says plenty of time left
+    t.status = 'suspended';
+    t.suspend_reason = 'Unpaid after the grace period';
+    const state = evaluateTenant('skh-002');
+    expect(state.locked).toBe(true);
+    expect(state.reason).toMatch(/Unpaid/i);
+    Object.assign(t, { current_period_end: saved.end, status: saved.status });
+  });
+
+  it('reports grace without locking while the server still allows access', () => {
+    const t = queryTenant('skh-003');
+    const saved = { status: t.status };
+    t.status = 'grace';
+    const state = evaluateTenant('skh-003');
+    expect(state.locked).toBe(false);
+    expect(state.status).toBe('grace');
+    Object.assign(t, { status: saved.status });
   });
 });
