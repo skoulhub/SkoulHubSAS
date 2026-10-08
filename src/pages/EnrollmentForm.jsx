@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { submitEnrollment } from '../lib/db';
 import { TENANTS, getEnrollmentConfig, getFormSchema } from '../lib/tenantStore';
 
 /* ── Step config — generic (school picker included) ─────────── */
@@ -161,6 +162,8 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
   const [submitted, setSubmitted] = useState(false);
   const [refNumber] = useState(() => 'ENR-' + Math.random().toString(36).slice(2,8).toUpperCase());
   const [errors, setErrors]   = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   /* Build initial form state from schema + hardcoded defaults */
   const [form, setForm] = useState(() => {
@@ -238,7 +241,36 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
 
   const next   = ()  => { if (validate(step)) setStep(s => s + 1); };
   const back   = ()  => { setStep(s => s - 1); setErrors({}); };
-  const submit = ()  => { if (validate(step)) setSubmitted(true); };
+  /**
+   * Submit the application.
+   *
+   * This used to only flip a boolean, so a parent could complete a long form,
+   * be shown a success screen, and have nothing stored anywhere. The row now
+   * goes to the enrollments table, and the success screen appears only once
+   * the insert has actually succeeded.
+   */
+  const submit = async () => {
+    if (!validate(step)) return;
+    setSubmitError('');
+
+    const schoolId = isSchoolMode ? presetSchoolId : form.school_id;
+    if (!schoolId) { setSubmitError('Please choose the school you are applying to.'); return; }
+
+    setSubmitting(true);
+    const result = await submitEnrollment({ school_id: schoolId, ref: refNumber, answers: form });
+    setSubmitting(false);
+
+    if (result?.error) {
+      // never show a success screen for an application that was not stored
+      setSubmitError(
+        String(result.error.message ?? '').includes('row-level security')
+          ? 'This school is not accepting applications online at the moment. Please contact them directly.'
+          : `We could not submit your application: ${result.error.message ?? 'please try again.'}`,
+      );
+      return;
+    }
+    setSubmitted(true);
+  };
 
   /* ── Submitted screen ── */
   if (submitted) {
@@ -607,9 +639,13 @@ export default function EnrollmentForm({ schoolId: presetSchoolId = null, onBack
               Back
             </button>
           )}
+          {submitError && (
+            <p className="text-xs text-red-500 mb-2 px-1" role="alert">{submitError}</p>
+          )}
           <button
-            onClick={step === STEPS.length - 1 ? submit : next}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98]"
+            onClick={step === STEPS.length - 1 ? () => void submit() : next}
+            disabled={submitting}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:opacity-90 active:scale-[0.98] ${submitting ? 'opacity-60 cursor-not-allowed' : ''}`}
             style={{ background: `linear-gradient(135deg, ${themeColor} 0%, ${themeColor}cc 100%)` }}>
             {step === STEPS.length - 1 ? (
               <>

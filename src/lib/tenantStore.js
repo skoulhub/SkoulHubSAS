@@ -377,6 +377,11 @@ export function __hydrateStore(data) {
   if (data.invoices) __setInvoices(data.invoices);
 }
 
+/** Merge a single school row (e.g. returned by an RPC) into the cache. */
+export function __applyTenant(tenant) {
+  if (tenant?.school_id) TENANTS[tenant.school_id] = { ...TENANTS[tenant.school_id], ...tenant };
+}
+
 /** True once real data has been loaded (used to gate the UI). */
 export const __isHydrated = () => Object.keys(TENANTS).length > 0;
 

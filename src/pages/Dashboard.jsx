@@ -16,10 +16,12 @@ import {
 } from '../lib/plans';
 import { csvText, parseCsvLine, unguard, CSV_BOM } from '../lib/csv';
 import { recordAudit, AUDIT_ACTIONS, AUDIT_SEVERITY } from '../lib/audit';
+import { applyPlan as applyPlanAction, setTenantStatus, beginTrial, addTrialDays,
+         settleInvoice } from '../lib/billingActions';
 import {
   SUB_STATUS, PAYMENT_METHODS, evaluateTenant, refreshSubscriptions, billingSummary,
-  listInvoices, openInvoice, markInvoicePaid, assignPlan, startTrial, extendTrial,
-  suspendTenant, reactivateTenant, statusMeta, statusSentence, dateLabel, daysUntil,
+  listInvoices, openInvoice, 
+  statusMeta, statusSentence, dateLabel, daysUntil,
 } from '../lib/billing';
 
 /* ─── SVG Icons ──────────────────────────────────────────────── */
@@ -4540,12 +4542,16 @@ function SaasSchoolsPage({ roleId }) {
   const planTint  = (id) => getPlan(id).tint;
   const refresh = () => setSchools([...queryAllTenants()]);
 
-  const doSuspend = (t) => {
-    const state = evaluateTenant(t.school_id);
-    if (state.locked) reactivateTenant(t.school_id);
-    else suspendTenant(t.school_id, 'Suspended from the SaaS console');
+  const doSuspend = async (t) => {
+    const wasLocked = evaluateTenant(t.school_id).locked;
+    const r = await setTenantStatus(
+      t.school_id,
+      wasLocked ? 'active' : 'suspended',
+      wasLocked ? null : 'Suspended from the SaaS console',
+    );
+    if (!r.ok) { toast(r.error?.message ?? 'Could not change this school', 'error'); return; }
     refresh();
-    toast(`${t.name} ${state.locked ? 'reactivated' : 'suspended'}`);
+    toast(`${t.name} ${wasLocked ? 'reactivated' : 'suspended'}`);
     setSuspend(null);
   };
 
@@ -4735,35 +4741,36 @@ function ManageSchoolModal({ tenant, onClose, onChanged }) {
     Object.assign(t, { name: form.name, district: form.district, admin_email: form.admin_email });
     onChanged('School details updated');
   };
-  const applyPlan = () => {
-    assignPlan(t.school_id, planId, { effective });
-    recordAudit({
-      action: AUDIT_ACTIONS.PLAN_ASSIGNED, target: t.name, school_id: t.school_id,
-      detail: `${planLabel(planId)} · ${effective === 'next_term' ? 'from next term' : 'immediate'} · ${t.student_count} students`,
-      severity: AUDIT_SEVERITY.CRITICAL,
-    });
+  const applyPlan = async () => {
+    const r = await applyPlanAction(t.school_id, planId, { effective });
+    if (!r.ok) {
+      onChanged(r.error?.message ?? 'Could not change the plan', 'error');
+      return;
+    }
     onChanged(effective === 'next_term'
-      ? `${plan.name} scheduled for next term`
-      : `Plan changed to ${plan.name} — invoice re-rated`);
+      ? `${planLabel(planId)} scheduled from next term`
+      : `${planLabel(planId)} applied — invoices re-rated`);
   };
-  const trial = (days) => {
-    extendTrial(t.school_id, days);
-    recordAudit({ action: AUDIT_ACTIONS.TRIAL_EXTENDED, target: t.name, school_id: t.school_id, detail: `+${days} days`, severity: AUDIT_SEVERITY.NOTICE });
+  /* The database records the audit entry for these itself (billing_audit), so
+     the client does not duplicate it — and cannot omit it either. */
+  const trial = async (days) => {
+    const r = await addTrialDays(t.school_id, days);
+    if (!r.ok) return onChanged(r.error?.message ?? 'Could not extend the trial', 'error');
     onChanged(`Trial extended by ${days} days`);
   };
-  const restartTrial = () => {
-    startTrial(t.school_id, TRIAL_DAYS);
-    recordAudit({ action: AUDIT_ACTIONS.TRIAL_EXTENDED, target: t.name, school_id: t.school_id, detail: `restarted (${TRIAL_DAYS} days)`, severity: AUDIT_SEVERITY.NOTICE });
+  const restartTrial = async () => {
+    const r = await beginTrial(t.school_id, TRIAL_DAYS);
+    if (!r.ok) return onChanged(r.error?.message ?? 'Could not restart the trial', 'error');
     onChanged(`${TRIAL_DAYS}-day trial restarted`);
   };
-  const doSuspend = () => {
-    suspendTenant(t.school_id, 'Suspended from the SaaS console');
-    recordAudit({ action: AUDIT_ACTIONS.TENANT_SUSPENDED, target: t.name, school_id: t.school_id, detail: 'access revoked', severity: AUDIT_SEVERITY.CRITICAL });
+  const doSuspend = async () => {
+    const r = await setTenantStatus(t.school_id, 'suspended', 'Suspended from the SaaS console');
+    if (!r.ok) return onChanged(r.error?.message ?? 'Could not suspend this school', 'error');
     onChanged('School suspended — access revoked');
   };
-  const doReactivate = () => {
-    reactivateTenant(t.school_id);
-    recordAudit({ action: AUDIT_ACTIONS.TENANT_REACTIVATED, target: t.name, school_id: t.school_id, severity: AUDIT_SEVERITY.CRITICAL });
+  const doReactivate = async () => {
+    const r = await setTenantStatus(t.school_id, 'active');
+    if (!r.ok) return onChanged(r.error?.message ?? 'Could not reactivate this school', 'error');
     onChanged('School reactivated');
   };
 
@@ -4919,6 +4926,7 @@ function SaasBillingPage({ roleId }) {
   const [tick, setTick] = useState(0);                 // re-read the stores after a mutation
   const [payTarget, setPayTarget] = useState(null);
   const [pay, setPay] = useState({ method: PAYMENT_METHODS[0], reference: '' });
+  const [paying, setPaying] = useState(false);
   const { toasts, show: toast } = useToast();
   const refresh = () => setTick(t => t + 1);
 
@@ -4936,17 +4944,14 @@ function SaasBillingPage({ roleId }) {
     toast(bits.length ? bits.join(' · ') : 'Nothing due — all schools are up to date');
   };
 
-  const settle = () => {
+  const settle = async () => {
     if (!payTarget) return;
-    markInvoicePaid(payTarget.id, { method: pay.method, reference: pay.reference });
-    recordAudit({
-      action: AUDIT_ACTIONS.INVOICE_PAID, target: `${payTarget.id} · ${payTarget.school_name}`,
-      school_id: payTarget.school_id, detail: `${formatUGX(payTarget.amount)} via ${pay.method}`,
-      severity: AUDIT_SEVERITY.CRITICAL,
-    });
-    toast(`${payTarget.id} marked paid — ${payTarget.school_name} reactivated`);
+    setPaying(true);
+    const r = await settleInvoice(payTarget.id, { method: pay.method, reference: pay.reference });
+    setPaying(false);
+    if (!r.ok) { toast(r.error?.message ?? 'Could not record this payment', 'error'); return; }
+    toast(`${payTarget.id} settled — ${payTarget.school_name} reactivated`);
     setPayTarget(null);
-    setPay({ method: PAYMENT_METHODS[0], reference: '' });
     refresh();
   };
 
@@ -5189,7 +5194,8 @@ function SaasBillingPage({ roleId }) {
             <div className="flex gap-3 mt-5">
               <button onClick={() => setPayTarget(null)} className="flex-1 py-2.5 rounded-xl border text-sm font-semibold"
                 style={{ borderColor: 'var(--border-strong)', color: 'var(--text-muted)' }}>Cancel</button>
-              <button onClick={settle} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: 'var(--ok)' }}>
+              <button onClick={settle} disabled={paying} className="flex-1 py-2.5 rounded-xl text-sm font-bold text-white" style={{ background: 'var(--ok)' }}>
+                {paying ? 'Recording…' : 'Record payment'}
                 Confirm payment
               </button>
             </div>

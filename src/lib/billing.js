@@ -117,6 +117,22 @@ export function __setInvoices(rows) {
   })));
 }
 
+/** Merge a single invoice row (e.g. returned by an RPC) into the cache. */
+export function __applyInvoice(row) {
+  if (!row?.id) return;
+  const LOCAL = { pending: 'due', overdue: 'due', paid: 'paid', void: 'void' };
+  const shaped = {
+    id: row.id, school_id: row.school_id, plan: row.plan_id ?? row.plan,
+    students: row.students, rate: row.rate, amount: row.amount,
+    issued_at: row.issued_at, due_at: row.due_at, paid_at: row.paid_at,
+    method: row.method, reference: row.reference,
+    status: LOCAL[row.status] ?? row.status ?? 'due',
+  };
+  const i = INVOICES.findIndex(x => x.id === shaped.id);
+  if (i >= 0) INVOICES[i] = { ...INVOICES[i], ...shaped };
+  else INVOICES.push(shaped);
+}
+
 export function getInvoice(id) {
   return INVOICES.find(inv => inv.id === id) ?? null;
 }

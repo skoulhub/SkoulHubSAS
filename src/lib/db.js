@@ -247,6 +247,28 @@ export async function writeAudit(entry) {
   return { ok: true };
 }
 
+export const enrollmentApi = {
+  /**
+   * Public application submission.
+   *
+   * Runs unauthenticated and is admitted by an INSERT-only policy for schools
+   * in good standing. Deliberately does NOT chain .select(): anon has no read
+   * policy on this table (applications must not be readable by the public),
+   * and asking for the row back would fail the request.
+   */
+  submit: async ({ school_id, ref, answers }) => {
+    if (!isSupabaseConfigured) return { ref };            // offline demo
+    const { error } = await supabase.from('enrollments').insert({
+      school_id,
+      applicant: { ref, ...answers },
+    });
+    return error ? { error } : { ref };
+  },
+};
+
+/** Convenience wrapper for the public application form. */
+export const submitEnrollment = (payload) => enrollmentApi.submit(payload);
+
 export const auditApi = {
   list: async (limit = 300) => {
     const { data, error } = await supabase

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { can } from '../lib/permissions';
-import { updateTenantPlan, quoteForPlan } from '../lib/tenantStore';
+import { quoteForPlan } from '../lib/tenantStore';
+import { requestPlanChange } from '../lib/billingActions';
 import {
   PLANS, PLAN_FEATURES, PRICING_FAQ, PRICING_SOURCE, PRICING_UPDATED, BILLING_UNIT, TRIAL_DAYS, GRACE_DAYS, TERM_DAYS,
   ESTIMATOR_MIN, ESTIMATOR_MAX, getPlan, planLabel, planRate, formatUGX, formatCompactUGX, normalisePlanId,
@@ -10,7 +11,6 @@ import {
   statusMeta, statusSentence, dateLabel,
 } from '../lib/billing';
 import { Card, SectionHeader, PrimaryButton, GhostButton, TextInput, Select } from '../components/ui';
-import { recordAudit, AUDIT_ACTIONS, AUDIT_SEVERITY } from '../lib/audit';
 
 /* Local badge — the plan pill used in the page header. */
 function PlanBadge({ plan }) {
@@ -54,15 +54,18 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
     setTimeout(() => setToast(null), 3200);
   };
 
-  const switchPlan = (planId) => {
-    updateTenantPlan(tenant.school_id, planId);
-    recordAudit({
-      action: AUDIT_ACTIONS.PLAN_SWITCHED, target: planLabel(planId),
-      detail: `${planLabel(tenant.plan)} → ${planLabel(planId)}`, severity: AUDIT_SEVERITY.CRITICAL,
-    });
+  /**
+   * Goes through the database. A school admin may re-plan their own school
+   * (request_plan_change), and the billing guard trigger still prevents them
+   * from touching anything else about the subscription.
+   */
+  const switchPlan = async (planId) => {
+    const from = planLabel(tenant.plan);
+    const r = await requestPlanChange(tenant.school_id, planId);
+    if (!r.ok) { notify(r.error?.message ?? 'Could not change the plan', 'error'); return; }
     onUpdateTenant?.({ plan: planId });
     setConfirming(null);
-    notify(`Plan changed to ${planLabel(planId)} — takes effect next term`);
+    notify(`${from} → ${planLabel(planId)} — the new rate applies from the next invoice`);
   };
 
   return (
