@@ -216,3 +216,25 @@ The mock store is shaped so a real backend can drop in without UI changes:
 - In production these become Postgres **Row-Level Security** policies, e.g.
   `USING (school_id = auth.jwt() ->> 'school_id')`, with the backend — never the frontend —
   as the authority. The demo banner disclaims that tenant isolation is currently simulated.
+
+## Deployment
+
+| | |
+|---|---|
+| **Production URL** | <https://app.skoulhub.com> |
+| **Host** | Vercel project `skoul-hub-sas` (team `grand-brands-projects`) |
+| **DNS** | Cloudflare — `CNAME app → cname.vercel-dns.com`, proxied, SSL **Full (strict)** |
+| **Build** | `npm run build` → `dist` (declared in `vercel.json`) |
+
+### ⚠️ Commit authorship is enforced by Vercel
+The Vercel team is on the **Hobby** plan, which only permits deployments whose **git commit
+author is a member of the team**. A commit from anyone else is accepted by GitHub but its
+deployment is **blocked** (`seatBlock: TEAM_ACCESS_REQUIRED`) — the site then silently keeps
+serving the previous build.
+
+Author commits as the account owner so pushes deploy:
+
+```bash
+git -c user.name="grandbrandsio" \
+    -c user.email="280177976+grandbrandsio@users.noreply.github.com" commit -m "..."
+```
