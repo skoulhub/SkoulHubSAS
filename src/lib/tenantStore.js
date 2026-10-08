@@ -389,23 +389,10 @@ export function lookupUser(email) {
 }
 
 // ── Auth: resolve user from email+role (demo) ────────────────
-export function resolveUser(email, roleId) {
-  // Demo: if email matches a known user, use it; else create a
-  // scoped session for the selected role on the first tenant
-  const known = USERS[email.toLowerCase()];
-  if (known) return known;
-
-  // For demo purposes: map role to default tenant skh-001
-  // (In prod this would fail with 401 if user not found)
-  const fallbackSchool = roleId === 'saas_admin' ? null : 'skh-001';
-  return {
-    user_id:   generateUUID(),
-    school_id: fallbackSchool,
-    role:      roleId,
-    name:      email.split('@')[0],
-    email,
-    phone:     '',
-  };
+export function resolveUser(email) {
+  // Only a known user yields a session. An unrecognised address must fail
+  // closed here — the UI must never mint a session for an arbitrary email.
+  return USERS[String(email ?? '').toLowerCase()] ?? null;
 }
 
 // ── Enrollment Form Schema ───────────────────────────────────

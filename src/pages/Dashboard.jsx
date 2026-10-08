@@ -13,6 +13,7 @@ import {
   PLANS, BILLING_UNIT, DEFAULT_PLAN_ID, RATE_RANGE, TRIAL_DAYS, GRACE_DAYS, TERM_DAYS,
   getPlan, planLabel, planRate, calcPlanCost, formatUGX, formatCompactUGX, normalisePlanId,
 } from '../lib/plans';
+import { csvText, parseCsvLine, unguard, CSV_BOM } from '../lib/csv';
 import {
   SUB_STATUS, PAYMENT_METHODS, evaluateTenant, refreshSubscriptions, billingSummary,
   listInvoices, openInvoice, markInvoicePaid, assignPlan, startTrial, extendTrial,
@@ -2348,7 +2349,8 @@ const SUBJ_LIST = ['Mathematics','English','Biology','History','Chemistry','Phys
 
 /* ── Tiny CSV download helper (used by marks import & invoice export) ── */
 function downloadCSV(filename, content) {
-  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+  // BOM so Excel detects UTF-8; content is already formula-neutralised by lib/csv
+  const blob = new Blob([CSV_BOM + content], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -2393,12 +2395,11 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
 
   /* ── CSV import: download template ── */
   const downloadTemplate = () => {
-    const header = ['Student Name', ...activeSubjects];
-    const lines = [
-      header.join(','),
-      ...baseStudents.map(s => [s.name, ...activeSubjects.map(() => '')].join(',')),
+    const rows = [
+      ['Student Name', ...activeSubjects],
+      ...baseStudents.map(s => [s.name, ...activeSubjects.map(() => '')]),
     ];
-    downloadCSV('marks-template.csv', lines.join('\n'));
+    downloadCSV('marks-template.csv', csvText(rows));
     toast('Template downloaded');
     setImportModal(false);
   };
@@ -2410,13 +2411,13 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
     const reader = new FileReader();
     reader.onload = () => {
       const text = String(reader.result || '');
-      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      const lines = text.replace(/^\ufeff/, '').split(/\r?\n/).filter(l => l.trim());
       if (lines.length < 2) { toast('CSV must have a header row plus data rows', 'error'); return; }
-      const headers = lines[0].split(',').map(h => h.trim());
+      const headers = parseCsvLine(lines[0]);
       const nameIdx = headers.findIndex(h => /student|name/i.test(h));
       if (nameIdx < 0) { toast('CSV must contain a "Student Name" column', 'error'); return; }
       const rows = lines.slice(1).map(line => {
-        const cols = line.split(',').map(c => c.trim());
+        const cols = parseCsvLine(line).map(unguard);
         const scores = {};
         activeSubjects.forEach(sub => {
           const idx = headers.findIndex(h => h === sub);
@@ -4919,12 +4920,14 @@ function SaasBillingPage({ roleId }) {
   };
 
   const exportInvoices = () => {
-    const header = ['Invoice','School','Tenant ID','Plan','Students','Rate (UGX)','Amount (UGX)','Issued','Due','Status'];
-    const lines = invoices.map(i => [
+    const rows = invoices.map(i => [
       i.id, i.school_name, i.school_id, planLabel(i.plan), i.students, i.rate, i.amount,
       dateLabel(i.issued_at), dateLabel(i.due_at), i.display_status,
-    ].join(','));
-    downloadCSV('skoulhub-invoices.csv', [header.join(','), ...lines].join('\n'));
+    ]);
+    downloadCSV('skoulhub-invoices.csv', csvText([
+      ['Invoice','School','Tenant ID','Plan','Students','Rate (UGX)','Amount (UGX)','Issued','Due','Status'],
+      ...rows,
+    ]));
     toast('Invoices exported to CSV');
   };
 

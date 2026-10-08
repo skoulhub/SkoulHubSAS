@@ -89,11 +89,12 @@ describe('tenantStore — auth helpers', () => {  it('lookupUser matches case-in
     expect(lookupUser('ghost@nowhere.ug')).toBeNull();
   });
 
-  it('resolveUser returns the known user, else a demo fallback session', () => {
-    expect(resolveUser('admin@smck.ug', 'school_admin').name).toBe('Agnes Namukwaya');
-    const fallback = resolveUser('nobody@x.ug', 'teacher');
-    expect(fallback.school_id).toBe('skh-001');
-    expect(resolveUser('nobody@x.ug', 'saas_admin').school_id).toBeNull();
+  it('resolveUser returns the known user and fails closed for anyone else', () => {
+    expect(resolveUser('admin@smck.ug').name).toBe('Agnes Namukwaya');
+    expect(resolveUser('ADMIN@SMCK.UG').role).toBe('school_admin');
+    expect(resolveUser('nobody@x.ug')).toBeNull();          // no fabricated session
+    expect(resolveUser('')).toBeNull();
+    expect(resolveUser(null)).toBeNull();
   });
 });
 

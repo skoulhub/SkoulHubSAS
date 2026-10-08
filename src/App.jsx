@@ -4,7 +4,7 @@ import Dashboard from './pages/Dashboard';
 import EnrollmentForm from './pages/EnrollmentForm';
 import Onboarding from './pages/Onboarding';
 import { resolveUser, queryTenant } from './lib/tenantStore';
-import { useTheme } from './lib/userPrefs';
+import { useTheme, clearUserStorage } from './lib/userPrefs';
 import { refreshSubscriptions, evaluateTenant } from './lib/billing';
 
 /* Read the ?enroll= param once, lazily, so we never setState in an effect */
@@ -32,8 +32,8 @@ export default function App() {
   const handleUpdateTenant = (patch) =>
     setSession(s => (s && s.tenant ? { ...s, tenant: { ...s.tenant, ...patch } } : s));
 
-  const handleLogin = (email, roleId) => {
-    const currentUser = resolveUser(email, roleId);
+  const handleLogin = (email) => {
+    const currentUser = resolveUser(email);
     if (!currentUser) {
       // Unknown user — reset to login (defensive; Login validates beforehand)
       setSession(null);
@@ -55,11 +55,16 @@ export default function App() {
       }
     }
 
+    // a different user signing in must not inherit the previous user's storage
+    const previous = session?.currentUser?.user_id;
+    if (previous && previous !== currentUser.user_id) clearUserStorage(previous);
+
     setSession({ currentUser, tenant });
     setView('dashboard');
   };
 
   const handleLogout = () => {
+    clearUserStorage(session?.currentUser?.user_id);   // no preference leak on shared devices
     setSession(null);
     setView('login');
   };

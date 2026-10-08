@@ -133,5 +133,16 @@ export function usePrefs(userId) {
   return [prefs, update];
 }
 
+/**
+ * Remove everything this app persisted for a user. Called on sign-out so a
+ * shared device does not leak the previous user's preferences (MFA method,
+ * notification settings, locale) to the next person who signs in.
+ */
+export function clearUserStorage(userId) {
+  try {
+    if (userId) localStorage.removeItem(PREFS_PREFIX + userId);
+  } catch { /* storage unavailable */ }
+}
+
 export const THEME_STORAGE_KEY = THEME_KEY;
 export const PREFS_STORAGE_PREFIX = PREFS_PREFIX;
