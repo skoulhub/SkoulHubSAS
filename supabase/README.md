@@ -100,12 +100,53 @@ Seeded users (one per role, plus a suspended tenant) are listed with a shared
 password in `~/.skoulhub-demo-users`, which is **not** in this repository.
 Change or delete them before real use.
 
+## Subscription lifecycle (0004)
+
+The SPA used to derive trials, grace and suspension from `Date.now()`. It now
+reads them from the database, and the rules run server-side:
+
+```
+trial ──(trial_ends_at)──▶ grace ──(+7 days)──▶ suspended
+active ─(period_end)─────▶ grace ──(+7 days)──▶ suspended
+```
+
+| Function | Purpose |
+|---|---|
+| `evaluate_subscriptions()` | moves tenants through grace → suspension against the clock |
+| `raise_due_invoices()` | one invoice per lapsed term; amount = students × plan rate |
+| `mark_invoice_paid(invoice, method, ref)` | operator-or-server only, idempotent; restores access and opens a fresh term |
+| `assign_plan` / `start_trial` / `set_tenant_status` | operator actions |
+| `run_billing_cycle()` | both of the first two; scheduled hourly |
+
+Scheduled with pg_cron as job `skoulhub-billing` (`15 * * * *`):
+
+```sql
+select cron.schedule('skoulhub-billing', '15 * * * *', 'select run_billing_cycle();');
+```
+
+Prices live in a `plans` table, so changing a rate is data rather than a deploy.
+
+### Payment webhook
+
+`supabase/functions/payment-webhook` receives a provider callback, verifies an
+HMAC-SHA256 signature over the **raw** body, and calls `mark_invoice_paid()`.
+No amount is taken from the caller — the invoice already carries its own.
+
+```bash
+supabase secrets set PAYMENT_WEBHOOK_SECRET=<random>
+supabase functions deploy payment-webhook --no-verify-jwt
+```
+
+JWT verification is off because an external provider has no Supabase JWT; the
+signature is the authentication. Swap `signatureOf()` for the provider's scheme
+(Flutterwave `verif-hash`, Paystack `x-paystack-signature`, Stripe's timestamped
+signature) — the rest of the flow is unchanged.
+
 ## Still to do
 
 - Wire the SPA to this database (replace `src/lib/tenantStore.js`) and move the
   client to Supabase Auth.
-- Move the billing lifecycle (`src/lib/billing.js`) into a scheduled function
-  plus a payment webhook, so trials and revocation no longer depend on the
-  browser's clock.
-- Move `src/lib/audit.js` writes to the `audit_log` table.
+- Move the remaining billing *writes* in the UI (mark-paid, assign-plan,
+  suspend) onto the RPCs — reads and the access decision are already server-side.
+- Point the Audit Log page at the `audit_log` table (writes already go there).
 - Storage buckets for enrollment documents and student photographs.
