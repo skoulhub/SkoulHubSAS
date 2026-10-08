@@ -1,13 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import EnrollmentForm from './pages/EnrollmentForm';
 import Onboarding from './pages/Onboarding';
-import { resolveUser, queryTenant } from './lib/tenantStore';
+import { queryTenant, __hydrateStore } from './lib/tenantStore';
 import { useTheme, clearUserStorage } from './lib/userPrefs';
 import { useIdleTimeout, IDLE_TIMEOUT_MS } from './lib/useIdleTimeout';
 import { recordAudit, setAuditActor, AUDIT_ACTIONS, AUDIT_SEVERITY } from './lib/audit';
 import { refreshSubscriptions, evaluateTenant } from './lib/billing';
+import { signIn, signOut, loadTenantData, currentAuthSession } from './lib/db';
 
 /* Read the ?enroll= param once, lazily, so we never setState in an effect */
 function initialView() {
@@ -33,6 +34,7 @@ export default function App() {
       recordAudit({ action: AUDIT_ACTIONS.IDLE_SIGN_OUT, severity: AUDIT_SEVERITY.NOTICE });
       setAuditActor({});
       clearUserStorage(session?.currentUser?.user_id);
+      signOut();                       // revoke server-side too, not just the UI
       setSession(null);
       setView('login');
       setNotice(`You were signed out after ${Math.round(IDLE_TIMEOUT_MS / 60000)} minutes of inactivity.`);
@@ -48,44 +50,69 @@ export default function App() {
   const handleUpdateTenant = (patch) =>
     setSession(s => (s && s.tenant ? { ...s, tenant: { ...s.tenant, ...patch } } : s));
 
-  const handleLogin = (email) => {
-    const currentUser = resolveUser(email);
+  /**
+   * Sign in against Supabase, then load the caller's data.
+   *
+   * The browser no longer decides who anyone is: the credentials go to the
+   * auth server, and every row that comes back has already been filtered by
+   * Row Level Security for that identity.
+   */
+  const handleLogin = async (email, password) => {
+    const { error } = await signIn(email, password);
+    if (error) {
+      // Deliberately pass the server's message through unchanged — enriching it
+      // ("no such user" vs "wrong password") would be an enumeration oracle.
+      return { ok: false, error: error.message === 'Invalid login credentials'
+        ? 'Incorrect email or password.' : error.message };
+    }
+
+    const data = await loadTenantData();
+    if (!data || data.error) {
+      return { ok: false, error: `Signed in, but your school data could not be loaded${data?.error ? `: ${data.error.message}` : '.'}` };
+    }
+    __hydrateStore(data);
+
+    const key = String(email).trim().toLowerCase();
+    const currentUser = data.users[key];
     if (!currentUser) {
-      // Unknown user — reset to login (defensive; Login validates beforehand)
-      setSession(null);
-      setView('login');
-      return;
+      await signOut();
+      return { ok: false, error: 'This account has no profile. Ask your administrator to provision it.' };
     }
     const tenant = currentUser.school_id ? queryTenant(currentUser.school_id) : null;
 
-    /* Auto-revocation: a school whose subscription lapsed cannot sign in.
-       The school admin is the exception — they get a locked dashboard whose
-       only reachable page is Subscription, so they can settle the invoice. */
+    /* Auto-revocation. The database already refuses the data (tenant_is_active),
+       so a lapsed school sees nothing; here we additionally explain why, and
+       let the school admin reach only the Subscription page to settle up. */
     if (tenant && currentUser.role !== 'saas_admin') {
       refreshSubscriptions();
       const state = evaluateTenant(tenant.school_id);
       if (state?.locked && currentUser.role !== 'school_admin') {
         setBlocked({ tenant, state, email });
         setView('login');
-        return;
+        return { ok: true };
       }
     }
 
-    // a different user signing in must not inherit the previous user's storage
     const previous = session?.currentUser?.user_id;
     if (previous && previous !== currentUser.user_id) clearUserStorage(previous);
 
-    setAuditActor({ name: currentUser.name, role: currentUser.role, school_id: currentUser.school_id ?? null });
-    recordAudit({ action: AUDIT_ACTIONS.SIGN_IN, target: currentUser.email ?? email, severity: AUDIT_SEVERITY.NOTICE });
+    setAuditActor({
+      name: currentUser.name, role: currentUser.role,
+      school_id: currentUser.school_id ?? null, id: currentUser.user_id,
+    });
+    recordAudit({ action: AUDIT_ACTIONS.SIGN_IN, target: currentUser.email, severity: AUDIT_SEVERITY.NOTICE });
     setNotice('');
     setSession({ currentUser, tenant });
     setView('dashboard');
+    return { ok: true };
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // audit before signing out — the insert needs the session to be attributed
     recordAudit({ action: AUDIT_ACTIONS.SIGN_OUT, severity: AUDIT_SEVERITY.NOTICE });
     setAuditActor({});
     clearUserStorage(session?.currentUser?.user_id);   // no preference leak on shared devices
+    await signOut();
     setSession(null);
     setView('login');
   };
@@ -106,6 +133,28 @@ export default function App() {
   const handleCreateSchool = () => {
     setView('onboarding');
   };
+
+  /* Restore an existing Supabase session on reload — the token lives in
+     localStorage, so a refresh should not force a fresh sign-in. */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const authSession = await currentAuthSession();
+      if (!authSession?.user || cancelled) return;
+      const data = await loadTenantData();
+      if (cancelled || !data || data.error) return;
+      __hydrateStore(data);
+      const currentUser = data.users[authSession.user.email.toLowerCase()];
+      if (!currentUser) return;
+      setAuditActor({
+        name: currentUser.name, role: currentUser.role,
+        school_id: currentUser.school_id ?? null, id: currentUser.user_id,
+      });
+      setSession({ currentUser, tenant: currentUser.school_id ? queryTenant(currentUser.school_id) : null });
+      setView(v => (v === 'login' ? 'dashboard' : v));
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   const handleOnboardingComplete = ({ user, tenant }) => {
     // Onboarding provisions a tenant + admin user; sign straight in as that admin

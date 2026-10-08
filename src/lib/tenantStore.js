@@ -349,6 +349,33 @@ export function queryTenant(school_id) {
   return TENANTS[school_id] ?? null;
 }
 
+/**
+ * Replace the in-memory fixtures with rows loaded from the database.
+ *
+ * Clears first, deliberately: merging would let demo fixtures survive into a
+ * real session. The database is the only source of truth once signed in.
+ */
+export function __hydrateStore(data) {
+  if (!data) return;
+  const swapObj = (target, next) => {
+    if (!next) return;
+    for (const k of Object.keys(target)) delete target[k];
+    Object.assign(target, next);
+  };
+  const swapArr = (target, next) => {
+    if (Array.isArray(next)) target.splice(0, target.length, ...next);
+  };
+  swapObj(TENANTS, data.tenants);
+  swapObj(USERS, data.users);
+  swapArr(STUDENTS_DB, data.students);
+  swapArr(TEACHERS_DB, data.teachers);
+  swapArr(PARENTS_DB, data.parents);
+  swapArr(PAYMENTS_DB, data.payments);
+}
+
+/** True once real data has been loaded (used to gate the UI). */
+export const __isHydrated = () => Object.keys(TENANTS).length > 0;
+
 export function queryAllTenants() {
   return Object.values(TENANTS);
 }

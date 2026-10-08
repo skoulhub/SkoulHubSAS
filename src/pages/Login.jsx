@@ -1,10 +1,6 @@
 import { useState } from 'react';
-import MFAFlow from './MFAFlow';
-import { queryAllTenants, queryTenant, lookupUser } from '../lib/tenantStore';
 import { isValidEmail } from '../lib/validation';
 
-const DEFAULT_ROLE = { id: 'school_admin', label: 'School Admin' };
-const ALL_SCHOOLS = queryAllTenants();
 
 const DEMO_ACCOUNTS = [
   {
@@ -74,65 +70,48 @@ export default function Login({ onLogin, onEnroll, onCreateSchool, notice = '', 
   const [step, setStep]           = useState('email'); // email | mfa
   const [email, setEmail]         = useState('');
   const [emailError, setEmailErr] = useState('');
-  const [schoolMode, setSchoolMode] = useState('select'); // 'select' | 'id'
-  const [selectedSchool, setSelectedSchool] = useState('');
-  const [tenantId, setTenantId]   = useState('');
-  const [schoolError, setSchoolErr] = useState('');
+  const [password, setPassword]   = useState('');
+  const [authError, setAuthError] = useState('');
+  const [busy, setBusy]           = useState(false);
   const [demoOpen, setDemoOpen]   = useState(false);
   const [socialNotice, setSocialNotice] = useState('');
-  const [resolvedRole, setResolvedRole] = useState(DEFAULT_ROLE);
 
-  /* Quick-login from a demo card (bypass manual form) */
+  const submit = async (emailOverride, passwordOverride) => {
+  const mail = String(emailOverride ?? email).trim();
+  const pass = String(passwordOverride ?? password);
+
+  if (!isValidEmail(mail)) { setEmailErr('Please enter a valid email address.'); return; }
+  if (!pass) { setAuthError('Please enter your password.'); return; }
+
+  setEmailErr('');
+  setAuthError('');
+  setBusy(true);
+  const result = await onLogin(mail, pass);
+  setBusy(false);
+
+  if (result && result.ok === false) {
+    setAuthError(result.error ?? 'Sign-in failed. Please try again.');
+    setPassword('');
+  }
+  };
+
+  /**
+   * Demo cards fill the form with a real seeded account. The password is only
+   * auto-filled when VITE_DEMO_PASSWORD is set at build time, so a production
+   * bundle never carries a credential.
+   */
   const quickLogin = (acct) => {
-    const user = lookupUser(acct.email);
-    const roleId = user ? user.role : acct.role.toLowerCase().replace(/ /g, '_');
     setEmail(acct.email);
-    setResolvedRole({ id: roleId, label: acct.role });
-    setSchoolErr('');
     setEmailErr('');
-    setStep('mfa');
+    setAuthError('');
+    const demoPassword = import.meta.env.VITE_DEMO_PASSWORD;
+    if (demoPassword) { setPassword(demoPassword); void submit(acct.email, demoPassword); }
   };
 
   /* Step 1 – email */
   if (step === 'email') {
-    const handleContinue = (e) => {
-      e.preventDefault();
 
-      // SaaS admin bypass — no school check needed
-      const user = lookupUser(email);
-      if (user && user.role === 'saas_admin') {
-        setEmailErr('');
-        setSchoolErr('');
-        setResolvedRole({ id: 'saas_admin', label: 'SaaS Admin' });
-        setStep('mfa');
-        return;
-      }
-
-      const school = schoolMode === 'select' ? selectedSchool : tenantId.trim();
-      if (!school) { setSchoolErr('Please select or enter your school.'); return; }
-
-      // 1. Verify tenant exists
-      const tenant = queryTenant(school);
-      if (!tenant) { setSchoolErr('School not found. Check your Tenant ID.'); return; }
-      setSchoolErr('');
-
-      if (!email.includes('@')) { setEmailErr('Please enter a valid email address.'); return; }
-
-      // 2. Verify user is enrolled at this school
-      if (!user) {
-        setEmailErr('No account found for this email. Contact your administrator.');
-        return;
-      }
-      if (user.school_id !== school) {
-        setEmailErr('You are not enrolled at this school. Contact your administrator.');
-        return;
-      }
-      setEmailErr('');
-      // Resolve role for MFA display
-      const roleMeta = DEMO_ACCOUNTS.find(a => a.email === email.toLowerCase());
-      setResolvedRole({ id: user.role, label: roleMeta ? roleMeta.role : user.role });
-      setStep('mfa');
-    };
+    const handleContinue = (e) => { e.preventDefault(); void submit(); };
 
     return (
       <LoginShell>
@@ -188,61 +167,6 @@ export default function Login({ onLogin, onEnroll, onCreateSchool, notice = '', 
           </div>
 
           <form onSubmit={handleContinue} className="space-y-4">
-            {/* School selector */}
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-gray-600">
-                  School <span className="text-red-400">*</span>
-                </label>
-                <button
-                  type="button"
-                  onClick={() => { setSchoolMode(m => m === 'select' ? 'id' : 'select'); setSchoolErr(''); }}
-                  className="text-xs text-brand-blue font-semibold hover:underline"
-                >
-                  {schoolMode === 'select' ? 'Enter Tenant ID instead' : 'Select from list'}
-                </button>
-              </div>
-
-              {schoolMode === 'select' ? (
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                  </span>
-                  <select
-                    value={selectedSchool}
-                    onChange={e => { setSelectedSchool(e.target.value); setSchoolErr(''); }}
-                    className={`w-full pl-10 pr-4 py-3 rounded-2xl border text-sm bg-white outline-none appearance-none transition-all
-                      focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15 text-gray-700
-                      ${schoolError ? 'border-red-400' : 'border-gray-200'}`}
-                  >
-                    <option value="">— Select your school —</option>
-                    {ALL_SCHOOLS.map(s => (
-                      <option key={s.school_id} value={s.school_id}>{s.name}</option>
-                    ))}
-                  </select>
-                  <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M2 4l4 4 4-4"/></svg>
-                  </span>
-                </div>
-              ) : (
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
-                  </span>
-                  <input
-                    type="text"
-                    value={tenantId}
-                    onChange={e => { setTenantId(e.target.value); setSchoolErr(''); }}
-                    placeholder="e.g. sch-xxxxxxxx-xxxx-xxxx"
-                    className={`w-full pl-10 pr-4 py-3 rounded-2xl border text-sm bg-white outline-none transition-all font-mono
-                      focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15
-                      ${schoolError ? 'border-red-400' : 'border-gray-200'}`}
-                  />
-                </div>
-              )}
-              {schoolError && <p className="mt-1.5 text-xs text-red-500">{schoolError}</p>}
-            </div>
-
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                 Email <span className="text-red-400">*</span>
@@ -267,9 +191,40 @@ export default function Login({ onLogin, onEnroll, onCreateSchool, notice = '', 
               {emailError && <p className="mt-1.5 text-xs text-red-500">{emailError}</p>}
             </div>
 
-            <button type="submit" className="btn-brand-primary w-full mt-1 rounded-2xl py-3">
-              Sign in
-            </button>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Password <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round">
+                      <rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/>
+                    </svg>
+                  </span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => { setPassword(e.target.value); setAuthError(''); }}
+                    placeholder="Your password"
+                    autoComplete="current-password"
+                    className={`w-full pl-10 pr-4 py-3 rounded-2xl border text-sm bg-white outline-none transition-all
+                      focus:border-brand-blue focus:ring-2 focus:ring-brand-blue/15
+                      ${authError ? 'border-red-400' : 'border-gray-200'}`}
+                  />
+                </div>
+              </div>
+
+              {authError && (
+                <div className="px-3.5 py-2.5 rounded-xl text-xs font-medium"
+                  style={{ background: 'var(--tint-red)', color: 'var(--danger)', border: '1px solid var(--border)' }}>
+                  {authError}
+                </div>
+              )}
+
+              <button type="submit" disabled={busy}
+                className={`btn-brand-primary w-full mt-1 rounded-2xl py-3 ${busy ? 'opacity-60 cursor-not-allowed' : ''}`}>
+                {busy ? 'Signing in…' : 'Sign in'}
+              </button>
 
             <div className="text-center pt-1">
               <button type="button" onClick={() => setStep('reset')}
@@ -367,18 +322,6 @@ export default function Login({ onLogin, onEnroll, onCreateSchool, notice = '', 
 
         </div>
       </LoginShell>
-    );
-  }
-
-  /* Step 2 – MFA */
-  if (step === 'mfa') {
-    return (
-      <MFAFlow
-        role={resolvedRole}
-        email={email}
-        onBack={() => setStep('email')}
-        onSuccess={() => onLogin(email, resolvedRole.id)}
-      />
     );
   }
 

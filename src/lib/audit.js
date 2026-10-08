@@ -31,10 +31,19 @@ let seq = 0;
  * the session/JWT; keeping it ambient means a call site cannot forget to
  * attribute an action (or attribute it to the wrong user).
  */
-let CURRENT_ACTOR = { name: 'system', role: null, school_id: null };
+let CURRENT_ACTOR = { name: 'system', role: null, school_id: null, id: null };
 
-export function setAuditActor({ name, role, school_id } = {}) {
-  CURRENT_ACTOR = { name: name ?? 'system', role: role ?? null, school_id: school_id ?? null };
+/**
+ * Optional persistence sink. main.jsx points this at the audit_log table, so
+ * every existing recordAudit() call site writes to the database without any
+ * of them changing. Kept as a sink (rather than importing the client here) so
+ * this module stays pure and unit-testable.
+ */
+let SINK = null;
+export function setAuditSink(fn) { SINK = typeof fn === 'function' ? fn : null; }
+
+export function setAuditActor({ name, role, school_id, id } = {}) {
+  CURRENT_ACTOR = { name: name ?? 'system', role: role ?? null, school_id: school_id ?? null, id: id ?? null };
 }
 
 export const getAuditActor = () => ({ ...CURRENT_ACTOR });
@@ -73,6 +82,7 @@ export const AUDIT_ACTIONS = {
 export function recordAudit({
   action,
   actor = CURRENT_ACTOR.name,
+  actor_id = CURRENT_ACTOR.id,
   role = CURRENT_ACTOR.role,
   school_id = CURRENT_ACTOR.school_id,
   target = null,
@@ -85,6 +95,7 @@ export function recordAudit({
     at: now,
     action,
     actor,
+    actor_id,
     role,
     school_id,
     target,
@@ -93,6 +104,7 @@ export function recordAudit({
   };
   ENTRIES.push(entry);
   if (ENTRIES.length > AUDIT_CAP) ENTRIES.splice(0, ENTRIES.length - AUDIT_CAP);
+  if (SINK) { try { SINK(entry); } catch { /* never let auditing break the action */ } }
   return entry;
 }
 
@@ -137,5 +149,5 @@ export function auditStats(school_id) {
 export function _resetAudit() {
   ENTRIES.length = 0;
   seq = 0;
-  CURRENT_ACTOR = { name: 'system', role: null, school_id: null };
+  CURRENT_ACTOR = { name: 'system', role: null, school_id: null, id: null };
 }
