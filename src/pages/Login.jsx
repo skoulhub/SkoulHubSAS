@@ -70,7 +70,7 @@ const DEMO_ACCOUNTS = [
 ];
 
 /* ─── Main Login component ──────────────────────────────────── */
-export default function Login({ onLogin, onEnroll, onCreateSchool }) {
+export default function Login({ onLogin, onEnroll, onCreateSchool, notice = '', onDismissNotice }) {
   const [step, setStep]           = useState('email'); // email | mfa
   const [email, setEmail]         = useState('');
   const [emailError, setEmailErr] = useState('');
@@ -162,6 +162,16 @@ export default function Login({ onLogin, onEnroll, onCreateSchool }) {
               Continue with Apple
             </button>
           </div>
+
+          {/* Session notice (e.g. signed out for inactivity) */}
+          {notice && (
+            <div className="mb-4 px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-start gap-2"
+              style={{ background: 'var(--tint-amber)', color: 'var(--warn)', border: '1px solid var(--border)' }}>
+              <span>⏱</span>
+              <span className="flex-1">{notice}</span>
+              <button type="button" onClick={onDismissNotice} className="opacity-60 hover:opacity-100">✕</button>
+            </div>
+          )}
 
           {/* Social sign-in notice (demo) */}
           {socialNotice && (

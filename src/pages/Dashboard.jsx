@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import ProfilePage from './Profile';
 import SubscriptionPage from './Subscription';
+import AuditLogPage from './AuditLog';
 import { can, navAllowed, ROLE_META } from '../lib/permissions';
 import { NAV_BY_ROLE } from '../lib/navigation';
 import {
@@ -14,6 +15,7 @@ import {
   getPlan, planLabel, planRate, calcPlanCost, formatUGX, formatCompactUGX, normalisePlanId,
 } from '../lib/plans';
 import { csvText, parseCsvLine, unguard, CSV_BOM } from '../lib/csv';
+import { recordAudit, AUDIT_ACTIONS, AUDIT_SEVERITY } from '../lib/audit';
 import {
   SUB_STATUS, PAYMENT_METHODS, evaluateTenant, refreshSubscriptions, billingSummary,
   listInvoices, openInvoice, markInvoicePaid, assignPlan, startTrial, extendTrial,
@@ -387,6 +389,7 @@ function PageContent({ activeNav, roleId, schoolId, tenant, currentUser, searchQ
     case 'overview':   return roleId === 'saas_admin' ? <SaasOverviewPage /> : <OverviewPage {...props} />;
     case 'profile':    return <ProfilePage {...props} theme={theme} onTheme={onTheme} onUpdateUser={onUpdateUser} onLogout={onLogout} />;
     case 'subscription': return <SubscriptionPage {...props} onUpdateTenant={onUpdateTenant} />;
+    case 'audit':      return <AuditLogPage {...props} />;
     case 'students':   return <StudentsPage {...props} initialSearch={searchQuery} />;
     case 'parents':    return <ParentsPage    {...props} />;
     case 'teachers':   return <TeachersPage   {...props} />;
@@ -1090,7 +1093,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
         </table>
       </Card>
 
-      {showModal && <AddStudentModal schoolId={schoolId} onClose={() => setModal(false)} onAdd={s => { setStudents(p => [...p, s]); setModal(false); toast('Student added successfully'); }} />}
+      {showModal && <AddStudentModal schoolId={schoolId} onClose={() => setModal(false)} onAdd={s => { setStudents(p => [...p, s]); recordAudit({ action: AUDIT_ACTIONS.STUDENT_CREATED, target: s.name, detail: s.class }); setModal(false); toast('Student added successfully'); }} />}
 
       {viewStudent && (
         <InfoModal title={viewStudent.name} subtitle={`${viewStudent.class} · ${viewStudent.status}`} onClose={() => setViewStudent(null)}
@@ -1107,7 +1110,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
 
       {editStudent && (
         <EditStudentModal student={editStudent} onClose={() => setEditStudent(null)}
-          onSave={updated => { setStudents(p => p.map(s => s.id === updated.id ? updated : s)); setEditStudent(null); toast('Student record updated'); }} />
+          onSave={updated => { setStudents(p => p.map(s => s.id === updated.id ? updated : s)); recordAudit({ action: AUDIT_ACTIONS.STUDENT_UPDATED, target: updated.name, detail: `class ${updated.class}` }); setEditStudent(null); toast('Student record updated'); }} />
       )}
 
       {deleteStudent && (
@@ -1118,6 +1121,7 @@ function StudentsPage({ roleId, schoolId, currentUser, initialSearch = '' }) {
           danger
           onConfirm={() => {
             setStudents(p => p.filter(s => s.id !== deleteStudent.id));
+            recordAudit({ action: AUDIT_ACTIONS.STUDENT_DELETED, target: deleteStudent.name, detail: deleteStudent.class, severity: AUDIT_SEVERITY.CRITICAL });
             toast(`${deleteStudent.name} deleted`, 'error');
             setDeleteStudent(null);
           }}
@@ -1487,7 +1491,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
       {addModal && (
         <AddParentModal
           onClose={() => setAddModal(false)}
-          onAdd={(p) => { setParents(prev => [...prev, p]); setAddModal(false); toast('Parent added successfully'); }}
+          onAdd={(p) => { setParents(prev => [...prev, p]); recordAudit({ action: AUDIT_ACTIONS.PARENT_CREATED, target: p.name }); setAddModal(false); toast('Parent added successfully'); }}
         />
       )}
 
@@ -1498,6 +1502,7 @@ function ParentsPage({ roleId, schoolId, currentUser }) {
           onClose={() => setEditParent(null)}
           onAdd={(p) => {
             setParents(prev => prev.map(x => x.id === p.id ? p : x));
+            recordAudit({ action: AUDIT_ACTIONS.PARENT_UPDATED, target: p.name });
             setEditParent(null);
             toast(`${p.name} updated`);
           }}
@@ -2478,7 +2483,7 @@ function ResultsPage({ roleId, schoolId, currentUser }) {
             </>
           )}
           {canApproveResults && !approved && (
-            <button onClick={() => { setApproved(true); toast('Results approved'); }}
+            <button onClick={() => { setApproved(true); recordAudit({ action: AUDIT_ACTIONS.RESULTS_APPROVED, target: schoolId, detail: `${marks.length} students`, severity: AUDIT_SEVERITY.NOTICE }); toast('Results approved'); }}
               className="text-sm py-2 px-4 rounded-xl font-bold text-white" style={{ background: '#059669' }}>
               Approve Results
             </button>
@@ -4732,14 +4737,35 @@ function ManageSchoolModal({ tenant, onClose, onChanged }) {
   };
   const applyPlan = () => {
     assignPlan(t.school_id, planId, { effective });
+    recordAudit({
+      action: AUDIT_ACTIONS.PLAN_ASSIGNED, target: t.name, school_id: t.school_id,
+      detail: `${planLabel(planId)} · ${effective === 'next_term' ? 'from next term' : 'immediate'} · ${t.student_count} students`,
+      severity: AUDIT_SEVERITY.CRITICAL,
+    });
     onChanged(effective === 'next_term'
       ? `${plan.name} scheduled for next term`
       : `Plan changed to ${plan.name} — invoice re-rated`);
   };
-  const trial = (days) => { extendTrial(t.school_id, days); onChanged(`Trial extended by ${days} days`); };
-  const restartTrial = () => { startTrial(t.school_id, TRIAL_DAYS); onChanged(`${TRIAL_DAYS}-day trial restarted`); };
-  const doSuspend = () => { suspendTenant(t.school_id, 'Suspended from the SaaS console'); onChanged('School suspended — access revoked'); };
-  const doReactivate = () => { reactivateTenant(t.school_id); onChanged('School reactivated'); };
+  const trial = (days) => {
+    extendTrial(t.school_id, days);
+    recordAudit({ action: AUDIT_ACTIONS.TRIAL_EXTENDED, target: t.name, school_id: t.school_id, detail: `+${days} days`, severity: AUDIT_SEVERITY.NOTICE });
+    onChanged(`Trial extended by ${days} days`);
+  };
+  const restartTrial = () => {
+    startTrial(t.school_id, TRIAL_DAYS);
+    recordAudit({ action: AUDIT_ACTIONS.TRIAL_EXTENDED, target: t.name, school_id: t.school_id, detail: `restarted (${TRIAL_DAYS} days)`, severity: AUDIT_SEVERITY.NOTICE });
+    onChanged(`${TRIAL_DAYS}-day trial restarted`);
+  };
+  const doSuspend = () => {
+    suspendTenant(t.school_id, 'Suspended from the SaaS console');
+    recordAudit({ action: AUDIT_ACTIONS.TENANT_SUSPENDED, target: t.name, school_id: t.school_id, detail: 'access revoked', severity: AUDIT_SEVERITY.CRITICAL });
+    onChanged('School suspended — access revoked');
+  };
+  const doReactivate = () => {
+    reactivateTenant(t.school_id);
+    recordAudit({ action: AUDIT_ACTIONS.TENANT_REACTIVATED, target: t.name, school_id: t.school_id, severity: AUDIT_SEVERITY.CRITICAL });
+    onChanged('School reactivated');
+  };
 
   const meta = statusMeta(state.status);
   const daysToDue = state.nextDueAt ? daysUntil(state.nextDueAt) : null;
@@ -4913,6 +4939,11 @@ function SaasBillingPage({ roleId }) {
   const settle = () => {
     if (!payTarget) return;
     markInvoicePaid(payTarget.id, { method: pay.method, reference: pay.reference });
+    recordAudit({
+      action: AUDIT_ACTIONS.INVOICE_PAID, target: `${payTarget.id} · ${payTarget.school_name}`,
+      school_id: payTarget.school_id, detail: `${formatUGX(payTarget.amount)} via ${pay.method}`,
+      severity: AUDIT_SEVERITY.CRITICAL,
+    });
     toast(`${payTarget.id} marked paid — ${payTarget.school_name} reactivated`);
     setPayTarget(null);
     setPay({ method: PAYMENT_METHODS[0], reference: '' });

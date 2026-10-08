@@ -10,6 +10,7 @@ import {
   Card, SectionHeader, Field, TextInput, Select, Toggle, ReadOnlyRow,
   PrimaryButton, GhostButton, QRMock, CodeInput,
 } from '../components/ui';
+import { recordAudit, AUDIT_ACTIONS, AUDIT_SEVERITY } from '../lib/audit';
 
 /* ── Page ───────────────────────────────────────────────────── */
 
@@ -77,6 +78,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
     updateUserProfile(email, { email: next });
     onUpdateUser?.({ email: next });
     cancelFlow(setEmailFlow);
+    recordAudit({ action: AUDIT_ACTIONS.EMAIL_CHANGED, target: next, detail: `from ${email}`, severity: AUDIT_SEVERITY.NOTICE });
     notify('Email address updated');
   };
 
@@ -91,6 +93,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
     updateUserProfile(email, { phone: next });
     onUpdateUser?.({ phone: next });
     cancelFlow(setPhoneFlow);
+    recordAudit({ action: AUDIT_ACTIONS.PHONE_CHANGED, target: next, severity: AUDIT_SEVERITY.NOTICE });
     notify('Phone number updated');
   };
 
@@ -106,6 +109,7 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
     if (pw.next !== pw.confirm) return setPw(p => ({ ...p, error: 'Passwords do not match.' }));
     updatePrefs({ security: { passwordChangedAt: new Date().toISOString() } });
     setPw({ current: '', next: '', confirm: '', error: '' });
+    recordAudit({ action: AUDIT_ACTIONS.PASSWORD_CHANGED, severity: AUDIT_SEVERITY.NOTICE });
     notify('Password changed successfully');
   };
 
@@ -129,9 +133,14 @@ export default function ProfilePage({ currentUser, tenant, theme, onTheme, onUpd
   };
   const toggleMfa = (next) => {
     updatePrefs({ mfa: { enabled: next } });
+    recordAudit({ action: AUDIT_ACTIONS.MFA_CHANGED, detail: next ? 'enabled' : 'disabled', severity: AUDIT_SEVERITY.NOTICE });
     notify(next ? 'Two-factor authentication enabled' : 'Two-factor authentication disabled', next ? 'success' : 'warn');
   };
-  const regenerateCodes = () => { setCodes(makeRecoveryCodes()); notify('New recovery codes generated'); };
+  const regenerateCodes = () => {
+    setCodes(makeRecoveryCodes());
+    recordAudit({ action: AUDIT_ACTIONS.RECOVERY_CODES, severity: AUDIT_SEVERITY.NOTICE });
+    notify('New recovery codes generated');
+  };
 
   /* ── Notification / locale prefs ── */
   const toggleNotif = (key) => updatePrefs({ notifications: { [key]: !prefs.notifications[key] } });

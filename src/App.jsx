@@ -5,6 +5,8 @@ import EnrollmentForm from './pages/EnrollmentForm';
 import Onboarding from './pages/Onboarding';
 import { resolveUser, queryTenant } from './lib/tenantStore';
 import { useTheme, clearUserStorage } from './lib/userPrefs';
+import { useIdleTimeout, IDLE_TIMEOUT_MS } from './lib/useIdleTimeout';
+import { recordAudit, setAuditActor, AUDIT_ACTIONS, AUDIT_SEVERITY } from './lib/audit';
 import { refreshSubscriptions, evaluateTenant } from './lib/billing';
 
 /* Read the ?enroll= param once, lazily, so we never setState in an effect */
@@ -22,6 +24,20 @@ export default function App() {
   const [enrollSchoolId, setEnrollSchoolId] = useState(initialEnrollSchoolId); // null = generic, 'skh-xxx' = school-specific
   const [theme, setTheme] = useTheme(); // light | dark | system — applied to <html>
   const [blocked, setBlocked] = useState(null); // { tenant, state, email } — school access revoked
+  const [notice, setNotice] = useState('');     // e.g. "signed out for inactivity"
+
+  /* Expire an unattended session (OWASP A07). */
+  useIdleTimeout({
+    enabled: view === 'dashboard' && !!session,
+    onIdle: () => {
+      recordAudit({ action: AUDIT_ACTIONS.IDLE_SIGN_OUT, severity: AUDIT_SEVERITY.NOTICE });
+      setAuditActor({});
+      clearUserStorage(session?.currentUser?.user_id);
+      setSession(null);
+      setView('login');
+      setNotice(`You were signed out after ${Math.round(IDLE_TIMEOUT_MS / 60000)} minutes of inactivity.`);
+    },
+  });
 
 
   /** Patch the signed-in user (profile edits: name / email / phone) */
@@ -59,11 +75,16 @@ export default function App() {
     const previous = session?.currentUser?.user_id;
     if (previous && previous !== currentUser.user_id) clearUserStorage(previous);
 
+    setAuditActor({ name: currentUser.name, role: currentUser.role, school_id: currentUser.school_id ?? null });
+    recordAudit({ action: AUDIT_ACTIONS.SIGN_IN, target: currentUser.email ?? email, severity: AUDIT_SEVERITY.NOTICE });
+    setNotice('');
     setSession({ currentUser, tenant });
     setView('dashboard');
   };
 
   const handleLogout = () => {
+    recordAudit({ action: AUDIT_ACTIONS.SIGN_OUT, severity: AUDIT_SEVERITY.NOTICE });
+    setAuditActor({});
     clearUserStorage(session?.currentUser?.user_id);   // no preference leak on shared devices
     setSession(null);
     setView('login');
@@ -159,6 +180,8 @@ export default function App() {
       onLogin={handleLogin}
       onEnroll={handleEnroll}
       onCreateSchool={handleCreateSchool}
+      notice={notice}
+      onDismissNotice={() => setNotice('')}
     />
   );
 }

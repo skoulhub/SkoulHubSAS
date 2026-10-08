@@ -90,6 +90,9 @@ export const PERMISSIONS = {
   'settings.view':         ['school_admin'],
   'settings.edit':         ['school_admin'],
 
+  // ── Audit trail — school admins see their own school, SaaS admin sees all
+  'audit.view':            ['saas_admin','school_admin'],
+
   // ── Subscription / billing (tenant-facing plan management)
   'subscription.view':     ['school_admin'],
   'subscription.manage':   ['school_admin'],
@@ -135,6 +138,7 @@ export const NAV_PERMISSION_MAP = {
   features:   'saas.features.manage',
   settings:   'settings.view',
   subscription: 'subscription.view',
+  audit:      'audit.view',
 };
 
 /** Screens that are public to every authenticated role. */

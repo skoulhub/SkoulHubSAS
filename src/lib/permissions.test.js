@@ -39,6 +39,17 @@ describe('permissions — can()', () => {
     }
   });
 
+  it('the audit trail is limited to school admins and the platform operator', () => {
+    expect(can('school_admin', 'audit.view')).toBe(true);
+    expect(can('saas_admin', 'audit.view')).toBe(true);
+    for (const role of ['head_teacher', 'teacher', 'parent', 'bursar']) {
+      expect(can(role, 'audit.view'), role).toBe(false);
+      expect(navAllowed(role, 'audit'), role).toBe(false);
+    }
+    expect(navAllowed('school_admin', 'audit')).toBe(true);
+    expect(navAllowed('saas_admin', 'audit')).toBe(true);
+  });
+
   it('unknown permission returns false (default-deny)', () => {
     expect(can('school_admin', 'does.not.exist')).toBe(false);
     expect(can('anything', 'students.view')).toBe(false);

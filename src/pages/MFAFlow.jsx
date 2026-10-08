@@ -1,4 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
+import {
+  createOtpChallenge, verifyOtp, otpErrorMessage, otpSecondsLeft,
+  otpAttemptsLeft, canResend, OTP_RESEND_COOLDOWN_MS,
+} from '../lib/otp';
+import { recordAudit, AUDIT_ACTIONS, AUDIT_SEVERITY } from '../lib/audit';
 import { LoginShell, ArrowRight } from './Login';
 
 const METHODS = [
@@ -46,6 +51,7 @@ const METHODS = [
 
 export default function MFAFlow({ role, email, onBack, onSuccess }) {
   const [method, setMethod] = useState(null); // null | 'otp' | 'authapp' | 'passkey'
+  const [challenge, setChallenge] = useState(null);
 
   /* ── Method selector ─────────────────────────── */
   if (!method) {
@@ -83,7 +89,11 @@ export default function MFAFlow({ role, email, onBack, onSuccess }) {
             {METHODS.map(m => (
               <button
                 key={m.id}
-                onClick={() => setMethod(m.id)}
+                onClick={() => {
+                  setMethod(m.id);
+                  // a fresh, single-use code is minted per attempt (event handler, not render)
+                  if (m.id === 'otp') setChallenge(createOtpChallenge());
+                }}
                 className="relative flex items-center gap-4 p-4 rounded-xl border-2 border-gray-200 bg-white text-left
                   hover:border-brand-blue hover:bg-brand-blue-light hover:shadow-md transition-all duration-150 group"
               >
@@ -116,7 +126,9 @@ export default function MFAFlow({ role, email, onBack, onSuccess }) {
     );
   }
 
-  if (method === 'otp')     return <OTPMethod     email={email} onBack={() => setMethod(null)} onSuccess={onSuccess} />;
+  if (method === 'otp')     return <OTPMethod     email={email} challenge={challenge}
+                                                   onNewChallenge={setChallenge}
+                                                   onBack={() => setMethod(null)} onSuccess={onSuccess} />;
   if (method === 'authapp') return <AuthAppMethod  email={email} onBack={() => setMethod(null)} onSuccess={onSuccess} />;
   if (method === 'passkey') return <PasskeyMethod  onBack={() => setMethod(null)} onSuccess={onSuccess} />;
 }
@@ -124,7 +136,7 @@ export default function MFAFlow({ role, email, onBack, onSuccess }) {
 /* ══════════════════════════════════════════════════
    METHOD 1 – Email / SMS OTP
 ═══════════════════════════════════════════════════ */
-function OTPMethod({ email, onBack, onSuccess }) {
+function OTPMethod({ email, challenge, onNewChallenge, onBack, onSuccess }) {
   const [digits, setDigits]   = useState(['','','','','','']);
   const [timer, setTimer]     = useState(59);
   const [verifying, setVerif] = useState(false);
@@ -164,12 +176,38 @@ function OTPMethod({ email, onBack, onSuccess }) {
     const code = digits.join('');
     if (code.length < 6) { setError('Please enter all 6 digits.'); return; }
     setVerif(true);
-    // Simulate verification — accept any 6-digit code in demo
+
+    // Verified against a real challenge: random code, 2-minute expiry,
+    // 5 attempts, single use. (Delivery is simulated in the demo — the code
+    // is shown on screen instead of being emailed.)
+    const result = verifyOtp(challenge, code);
+    if (result.challenge) onNewChallenge(result.challenge);
+
     setTimeout(() => {
       setVerif(false);
-      onSuccess();
-    }, 1500);
+      if (result.ok) { onSuccess(); return; }
+      recordAudit({
+        action: result.reason === 'locked' ? AUDIT_ACTIONS.MFA_LOCKED : AUDIT_ACTIONS.MFA_FAILED,
+        actor: email || 'unknown', role: null, school_id: null,
+        target: email || 'unknown', detail: result.reason, severity: AUDIT_SEVERITY.NOTICE,
+      });
+      setError(otpErrorMessage(result.reason, result.challenge));
+      setDigits(['', '', '', '', '', '']);
+      refs[0].current?.focus();
+    }, 700);
   };
+
+  const handleResend = () => {
+    if (!canResend(challenge)) return;
+    onNewChallenge(createOtpChallenge());
+    setDigits(['', '', '', '', '', '']);
+    setError('');
+    setTimer(Math.ceil(OTP_RESEND_COOLDOWN_MS / 1000));
+    refs[0].current?.focus();
+  };
+
+  const attemptsLeft = otpAttemptsLeft(challenge);
+  const expiresIn    = otpSecondsLeft(challenge);
 
   const filled = digits.every(d => d !== '');
 
@@ -190,6 +228,12 @@ function OTPMethod({ email, onBack, onSuccess }) {
           <p className="mt-1 text-sm text-gray-500">
             We sent a 6-digit code to <span className="font-semibold text-brand-navy">{email || 'your email'}</span>
           </p>
+          {/* Demo delivery: no mail is sent, so the code is shown here. The
+              verification itself is real — random, expiring, single use. */}
+          <div className="mt-3 inline-block rounded-xl px-3 py-2 text-xs" style={{ background: 'var(--tint-amber)', color: 'var(--warn)' }}>
+            Demo mode — your code is <strong className="font-mono tracking-widest">{challenge?.code ?? '······'}</strong>
+            {expiresIn > 0 && <span className="ml-2 opacity-70">expires in {expiresIn}s</span>}
+          </div>
         </div>
 
         {/* OTP Input */}
@@ -226,10 +270,13 @@ function OTPMethod({ email, onBack, onSuccess }) {
           {timer > 0 ? (
             <span className="text-xs text-gray-400">Resend code in <span className="font-semibold text-brand-navy">0:{String(timer).padStart(2,'0')}</span></span>
           ) : (
-            <button onClick={() => { setTimer(59); setDigits(['','','','','','']); }}
+            <button onClick={handleResend}
               className="text-xs text-brand-blue font-semibold hover:underline">
               Resend code
             </button>
+          )}
+          {attemptsLeft < 5 && attemptsLeft > 0 && (
+            <p className="text-[11px] text-gray-400 mt-2">{attemptsLeft} attempt{attemptsLeft === 1 ? '' : 's'} remaining</p>
           )}
         </div>
 

@@ -10,6 +10,7 @@ import {
   statusMeta, statusSentence, dateLabel,
 } from '../lib/billing';
 import { Card, SectionHeader, PrimaryButton, GhostButton, TextInput, Select } from '../components/ui';
+import { recordAudit, AUDIT_ACTIONS, AUDIT_SEVERITY } from '../lib/audit';
 
 /* Local badge — the plan pill used in the page header. */
 function PlanBadge({ plan }) {
@@ -55,6 +56,10 @@ export default function SubscriptionPage({ roleId, tenant, onUpdateTenant }) {
 
   const switchPlan = (planId) => {
     updateTenantPlan(tenant.school_id, planId);
+    recordAudit({
+      action: AUDIT_ACTIONS.PLAN_SWITCHED, target: planLabel(planId),
+      detail: `${planLabel(tenant.plan)} → ${planLabel(planId)}`, severity: AUDIT_SEVERITY.CRITICAL,
+    });
     onUpdateTenant?.({ plan: planId });
     setConfirming(null);
     notify(`Plan changed to ${planLabel(planId)} — takes effect next term`);
