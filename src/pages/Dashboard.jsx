@@ -713,7 +713,7 @@ function OverviewPage({ roleId, schoolId, currentUser }) {
             <div className="flex items-end gap-1 flex-1" style={{ minHeight: 90 }}>
               {feeBars.map((h, i) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                  <div className="w-full rounded-sm transition-all"
+                  <div className="w-full rounded-xs transition-all"
                     style={{ height: `${h}%`, minHeight: 4, background: i === feeBars.length - 3 ? '#1E45FC' : '#c7d4fd' }} />
                   <span className="text-[8px] text-gray-400">{feeMonths[i].slice(0,1)}</span>
                 </div>
@@ -4296,7 +4296,7 @@ function EnrollmentBuilderPage({ roleId, schoolId, tenant }) {
                   className="w-9 h-5 rounded-full flex-shrink-0 transition-all relative"
                   style={{ background: field.enabled ? SECTION_META[activeTab].color : 'var(--border-strong)', cursor: field.locked ? 'default' : 'pointer' }}
                   title={field.locked ? 'This field cannot be disabled' : (field.enabled ? 'Disable field' : 'Enable field')}>
-                  <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all"
+                  <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-xs transition-all"
                     style={{ left: field.enabled ? 'calc(100% - 18px)' : '2px' }} />
                 </button>
 
@@ -5326,7 +5326,7 @@ function SaasFeaturesPage({ roleId }) {
       </div>
       <div className="flex flex-col gap-3">
         {features.map((f) => (
-          <Card key={f.id} className="p-4 flex items-center gap-4 hover:shadow-sm transition-all">
+          <Card key={f.id} className="p-4 flex items-center gap-4 hover:shadow-xs transition-all">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold flex-shrink-0" style={{ background:'var(--surface-2)', color:'var(--accent)' }}>{f.votes}</div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-bold" style={{ color:'var(--text)' }}>{f.title}</div>

@@ -70,7 +70,7 @@ function Toggle({ checked, onChange, disabled = false, label }) {
       onClick={() => !disabled && onChange(!checked)}
       className="relative w-10 h-5 rounded-full transition-all duration-200 flex-shrink-0 disabled:opacity-50"
       style={{ background: checked ? '#1E45FC' : 'var(--surface-3)' }}>
-      <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all duration-200"
+      <span className="absolute top-0.5 w-4 h-4 bg-white rounded-full shadow-sm transition-all duration-200"
         style={{ left: checked ? 'calc(100% - 18px)' : '2px' }} />
     </button>
   );

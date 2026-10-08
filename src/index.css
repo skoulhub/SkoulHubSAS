@@ -197,9 +197,29 @@
   unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/*
+ * Tailwind 4 no longer reads `content` from the JS config — sources are
+ * declared in CSS. Without these the scanner misses the app entirely and
+ * silently emits almost no utilities.
+ */
+@source "../index.html";
+@source "../src/**/*.{js,jsx}";
+
+/*
+ * Tailwind 4 changed the default border colour from gray-200 to currentColor,
+ * which would tint every unqualified `border` utility with the text colour.
+ * Restore the v3 default so existing markup renders exactly as before.
+ */
+@layer base {
+  *,
+  ::before,
+  ::after {
+    border-color: #e2e8f0;
+  }
+}
 
 /* ─────────────────────────────────────────────────────────────
    Theme tokens
